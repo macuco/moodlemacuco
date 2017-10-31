@@ -65,6 +65,7 @@ if ($resource->tobemigrated) {
 
 $fs = get_file_storage();
 $files = $fs->get_area_files($context->id, 'mod_inea', 'content', 0, 'sortorder DESC, id ASC', false); // TODO: this is not very efficient!!
+
 if (count($files) < 1) {
     inea_print_filenotfound($resource, $cm, $course);
     die;
@@ -96,6 +97,8 @@ if ($redirect) {
     // this redirect trick solves caching problems when tracking views ;-)
     $path = '/'.$context->id.'/mod_inea/content/'.$resource->revision.$file->get_filepath().$file->get_filename();
     $fullurl = moodle_url::make_file_url('/pluginfile.php', $path, $displaytype == RESOURCELIB_DISPLAY_DOWNLOAD);
+    //$fullurl = moodle_url::make_file_url('/mod/inea/pluginfile.php', $path, $displaytype == RESOURCELIB_DISPLAY_DOWNLOAD);
+    //print_object($fullurl); exit();
     redirect($fullurl);
 }
 

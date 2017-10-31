@@ -383,8 +383,10 @@ function inea_pluginfile($course, $cm, $context, $filearea, $args, $forcedownloa
     $fs = get_file_storage();
     $relativepath = implode('/', $args);
     $fullpath = rtrim("/$context->id/mod_inea/$filearea/0/$relativepath", '/');
+    
     do {
         if (!$file = $fs->get_file_by_hash(sha1($fullpath))) {
+            
             if ($fs->get_file_by_hash(sha1("$fullpath/."))) {
                 if ($file = $fs->get_file_by_hash(sha1("$fullpath/index.htm"))) {
                     break;
@@ -418,9 +420,47 @@ function inea_pluginfile($course, $cm, $context, $filearea, $args, $forcedownloa
         $filter = 0;
     }
     $options["dontdie"]=true;
-    // finally send the file
+    
     $salida = send_stored_file($file, null, $filter, $forcedownload, $options);
-    //echo "JUANCHO".rand(0,99999);
+    if($mimetype === 'text/html'){
+    $javascript = "";
+    $javascript .= "<script language=\"javascript\">\n";
+    $javascript .=  "<!--\n";
+    
+    $javascript .=  "function wwwroot(){\n";
+    $javascript .=  "\t return \"$CFG->wwwroot\";\n";
+    $javascript .=  "}\n";
+    
+    $javascript .=  'function loadScript(url, callback){
+        var script = document.createElement("script")
+        script.type = "text/javascript";
+        script.src = url;
+        if (script.readyState){  //IE
+            script.onreadystatechange = function(){
+                if (script.readyState == "loaded" ||
+                    script.readyState == "complete"){
+                    script.onreadystatechange = null;
+                    callback();
+                }
+            };
+        } else {  //Others
+            script.onload = function(){
+                callback();
+            };
+        }
+        
+        document.getElementsByTagName("head")[0].appendChild(script);
+
+    }';
+    
+    $javascript .=  "\n".'loadScript(wwwroot()+"/mod/inea/javascript.php?imprimir=1",function(){
+                                                //alert(id_curso);
+                                            });';
+    
+    $javascript .=  "//-->\n";
+    $javascript .=  "</script>\n";
+    echo $javascript;
+    }
     die;
 }
 

@@ -1,8 +1,11 @@
 <?php 
-require('../../config.php');
-echo javascript_curso(2,29);
+require_once('../../config.php');
+if(isset($_GET['imprimir'])){
+    echo javascript_curso(2,29);
+}
 function javascript_curso($cursoid,$ineaid) {
 	global $USER, $CFG, $DB;
+	
 	//$course = get_record("course", "id", $cursoid);
 	/* vhackero Preparar el Javascript par amanejo del curso desde un recurso externo >*/
 	$url_ret = '';
@@ -14,123 +17,111 @@ function javascript_curso($cursoid,$ineaid) {
     		error("Error en el ID del curso");
     }
 	
-
+    
 	$URL_logout =  "$CFG->wwwroot/login/logout.php$url_ret";
 
-	/* Vhackero > Preparar las funciones JavaScript */
-	$str  = "
-// Vhackero - Jorge Polo Contreras Paredes
-// Obtiene la ruta de cualquier p�gina dentro de frames anidados.
-var currentFrame = 'top'
-var x;
-var y = new Array();
-y[0] = 0;
-var level = 0;
-var actual = self.name;
-var ruta;
-function parsetree()
-{
-	for (i=y[level];i<x.length;i++)
-	{
-		if (x.frames[i].name == actual){
-			ruta = currentFrame + '.frames[' + i + ']';
-			//alert('Cuando ruta='+ruta+' y eval(ruta).name='+eval(ruta).name+', actual es igual a '+actual);
-			}
-		if (x.frames[i].length > 0){
-			currentFrame = currentFrame + '.frames[' + i + ']';
-			y[level] = i + 1;
-			level++;
-			y[level] = 0;
-			return;
-		}
-	}
-	currentFrame = currentFrame.substring(0,currentFrame.lastIndexOf('.'));
-
-	if (level == 0) currentFrame =='';
-	level--;
-
-}
-
-while (currentFrame != ''){
-	x = eval(currentFrame);
-	parsetree();
-}
-
-//alert('ruta es '+ruta+' y eval(ruta).name es '+eval(ruta).name)
-//alert(top.id_curso);";
-	
+    $formato = false;//Variable para hacer que se muestre el javascript con formato
 	$javascript = "";
 	//$javascript .= "<script language=\"javascript\">\n";
 	//$javascript .=  "<!--\n";
-	$javascript .= "// Imprimir funciones JavaScript para acceder a recursos y actividades Moodle desde los contenidos\n";
-    $javascript .= "// @autor Jorge Polo Contreras Paredes - Vhackero\n";
-    $javascript .= "// @eMail vhackero@vhackero.zzn.com, vhackero@gmail.com - Vhackero\n";
-    $javascript .= "\n";
-	$javascript .=  " var id_curso=$cursoid;\n";
-	$javascript .=  " var id_usuario=$USER->id;\n";
-	$javascript .=  "\n";
-	$javascript .=  "function Curso_salir(ruta){\n";
-	$javascript .=  "ruta.location.href=\"$URL_logout\";\n";
-	$javascript .=  "}\n";
-	$javascript .=  "function Usuario_miCorreo(ruta){\n";
+	$javascript .=  " var id_curso=$cursoid;";
+	if($formato) $javascript .=  "\n";
+	$javascript .=  " var id_usuario=$USER->id;";
+	if($formato) $javascript .=  "\n\n";
+	$javascript .=  "function Curso_salir(ruta){";
+	if($formato) $javascript .=  "\n";
+	$javascript .=  "ruta.location.href=\"$URL_logout\";";
+	if($formato) $javascript .=  "\n";
+	$javascript .=  "}";
+	if($formato) $javascript .=  "\n";
+	$javascript .=  "function Usuario_miCorreo(ruta){";
+	if($formato) $javascript .=  "\n";
 	
-	/*if(isguest()) $javascript .=  "ruta.location.href=\"$CFG->wwwroot/cursos/invitado.php\";\n";
-	else $javascript .=  "ruta.location.href=\"$CFG->wwwroot/message/index.php?cid=$cursoid\";\n";
-	*/
-	$javascript .=  "}\n";
-	$javascript .=  "function Curso_correoTutor(ruta){\n";
-/*	if ($USER->tutor[$cursoid]) {
-		if(isguest()) $javascript .=  "ruta.location.href=\"$CFG->wwwroot/cursos/invitado.php\";\n";
-		else $javascript .=  "ruta.location.href=\"$CFG->wwwroot/message/index.php?cid=$cursoid\";\n";
+	if(tieneRol(6,$cursoid)) $javascript .=  "ruta.location.href=\"$CFG->wwwroot/cursos/invitado.php\";";
+	else $javascript .=  "ruta.location.href=\"$CFG->wwwroot/message/index.php?cid=$cursoid\";";
+	if($formato) $javascript .=  "\n";
+	$javascript .=  "}";
+	if($formato) $javascript .=  "\n";
+	$javascript .=  "function Curso_correoTutor(ruta){";
+	if($formato) $javascript .=  "\n";
+	if (tieneRol(3,$cursoid)) {
+		if(tieneRol(6)) $javascript .=  "ruta.location.href=\"$CFG->wwwroot/cursos/invitado.php\";";
+		else $javascript .=  "ruta.location.href=\"$CFG->wwwroot/message/index.php?cid=$cursoid\";";
 	} else {
-		if(isguest()) $javascript .=  "ruta.location.href=\"$CFG->wwwroot/cursos/invitado.php\";\n";
-		else $javascript .=  "ruta.location.href=\"$CFG->wwwroot/mod/inea/mensaje.php?cid=$cursoid\";\n";
+	    if(tieneRol(6)) $javascript .=  "ruta.location.href=\"$CFG->wwwroot/cursos/invitado.php\";";
+		//else $javascript .=  "ruta.location.href=\"$CFG->wwwroot/mod/inea/mensaje.php?cid=$cursoid\";\n";
+	    else $javascript .=  "ruta.location.href=\"$CFG->wwwroot/message/index.php?cid=$cursoid\";";
 	}
-*/	$javascript .=  "}\n";
-	$javascript .=  "function Usuario_verAlumnos(ruta){\n";
-/*	if(isguest()) $javascript .=  "ruta.location.href=\"$CFG->wwwroot/cursos/invitado.php\";\n";
-	else $javascript .=  "ruta.location.href=\"$CFG->wwwroot/user/index.php?contextid=$context->id&roleid=5\";\n";
-*/	$javascript .=  "}\n";
-	$javascript .=  "function Usuario_verTutor(ruta){\n";
-/*	if ($USER->tutor[$cursoid]) {
-		if(isguest()) $javascript .=  "ruta.location.href=\"$CFG->wwwroot/cursos/invitado.php\";\n";
-		else $javascript .=  "ruta.location.href=\"$CFG->wwwroot/message/index.php?cid=$cursoid\";\n";
+	if($formato) $javascript .=  "\n";
+	$javascript .=  "}";
+	if($formato) $javascript .=  "\n";
+	$javascript .=  "function Usuario_verAlumnos(ruta){";
+	if($formato) $javascript .=  "\n";
+	if(tieneRol(6)) $javascript .=  "ruta.location.href=\"$CFG->wwwroot/cursos/invitado.php\";";
+	else $javascript .=  "ruta.location.href=\"$CFG->wwwroot/user/index.php?contextid=$context->id&roleid=5\";";
+	if($formato) $javascript .=  "\n";
+	$javascript .=  "}";
+	if($formato) $javascript .=  "\n";
+	$javascript .=  "function Usuario_verTutor(ruta){";
+	if($formato) $javascript .=  "\n";
+	if (tieneRol(3)) {
+	    if(tieneRol(6)) $javascript .=  "ruta.location.href=\"$CFG->wwwroot/cursos/invitado.php\";";
+		else $javascript .=  "ruta.location.href=\"$CFG->wwwroot/message/index.php?cid=$cursoid\";";
 	} else {
-		if(isguest()) $javascript .=  "ruta.location.href=\"$CFG->wwwroot/cursos/invitado.php\";\n";
-		else $javascript .=  "ruta.location.href=\"$CFG->wwwroot/mod/inea/mensaje.php?cid=$cursoid\";\n";
+	    if(tieneRol(6)) $javascript .=  "ruta.location.href=\"$CFG->wwwroot/cursos/invitado.php\";";
+		else $javascript .=  "ruta.location.href=\"$CFG->wwwroot/mod/inea/mensaje.php?cid=$cursoid\";";
 	}//	$javascript .=  "ruta.location.href=\"$CFG->wwwroot/user/index.php?contextid=$context->id&roleid=4\";\n";
-*/	$javascript .=  "}\n";
-	$javascript .=  "function Curso_verCalendario(ruta){\n";
-/*	if(isguest()) $javascript .=  "ruta.location.href=\"$CFG->wwwroot/cursos/invitado.php\";\n";
-	else $javascript .=  "ruta.location.href=\"$CFG->wwwroot/course/view.php?id=$cursoid&seccion=3\";\n";
-*/	$javascript .=  "}\n";
-	$javascript .=  "function Curso_verChat(ruta){\n";
-/*	if(isguest()) $javascript .=  "ruta.location.href=\"$CFG->wwwroot/cursos/invitado.php\";\n";
-	else $javascript .=  "ruta.location.href=\"$CFG->wwwroot/mod/chat/index.php?id=$cursoid\";\n";
-*/	$javascript .=  "}\n";
-	$javascript .=  "function Curso_verForos(ruta){\n";
-	$javascript .=  "ruta.location.href=\"$CFG->wwwroot/mod/forum/index.php?id=$cursoid\";\n";
+	if($formato) $javascript .=  "\n";
+	$javascript .=  "}";
+	if($formato) $javascript .=  "\n";
+	$javascript .=  "function Curso_verCalendario(ruta){";
+	if($formato) $javascript .=  "\n";
+	if(tieneRol(6)) $javascript .=  "ruta.location.href=\"$CFG->wwwroot/cursos/invitado.php\";";
+	else $javascript .=  "ruta.location.href=\"$CFG->wwwroot/course/view.php?id=$cursoid&seccion=3\";";
+	if($formato) $javascript .=  "\n";
+	$javascript .=  "}";
+	if($formato) $javascript .=  "\n";
+	$javascript .=  "function Curso_verChat(ruta){";
+	if($formato) $javascript .=  "\n";
+	if(tieneRol(6)) $javascript .=  "ruta.location.href=\"$CFG->wwwroot/cursos/invitado.php\";";
+	else $javascript .=  "ruta.location.href=\"$CFG->wwwroot/mod/chat/index.php?id=$cursoid\";";
+	if($formato) $javascript .=  "\n";
+	$javascript .=  "}";
+	if($formato) $javascript .=  "\n";
+	$javascript .=  "function Curso_verForos(ruta){";
+	if($formato) $javascript .=  "\n";
+	$javascript .=  "ruta.location.href=\"$CFG->wwwroot/mod/forum/index.php?id=$cursoid\";";
+	if($formato) $javascript .=  "\n";
+	$javascript .=  "}";
+	if($formato) $javascript .=  "\n";
+	$javascript .=  "function Curso_miCarpeta(ruta){";
+	if($formato) $javascript .=  "\n";
+	if(tieneRol(6)) $javascript .=  "ruta.location.href=\"$CFG->wwwroot/cursos/invitado.php\";";
+	else $javascript .=  "ruta.location.href=\"$CFG->wwwroot/mod/inea/carpeta.php?id_modulo=$ineaid\";";
+	if($formato) $javascript .=  "\n";
+	$javascript .=  "}";
+	if($formato) $javascript .=  "\n";
+	$javascript .=  "function Curso_verCalificaciones(ruta){";
+	if($formato) $javascript .=  "\n";
+	if(tieneRol(6)) $javascript .=  "ruta.location.href=\"$CFG->wwwroot/cursos/invitado.php\";";
+	else $javascript .=  "ruta.location.href=\"$CFG->wwwroot/grade/index.php?id=$cursoid&id_modulo=$ineaid\";";
+	if($formato) $javascript .=  "\n";
+	$javascript .=  "}";
+	if($formato) $javascript .=  "\n";
+	$javascript .=  "function Curso_verCarpeta(ruta){";
+	if($formato) $javascript .=  "\n";
+	if(tieneRol(6)) $javascript .=  "ruta.location.href=\"$CFG->wwwroot/cursos/invitado.php\";";
+	else $javascript .=  "ruta.location.href=\"$CFG->wwwroot/mod/inea/carpeta.php?id_modulo=$ineaid\";";
+	if($formato) $javascript .=  "\n";
 	$javascript .=  "}\n";
-	$javascript .=  "function Curso_miCarpeta(ruta){\n";
-/*	if(isguest()) $javascript .=  "ruta.location.href=\"$CFG->wwwroot/cursos/invitado.php\";\n";
-	else $javascript .=  "ruta.location.href=\"$CFG->wwwroot/mod/inea/carpeta.php?id_modulo=$ineaid\";\n";
-*/	$javascript .=  "}\n";
-	$javascript .=  "function Curso_verCalificaciones(ruta){\n";
-/*	if(isguest()) $javascript .=  "ruta.location.href=\"$CFG->wwwroot/cursos/invitado.php\";\n";
-	else $javascript .=  "ruta.location.href=\"$CFG->wwwroot/grade/index.php?id=$cursoid&id_modulo=$ineaid\";\n";
-*/	$javascript .=  "}\n";
-	$javascript .=  "function Curso_verCarpeta(ruta){\n";
-/*	if(isguest()) $javascript .=  "ruta.location.href=\"$CFG->wwwroot/cursos/invitado.php\";\n";
-	else $javascript .=  "ruta.location.href=\"$CFG->wwwroot/mod/inea/carpeta.php?id_modulo=$ineaid\";\n";
-*/	$javascript .=  "}\n";
 
-        $javascript .=  "function wwwroot(){\n";
-	$javascript .=  "return \"$CFG->wwwroot\";\n";
-	$javascript .=  "}\n";
+//        $javascript .=  "function wwwroot(){\n";
+//	$javascript .=  "return \"$CFG->wwwroot\";\n";
+//	$javascript .=  "}\n";
 
-	$javascript .=  "\n";
-	$javascript .= $str;
-	$javascript .=  "\n";
+	//$javascript .=  "\n";
+	//$javascript .= $str;
+	//$javascript .=  "\n";
 	//$javascript .=  "//-->\n";
 	//$javascript .=  "</script>\n";
 //	$javascript .= imprimeActividades_Vhackero($course);
@@ -138,5 +129,20 @@ while (currentFrame != ''){
 	return $javascript;
 }
 
-
+function tieneRol($idRol, $sistemContext = false ){
+    global $COURSE, $USER;
+    if($sistemContext){
+        $cContext = context_system::instance(); 
+    }else{
+        $cContext = context_course::instance($COURSE->id); // global $COURSE
+    }
+    
+    $currenRole = current(get_user_roles($cContext, $USER->id));
+    
+    
+    if($currenRole){
+        return $currenRole->id==$idRol? true : false;
+    }
+    return false;
+}
 ?>

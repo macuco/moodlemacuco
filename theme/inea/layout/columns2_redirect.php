@@ -28,6 +28,26 @@ user_preference_allow_ajax_update('drawer-open-nav', PARAM_ALPHA);
 require_once($CFG->libdir . '/behat/lib.php');
 
 if (isloggedin()) {
+    //---- Verificación si tiene rol en el contexto y redireccionar al mod inea si existe -----
+    $modinfo = get_fast_modinfo($COURSE->id);
+    $cContext = context_course::instance($COURSE->id); // global $COURSE
+    $currenRole = current(get_user_roles($cContext, $USER->id));
+    
+     
+    if($currenRole){
+        $viewContentCourse = $currenRole->id==5||$currenRole->id==4? true : false;
+        if($ineas = $modinfo->get_instances_of('inea')){
+            //print_object($PAGE->pagelayout);exit;
+            redirect($CFG->wwwroot .'/mod/inea/view.php?id='.array_values($modinfo->get_instances_of('inea'))[0]->id.'&redirect=0');
+            array_values($modinfo->get_instances_of('inea'))[0]->id;
+            //TODO REDIRECT
+        }
+    }
+    
+    // -----------------------------------------------------------------------------------------
+    
+    
+    
     $navdraweropen = (get_user_preferences('drawer-open-nav', 'true') == 'true');
 } else {
     $navdraweropen = false;
@@ -36,7 +56,6 @@ $extraclasses = [];
 if ($navdraweropen) {
     $extraclasses[] = 'drawer-open-left';
 }
-//print_object($PAGE->pagelayout);exit;
 $bodyattributes = $OUTPUT->body_attributes($extraclasses);
 $blockshtml = $OUTPUT->blocks('side-pre');
 $hasblocks = strpos($blockshtml, 'data-block=') !== false;
