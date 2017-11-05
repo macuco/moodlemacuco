@@ -61,6 +61,7 @@ function file_pluginfile_inea($relativepath, $forcedownload, $preview = null, $o
     
     // extract relative path components
     $args = explode('/', ltrim($relativepath, '/'));
+    //print_object($args);exit();
     
     if (count($args) < 3) { // always at least context, component and filearea
         print_error('invalidarguments');
@@ -120,7 +121,8 @@ function file_pluginfile_inea($relativepath, $forcedownload, $preview = null, $o
         
         $filefunction = $component.'_pluginfile';
         $filefunctionold = $modname.'_pluginfile';
-        
+        //inea_pluginfile()
+        //print_object($filefunction);exit();
         if (function_exists($filefunction)) {
             // if the function exists, it must send the file and terminate. Whatever it returns leads to "not found"
             $filefunction($course, $cm, $context, $filearea, $args, $forcedownload, $sendfileoptions);

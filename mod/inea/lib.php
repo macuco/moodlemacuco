@@ -377,15 +377,25 @@ function inea_pluginfile($course, $cm, $context, $filearea, $args, $forcedownloa
         // intro is handled automatically in pluginfile.php
         return false;
     }
-
+    
     array_shift($args); // ignore revision - designed to prevent caching problems only
-
+    
     $fs = get_file_storage();
+   // $fs = new file_storage_inea();
+    
     $relativepath = implode('/', $args);
     $fullpath = rtrim("/$context->id/mod_inea/$filearea/0/$relativepath", '/');
+    //echo "juan";$file = $fs->get_file_by_hash(sha1($fullpath));
+    //print_object($file);exit();
+    $file = $fs->get_file_by_hash(sha1($fullpath));
+    
+    //if($mimetype==='text/html'){
+   //     $fs2 = new file_storage_inea();
+    //    $file = $fs2->get_file_by_hash(sha1($fullpath));
+    //}
     
     do {
-        if (!$file = $fs->get_file_by_hash(sha1($fullpath))) {
+        if (!$file) {
             
             if ($fs->get_file_by_hash(sha1("$fullpath/."))) {
                 if ($file = $fs->get_file_by_hash(sha1("$fullpath/index.htm"))) {
@@ -413,6 +423,9 @@ function inea_pluginfile($course, $cm, $context, $filearea, $args, $forcedownloa
 
     // should we apply filters?
     $mimetype = $file->get_mimetype();
+    
+    
+    
     if ($mimetype === 'text/html' or $mimetype === 'text/plain' or $mimetype === 'application/xhtml+xml') {
         $filter = $DB->get_field('inea', 'filterfiles', array('id'=>$cm->instance));
         $CFG->embeddedsoforcelinktarget = true;
@@ -421,7 +434,18 @@ function inea_pluginfile($course, $cm, $context, $filearea, $args, $forcedownloa
     }
     $options["dontdie"]=true;
     
+    // finally send the file
+    //
+    //echo time()."<br/>";
+    //echo $_SERVER['HTTP_IF_NONE_MATCH'].$_SERVER['HTTP_IF_MODIFIED_SINCE']."<br/>";
+    //echo $file->set_timemodified(time());
+    //echo $file->get_timemodified();
+    
+    //echo $file->set_filesize($file->get_filesize()+900);
+    //echo $file->get_filesize();
+    
     $salida = send_stored_file($file, null, $filter, $forcedownload, $options);
+    //header('Content-Length: '.($file->get_filesize()+900));
     if($mimetype === 'text/html'){
     $javascript = "";
     $javascript .= "<script language=\"javascript\">\n";
@@ -461,6 +485,7 @@ function inea_pluginfile($course, $cm, $context, $filearea, $args, $forcedownloa
     $javascript .=  "</script>\n";
     echo $javascript;
     }
+    
     die;
 }
 
@@ -622,4 +647,58 @@ function mod_inea_core_calendar_provide_event_action(calendar_event $event,
         1,
         true
     );
+}
+
+
+require_once("$CFG->libdir/filelib.php");
+class file_storage_inea extends file_storage {
+    /**
+     * Fetch file using local file full pathname hash
+     *
+     * @param string $pathnamehash path name hash
+     * @return stored_file|bool stored_file instance if exists, false if not
+     */
+    public function get_file_by_hash($pathnamehash) {
+        global $DB;
+        
+        $sql = "SELECT ".self::instance_sql_fields('f', 'r')."
+                  FROM {files} f
+             LEFT JOIN {files_reference} r
+                       ON f.referencefileid = r.id
+                 WHERE f.pathnamehash = ?";
+        if ($filerecord = $DB->get_record_sql($sql, array($pathnamehash))) {
+            if($filerecord->mimetype=='text/html' || $filerecord->mimetype=='application/x-javascript'){
+                $filerecord->filesize = $filerecord->filesize+1000;
+            }
+            return $this->get_file_instance($filerecord);
+        } else {
+            return false;
+        }
+    }
+    
+    private static function instance_sql_fields($filesprefix, $filesreferenceprefix) {
+        // Note, these fieldnames MUST NOT overlap between the two tables,
+        // else problems like MDL-33172 occur.
+        $filefields = array('contenthash', 'pathnamehash', 'contextid', 'component', 'filearea',
+            'itemid', 'filepath', 'filename', 'userid', 'filesize', 'mimetype', 'status', 'source',
+            'author', 'license', 'timecreated', 'timemodified', 'sortorder', 'referencefileid');
+        
+        $referencefields = array('repositoryid' => 'repositoryid',
+            'reference' => 'reference',
+            'lastsync' => 'referencelastsync');
+        
+        // id is specifically named to prevent overlaping between the two tables.
+        $fields = array();
+        $fields[] = $filesprefix.'.id AS id';
+        foreach ($filefields as $field) {
+            $fields[] = "{$filesprefix}.{$field}";
+        }
+        
+        foreach ($referencefields as $field => $alias) {
+            $fields[] = "{$filesreferenceprefix}.{$field} AS {$alias}";
+        }
+        
+        return implode(', ', $fields);
+    }
+    
 }

@@ -1878,7 +1878,7 @@ function readfile_accel($file, $mimetype, $accelerate) {
         header('Content-Type: '.$mimetype);
     }
     
-    $lastmodified = is_object($file) ? $file->get_timemodified() : filemtime($file);
+    /*$lastmodified = is_object($file) ? $file->get_timemodified() : filemtime($file);
     header('Last-Modified: '. gmdate('D, d M Y H:i:s', $lastmodified) .' GMT');
     if (is_object($file)) {
         header('Etag: "' . $file->get_contenthash() . '"');
@@ -1897,7 +1897,7 @@ function readfile_accel($file, $mimetype, $accelerate) {
             header('HTTP/1.1 304 Not Modified');
             return;
         }
-    }
+    }*/
     
     if ($accelerate and !empty($CFG->xsendfile)) {
         if (empty($CFG->disablebyteserving) and $mimetype !== 'text/plain') {
@@ -1968,7 +1968,7 @@ function readfile_accel($file, $mimetype, $accelerate) {
         header('Accept-Ranges: none');
     }
 
-    header('Content-Length: '.$filesize);
+    //header('Content-Length: '.$filesize);
 
     if ($filesize > 10000000) {
         // for large files try to flush and close all buffers to conserve memory
