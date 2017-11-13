@@ -883,6 +883,7 @@ class grade_report_user extends grade_report {
                 $html .= "<td class='$class' rowspan='$rowspan'></td>\n";
             }
             for ($j = 0; $j < count($this->tablecolumns); $j++) {
+                echo $i." - ".$name." - ".$this->tabledata[$i][$name]['content']."<br/>";
                 $name = $this->tablecolumns[$j];
                 $class = (isset($this->tabledata[$i][$name]['class'])) ? $this->tabledata[$i][$name]['class'] : '';
                 $colspan = (isset($this->tabledata[$i][$name]['colspan'])) ? "colspan='".$this->tabledata[$i][$name]['colspan']."'" : '';

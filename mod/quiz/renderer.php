@@ -782,6 +782,7 @@ class mod_quiz_renderer extends plugin_renderer_base {
         $output .= $this->view_table($quiz, $context, $viewobj);
         $output .= $this->view_result_info($quiz, $context, $cm, $viewobj);
         $output .= $this->box($this->view_page_buttons($viewobj), 'quizattempt');
+        //print_object($viewobj); exit();
         return $output;
     }
 

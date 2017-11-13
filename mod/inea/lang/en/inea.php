@@ -117,3 +117,14 @@ If there are multiple files in this resource, the start file type is displayed.
 
 If the file type is not known to the system, it will not display.';
 $string['uploadeddate'] = 'Uploaded {$a}';
+
+
+
+
+$string['estado'] = 'STATE';
+$string['municipio'] = 'Municipio';
+$string['plaza'] = 'Plaza';
+$string['ocupacion'] = 'Ocupación';
+$string['infoineaprofile'] = 'Información INEA';
+$string['sexo'] = 'Sexo';
+$string['rfe'] = 'RFE';

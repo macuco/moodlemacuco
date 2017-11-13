@@ -117,3 +117,12 @@ $string['showtype'] = 'Mostrar tipo';
 $string['showtype_desc'] = '¿Mostrar tipo (por ejemplo: "Documento Word") en la página del curso ?';
 $string['showtype_help'] = 'Mostrar el tipo del archivo, tal como \'Documento Word\', a un lado de los archivos.  Si hay archivos múltiples en este recurso, se muestra el tamaño total de todos los archivos.';
 $string['uploadeddate'] = 'Subido {$a}';
+
+
+$string['estado'] = 'Estado';
+$string['municipio'] = 'Municipio';
+$string['plaza'] = 'Plaza';
+$string['ocupacion'] = 'Ocupación';
+$string['infoineaprofile'] = 'Información INEA';
+$string['sexo'] = 'Sexo';
+$string['rfe'] = 'RFE';

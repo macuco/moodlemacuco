@@ -230,6 +230,10 @@ if (!$viewobj->quizhasquestions) {
 
 $viewobj->showbacktocourse = ($viewobj->buttontext === '' &&
         course_get_format($course)->has_view_page());
+//MACUCO --- Agregar la parte para activiar o no el curso
+//TODO - MACUCO Agregar la parte para activiar o no el curso
+$viewobj->showbacktocourse = false;
+$viewobj->preventmessages[0]="JAJAJAJAJA";
 
 echo $OUTPUT->header();
 
@@ -240,7 +244,7 @@ if (isguestuser()) {
           || $viewobj->canreviewmine)) {
     // If they are not enrolled in this course in a good enough role, tell them to enrol.
     echo $output->view_page_notenrolled($course, $quiz, $cm, $context, $viewobj->infomessages);
-} else {
+} else { 
     echo $output->view_page($course, $quiz, $cm, $context, $viewobj);
 }
 

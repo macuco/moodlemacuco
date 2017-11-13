@@ -44,20 +44,24 @@ function core_myprofile_navigation(core_user\output\myprofile\tree $tree, $user,
     $courseid = !empty($course) ? $course->id : SITEID;
 
     $contactcategory = new core_user\output\myprofile\category('contact', get_string('userdetails'));
+    
     // No after property specified intentionally. It is a hack to make administration block appear towards the end. Refer MDL-49928.
     $coursedetailscategory = new core_user\output\myprofile\category('coursedetails', get_string('coursedetails'));
     $miscategory = new core_user\output\myprofile\category('miscellaneous', get_string('miscellaneous'), 'coursedetails');
     $reportcategory = new core_user\output\myprofile\category('reports', get_string('reports'), 'miscellaneous');
     $admincategory = new core_user\output\myprofile\category('administration', get_string('administration'), 'reports');
-    $loginactivitycategory = new core_user\output\myprofile\category('loginactivity', get_string('loginactivity'), 'administration');
+    $loginactivitycategory = new core_user\output\myprofile\category('loginactivity', get_string('loginactivity'), 'contact');
 
     // Add categories.
     $tree->add_category($contactcategory);
+    
     $tree->add_category($coursedetailscategory);
     $tree->add_category($miscategory);
     $tree->add_category($reportcategory);
     $tree->add_category($admincategory);
     $tree->add_category($loginactivitycategory);
+    
+    
 
     // Add core nodes.
     // Full profile node.
@@ -133,6 +137,8 @@ function core_myprofile_navigation(core_user\output\myprofile\tree $tree, $user,
         $identityfields = array();
     }
 
+    
+    
     if (is_mnet_remote_user($user)) {
         $sql = "SELECT h.id, h.name, h.wwwroot,
                        a.name as application, a.display_name
@@ -150,7 +156,7 @@ function core_myprofile_navigation(core_user\output\myprofile\tree $tree, $user,
             get_string('remoteuserinfo', 'mnet', $hostinfo), null, 'remoteuserinfo');
         $tree->add_node($node);
     }
-
+    $identityfields['email']=1; //MACUCO para que siempre se vea el correo
     if (isset($identityfields['email']) and ($iscurrentuser
                                              or $user->maildisplay == 1
                                              or has_capability('moodle/course:useremail', $courseorusercontext)
@@ -161,7 +167,14 @@ function core_myprofile_navigation(core_user\output\myprofile\tree $tree, $user,
         $tree->add_node($node);
     }
 
-    if (!isset($hiddenfields['country']) && $user->country) {
+    //MACUCO para agregar los datos de INEA
+    if(file_exists($CFG->dirroot.'/mod/inea/inealib.php')){
+        require_once $CFG->dirroot.'/mod/inea/inealib.php';
+        add_category_profile($tree,$user,$course);
+    }
+    
+    //Macuco  -- Para quitar esos campos por default que se muestran
+    /*if (!isset($hiddenfields['country']) && $user->country) {
         $node = new core_user\output\myprofile\node('contact', 'country', get_string('country'), null, null,
                 get_string($user->country, 'countries'));
         $tree->add_node($node);
@@ -170,7 +183,7 @@ function core_myprofile_navigation(core_user\output\myprofile\tree $tree, $user,
     if (!isset($hiddenfields['city']) && $user->city) {
         $node = new core_user\output\myprofile\node('contact', 'city', get_string('city'), null, null, $user->city);
         $tree->add_node($node);
-    }
+    }*/
 
     if (isset($identityfields['address']) && $user->address) {
         $node = new core_user\output\myprofile\node('contact', 'address', get_string('address'), null, null, $user->address);
@@ -222,6 +235,8 @@ function core_myprofile_navigation(core_user\output\myprofile\tree $tree, $user,
                 $OUTPUT->tag_list($interests, ''));
         $tree->add_node($node);
     }
+    
+    
 
     if (!isset($hiddenfields['mycourses'])) {
         $showallcourses = optional_param('showallcourses', 0, PARAM_INT);

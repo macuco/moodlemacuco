@@ -79,6 +79,20 @@ class tree implements \renderable {
         $this->categories[$cat->name] = $cat;
     }
 
+    
+    /**
+     * @author Macuco juan.manuel.mp8@gmail.com Juan Manuel Muñoz Pérez
+     * Eliminar una categoría - fue utilizado para ajustar el user/view.php
+     *
+     * @param category $cat category object.
+     *
+     * @throws \coding_exception
+     */
+    public function remove_category($cat) {
+        unset($this->categories[$cat]);
+    }
+    
+    
     /**
      * Sort categories and nodes. Builds the tree structure that would be displayed to the user.
      *

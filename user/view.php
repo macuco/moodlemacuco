@@ -213,6 +213,10 @@ if ($user->description && !isset($hiddenfields['description'])) {
 // Render custom blocks.
 $renderer = $PAGE->get_renderer('core_user', 'myprofile');
 $tree = core_user\output\myprofile\manager::build_tree($user, $currentuser, $course);
+//Macuco --- Para quitar las categorías en los usuarios
+$tree->remove_category('miscellaneous');
+$tree->remove_category('reports');
+
 echo $renderer->render($tree);
 
 echo '</div>';  // Userprofile class.

@@ -171,10 +171,10 @@ if (has_capability('moodle/grade:viewall', $context)) { //Teachers will see all 
         }
     }
 } else { //Students will see just their own report
-
+    
     // Create a report instance
     $report = new grade_report_user($courseid, $gpr, $context, $userid);
-
+    print_object($report->gtree->top_element['children']);exit();
     // print the page
     print_grade_page_head($courseid, 'report', 'user', get_string('pluginname', 'gradereport_user'). ' - '.fullname($report->user));
 

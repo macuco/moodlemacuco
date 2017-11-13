@@ -450,7 +450,7 @@ function inea_pluginfile($course, $cm, $context, $filearea, $args, $forcedownloa
     $javascript = "";
     $javascript .= "<script language=\"javascript\">\n";
     $javascript .=  "<!--\n";
-    
+    $javascript .= "var id_usuario=2; var id_curso=2;";
     $javascript .=  "function wwwroot(){\n";
     $javascript .=  "\t return \"$CFG->wwwroot\";\n";
     $javascript .=  "}\n";
@@ -479,6 +479,7 @@ function inea_pluginfile($course, $cm, $context, $filearea, $args, $forcedownloa
     
     $javascript .=  "\n".'loadScript(wwwroot()+"/mod/inea/javascript.php?imprimir=1",function(){
                                                 //alert(id_curso);
+//$.api(rutas_imagenes,datosActividadesXX);
                                             });';
     
     $javascript .=  "//-->\n";
