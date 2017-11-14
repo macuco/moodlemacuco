@@ -613,13 +613,20 @@ if ($mode === MODE_USERDETAILS) {    // Print simple listing.
 
                 $row->cells[1]->text = $OUTPUT->container(fullname($user, has_capability('moodle/site:viewfullnames', $context)), 'username');
                 $row->cells[1]->text .= $OUTPUT->container_start('info');
-
-                if (!empty($user->role)) {
-                    $row->cells[1]->text .= get_string('role').get_string('labelsep', 'langconfig').$user->role.'<br />';
+                
+                //MACUCO -- Agregar el nombre del role
+                if(file_exists($CFG->dirroot.'/mod/inea/inealib.php')){
+                    require_once $CFG->dirroot.'/mod/inea/inealib.php';
+                    complete_user_role($user,$course->id);
                 }
+                
+                if (!empty($user->role)) {
+                    $row->cells[1]->text .= get_string('role').get_string('labelsep', 'langconfig').' '.$user->role.'<br />';
+                }
+                print_object($user);
                 if ($user->maildisplay == 1 or ($user->maildisplay == 2 and ($course->id != SITEID) and !isguestuser()) or
                             in_array('email', $extrafields) or ($user->id == $USER->id)) {
-                    //$row->cells[1]->text .= get_string('email').get_string('labelsep', 'langconfig').html_writer::link("mailto:$user->email", $user->email) . '<br />';
+                    $row->cells[1]->text .= get_string('email').get_string('labelsep', 'langconfig').html_writer::link("mailto:$user->email", $user->email) . '<br />';
                 }
                 foreach ($extrafields as $field) {
                     if ($field === 'email') {
@@ -630,18 +637,34 @@ if ($mode === MODE_USERDETAILS) {    // Print simple listing.
                     $row->cells[1]->text .= get_user_field_name($field) .
                             get_string('labelsep', 'langconfig') . s($user->{$field}) . '<br />';
                 }
-                if (($user->city or $user->country) and (!isset($hiddenfields['city']) or !isset($hiddenfields['country']))) {
+                
+                //MACUCO para agregar los datos de INEA
+                if(file_exists($CFG->dirroot.'/mod/inea/inealib.php')){
+                    require_once $CFG->dirroot.'/mod/inea/inealib.php';
+                    complete_user_inea($user); //Completar el objeto usuario con los datos del inea
+                    
                     $row->cells[1]->text .= get_string('city').get_string('labelsep', 'langconfig');
-                    if ($user->city && !isset($hiddenfields['city'])) {
-                        $row->cells[1]->text .= $user->city;
-                    }
-                    if (!empty($countries[$user->country]) && !isset($hiddenfields['country'])) {
-                        if ($user->city && !isset($hiddenfields['city'])) {
-                            $row->cells[1]->text .= ', ';
-                        }
-                        $row->cells[1]->text .= $countries[$user->country];
-                    }
+                    $row->cells[1]->text .= ' '.$user->dmunicipio;
+                    $row->cells[1]->text .= ', ';
+                    $row->cells[1]->text .= $user->destado;
                     $row->cells[1]->text .= '<br />';
+                    $row->cells[1]->text .= get_string("plaza","inea").get_string('labelsep', 'langconfig')." ";
+                    $row->cells[1]->text .= $user->dplaza.'<br/>';
+                    
+                } else {
+                    if (($user->city or $user->country) and (!isset($hiddenfields['city']) or !isset($hiddenfields['country']))) {
+                        $row->cells[1]->text .= get_string('city').get_string('labelsep', 'langconfig');
+                        if ($user->city && !isset($hiddenfields['city'])) {
+                            $row->cells[1]->text .= $user->city;
+                        }
+                        if (!empty($countries[$user->country]) && !isset($hiddenfields['country'])) {
+                            if ($user->city && !isset($hiddenfields['city'])) {
+                                $row->cells[1]->text .= ', ';
+                            }
+                            $row->cells[1]->text .= $countries[$user->country];
+                        }
+                        $row->cells[1]->text .= '<br />';
+                    }
                 }
 
                 if (!isset($hiddenfields['lastaccess'])) {

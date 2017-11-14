@@ -56,8 +56,35 @@ function complete_user_inea($user){
         $user->plaza='';
         $user->ocupacion='';
     }
+    
+    $user->destado = getEntidadString($user->estado);
+    
+    $user->dmunicipio = getMunicipioString($user->estado, $user->municipio);
+    
+    $user->dplaza = getPlazaString($user->plaza);
+    
+    $user->docupacion = getOcupacionString($user->ocupacion);
 }
 
+function complete_user_role($user, $courseid){
+    $context = context_course::instance($courseid);
+    $obj = array_values(get_user_roles($context, $user->id))[0];
+    if(isset($obj->shortname)){
+        $user->role = getRolename($obj->roleid);
+        $user->roleid = $obj->roleid;
+    }
+}
+
+
+function getRolename($roleid){
+    switch($roleid){
+        case 5:
+        return "Educando";
+        case 4:
+        return "Asesor";
+    }
+    return "Otro";
+}
 
 /**
  * 
