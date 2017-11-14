@@ -36,7 +36,7 @@ define('MODE_USERDETAILS', 1);
 
 $page         = optional_param('page', 0, PARAM_INT); // Which page to show.
 $perpage      = optional_param('perpage', DEFAULT_PAGE_SIZE, PARAM_INT); // How many per page.
-$mode         = optional_param('mode', null, PARAM_INT); // Use the MODE_ constants.
+$mode         = optional_param('mode', 1, PARAM_INT); // Use the MODE_ constants.
 $accesssince  = optional_param('accesssince', 0, PARAM_INT); // Filter by last access. -1 = never.
 $search       = optional_param('search', '', PARAM_RAW); // Make sure it is processed with p() or s() when sending to output!
 $roleid       = optional_param('roleid', 0, PARAM_INT); // Optional roleid, 0 means all enrolled users (or all on the frontpage).
@@ -188,7 +188,7 @@ if ($course->id == SITEID) {
     $filterselect = $currentgroup;
 }
 
-
+//TODO MACUCO Revisar si hay que obtener el grupo del usuario que entro
 
 // Get the hidden field list.
 if (has_capability('moodle/course:viewhiddenuserfields', $context)) {
@@ -295,7 +295,10 @@ $userlistcell->attributes['class'] = 'right';
 $userlistcell->text = $OUTPUT->render($select);
 $controlstable->data[0]->cells[] = $userlistcell;
 
-echo html_writer::table($controlstable);
+//MACUCO 
+if(is_siteadmin()){
+    echo html_writer::table($controlstable);
+}
 
 if ($currentgroup and (!$isseparategroups or has_capability('moodle/site:accessallgroups', $context))) {
     // Display info about the group.
@@ -562,6 +565,7 @@ if ($bulkoperations) {
 }
 
 if ($mode === MODE_USERDETAILS) {    // Print simple listing.
+    
     if ($totalcount < 1) {
         echo $OUTPUT->heading(get_string('nothingtodisplay'));
     } else {
@@ -615,7 +619,7 @@ if ($mode === MODE_USERDETAILS) {    // Print simple listing.
                 }
                 if ($user->maildisplay == 1 or ($user->maildisplay == 2 and ($course->id != SITEID) and !isguestuser()) or
                             in_array('email', $extrafields) or ($user->id == $USER->id)) {
-                    $row->cells[1]->text .= get_string('email').get_string('labelsep', 'langconfig').html_writer::link("mailto:$user->email", $user->email) . '<br />';
+                    //$row->cells[1]->text .= get_string('email').get_string('labelsep', 'langconfig').html_writer::link("mailto:$user->email", $user->email) . '<br />';
                 }
                 foreach ($extrafields as $field) {
                     if ($field === 'email') {
@@ -656,8 +660,8 @@ if ($mode === MODE_USERDETAILS) {    // Print simple listing.
                 $row->cells[2]->text = '';
 
                 $links = array();
-
-                if ($CFG->enableblogs && ($CFG->bloglevel != BLOG_USER_LEVEL || $USER->id == $user->id)) {
+//MACUCO se le agrego el is_siteadmin para que solo muestre los blogs a los administradores
+                if (is_siteadmin() && $CFG->enableblogs && ($CFG->bloglevel != BLOG_USER_LEVEL || $USER->id == $user->id)) {
                     $links[] = html_writer::link(new moodle_url('/blog/index.php?userid='.$user->id), get_string('blogs', 'blog'));
                 }
 
@@ -692,6 +696,7 @@ if ($mode === MODE_USERDETAILS) {    // Print simple listing.
         } else {
             echo $OUTPUT->heading(get_string('nothingtodisplay'));
         }
+        
     }
 
 } else {
