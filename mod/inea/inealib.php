@@ -61,9 +61,9 @@ function inea_get_municipio($id_pais, $id_entidad, $id_municipio) {
  * @return Object plaza
  */
 function inea_get_plaza($id_plaza) {
-global $DB;
+	global $DB;
 
-return $DB->get_record('inea_plazas', array('id'=>$id_plaza), 'id, icvepais, icveentfed, icvemunicipio, cnomplaza');
+	return $DB->get_record('inea_plazas', array('id'=>$id_plaza), 'id, icvepais, icveentfed, icvemunicipio, cnomplaza');
 }
 
 /**
