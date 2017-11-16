@@ -609,23 +609,52 @@ function getOcupacion($ocupacion_id){
 }
 
 
-
+/**
+ * Devuelve el nombre de la entidad
+ * @param unknown $id
+ * @return string
+ */
 function getEntidadString($id){
     $entidad = getEntidad($id);
     return isset($entidad->cdesentfed)?$entidad->cdesentfed:'';
 }
 
+/**
+ * Devuelve el nombre del municipio
+ * @param unknown $entidad_id
+ * @param unknown $municipio_id
+ * @return string
+ */
 function getMunicipioString($entidad_id, $municipio_id){
     $municipio = getMunicipio($entidad_id, $municipio_id);
     return isset($municipio->cdesmunicipio)?$municipio->cdesmunicipio:'';
 }
 
+/**
+ * Devuelve el nombre de la plaza
+ * @param unknown $plaza_id
+ * @return string
+ */
 function getPlazaString($plaza_id){
     $plaza = getPlaza($plaza_id);
     return isset($plaza->cnomplaza)?$plaza->cnomplaza:'';
 }
 
+/**
+ * Devuelve el nombre de la ocupacion
+ * @param unknown $ocupacion_id
+ * @return string
+ */
 function getOcupacionString($ocupacion_id){
     $ocupacion = getOcupacion($ocupacion_id);
     return isset($ocupacion->cdesocupacion)?$ocupacion->cdesocupacion:'';
+}
+
+
+function inea_get_user_group($courseid, $userid){
+    $grupos = groups_get_all_groups($courseid, $userid);
+    if(!empty($grupos)){
+        return array_values($grupos)[0];
+    }
+    return [];
 }
