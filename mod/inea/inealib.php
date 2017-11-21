@@ -96,7 +96,7 @@ function inea_get_modelo($id_modelo) {
 function inea_get_ocupaciones() {
     global $DB;
     
-    return $DB->get_records_select('inea_ocupaciones', '', null, 'ASC', 'cdesocupacion');
+    return $DB->get_records('inea_ocupaciones', null, 'ASC', 'cdesocupacion');
 }
 
 /**
@@ -106,7 +106,7 @@ function inea_get_ocupaciones() {
 function inea_get_entidades() {
     global $DB;
     
-    return $DB->get_records_select('inea_entidad', '', null, '', 'id, icvepais, icveentfed, cdesentfed');
+    return $DB->get_records('inea_entidad', null, '', 'id, icvepais, icveentfed, cdesentfed');
 }
 
 /**
@@ -116,7 +116,7 @@ function inea_get_entidades() {
 function inea_get_municipios() {
     global $DB;
     
-    return $DB->get_records_select('inea_municipios', '', null, '', 'id, icvepais, icveentfed, icvemunicipio, cdesmunicipio');
+    return $DB->get_records('inea_municipios', null, '', 'id, icvepais, icveentfed, icvemunicipio, cdesmunicipio');
 }
 
 /**
@@ -126,7 +126,7 @@ function inea_get_municipios() {
 function inea_get_plazas() {
     global $DB;
     
-    return $DB->get_records_select('inea_plazas', '', null, '', 'id, icvepais, icveentfed, icvemunicipio, cnomplaza, ccveplaza');
+    return $DB->get_records('inea_plazas', null, '', 'id, icvepais, icveentfed, icvemunicipio, cnomplaza, ccveplaza');
 }
 
 /**
@@ -181,7 +181,7 @@ function inea_obtener_rfc_asesor_grupo($id_grupo) { //Vhackero Funcion para obte
 function inea_get_user_from_rfe($rfe) {
     global $DB;
     
-    return $DB->get_record('user',array('idnumber'=>$rfe));
+    return $DB->get_record('user', array('idnumber'=>$rfe));
 }
 
 /**
@@ -216,7 +216,26 @@ function inea_get_user_from_id($id) {
 function inea_get_plaza_from_municipio() {
     global $DB;
     
-    return $DB->get_records_select('inea_plazas', '', null, '', 'id, idplaza, ccveplaza, cnomplaza, icveie');
+    return $DB->get_records('inea_plazas', null, '', 'id, idplaza, ccveplaza, cnomplaza, icveie');
+}
+
+/**
+ * INEA - Lista la descripcion y nombre de cada estado.
+ * @param int $id_pais
+ * @return Array $lista un arreglo con el nombre - descripcion de cada estado.
+ */
+function inea_list_entidades($id_pais) {
+	global $DB;
+	
+	$entidades = $DB->get_records('inea_entidad', array('icvepais'=>$id_pais), '', 'id, icvepais, icveentfed, cdesentfed');
+	$list = array();
+	
+	foreach ($entidades as $entitidad) {
+			//$list[$entityid->icveentfed] = $entityid->cdesentfed;
+			$list[$entitidad->icveentfed] = $entitidad->cdesentfed;
+	}
+	//print_object($list);
+	return $list;
 }
 
 //--------------------------------------------------------------------------------
@@ -234,16 +253,20 @@ function inea_get_plaza_from_municipio() {
  *
  */
 function inea_get_record_sasa($entidad="", $rfe="") {
-    $query = "SELECT nombre, base, usuario, pass FROM mdl_inea_sasa_conn WHERE instituto = ".$entidad;
+	global $DB;
+	
+	if(empty($entidad)) {
+		return null;
+	}
+	
+	//$conulta = "SELECT nombre, base, usuario, pass FROM mdl_inea_sasa_conn WHERE instituto = ".$entidad;
     //echo "<br>".$qry3. "<---- consulta sql server  ";
+	$sasa = $DB->get_record_sql('SELECT nombre, base, usuario, pass FROM {inea_sasa_conn} WHERE instituto = ?', array($entidad));
     
-    $result_conn = mysql_query($qry3);
-    
-    $row=mysql_fetch_array($result_conn);
-    $nombre= $row['nombre'];
-    $base = $row['base'];
-    $usuario= $row['usuario'];
-    $pass= $row['pass'];
+    $nombre = $sasa->nombre;
+    $base = $sasa->base;
+    $usuario = $sasa->usuario;
+    $pass = $sasa->pass;
     
     /*echo "<br>".$nombre. "<---- nombre server de sql   ";
      echo "<br>".$base. "<----- base";
@@ -251,8 +274,8 @@ function inea_get_record_sasa($entidad="", $rfe="") {
      echo "<br>".$pass. "<---- pass de sql   ";*/
     //mysql_close($conectID2);
     
-    $conectID = mssql_connect("$nombre","$usuario","$pass");
-    mssql_select_db("$base");
+    $conectID = mssql_connect($nombre, $usuario, $pass);
+    mssql_select_db($base);
     
     $qry2 = "EXEC GetIdEducandoSASA '".$rfe."'";
     // echo "<br>".$qry2. "<---- consulta para SQL   ";
