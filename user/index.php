@@ -410,7 +410,7 @@ list($esql, $params) = get_enrolled_sql($context, null, $currentgroup, true);
 $joins = array("FROM {user} u");
 $wheres = array();
 
-$userfields = array('username', 'email', 'city', 'country', 'lang', 'timezone', 'maildisplay');
+$userfields = array('username', 'email', 'city', 'country', 'lang', 'timezone', 'maildisplay', 'institution', 'skype', 'msn','idnumber','yahoo');
 $mainuserfields = user_picture::fields('u', $userfields);
 $extrasql = get_extra_user_fields_sql($context, 'u', '', $userfields);
 
@@ -626,7 +626,7 @@ if ($mode === MODE_USERDETAILS) {    // Print simple listing.
                 
                 if ($user->maildisplay == 1 or ($user->maildisplay == 2 and ($course->id != SITEID) and !isguestuser()) or
                             in_array('email', $extrafields) or ($user->id == $USER->id)) {
-                    $row->cells[1]->text .= get_string('email').get_string('labelsep', 'langconfig').html_writer::link("mailto:$user->email", $user->email) . '<br />';
+                    $row->cells[1]->text .= get_string('email').get_string('labelsep', 'langconfig')." ".html_writer::link("mailto:$user->email", $user->email) . '<br />';
                 }
                 foreach ($extrafields as $field) {
                     if ($field === 'email') {
@@ -650,6 +650,12 @@ if ($mode === MODE_USERDETAILS) {    // Print simple listing.
                     $row->cells[1]->text .= '<br />';
                     $row->cells[1]->text .= get_string("plaza","inea").get_string('labelsep', 'langconfig')." ";
                     $row->cells[1]->text .= $user->dplaza.'<br/>';
+                    $row->cells[1]->text .= get_string("rfe","inea").get_string('labelsep', 'langconfig')." ";
+                    $row->cells[1]->text .= $user->idnumber.'<br/>';
+                    $row->cells[1]->text .= get_string("sexo","inea").get_string('labelsep', 'langconfig')." ";
+                    $row->cells[1]->text .= $user->yahoo.'<br/>';
+                    $row->cells[1]->text .= get_string("ocupacion","inea").get_string('labelsep', 'langconfig')." ";
+                    $row->cells[1]->text .= $user->docupacion.'<br/>';
                     
                 } else {
                     if (($user->city or $user->country) and (!isset($hiddenfields['city']) or !isset($hiddenfields['country']))) {

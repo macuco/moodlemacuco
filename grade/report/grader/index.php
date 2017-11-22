@@ -64,6 +64,15 @@ $context = context_course::instance($course->id);
 require_capability('gradereport/grader:view', $context);
 require_capability('moodle/grade:viewall', $context);
 
+
+
+$pinta_header = true;
+include($CFG->dirroot."/grade/indicadores.php");//Cargar los javascript
+
+$OUTPUT = $PAGE->get_renderer('core');
+$OUTPUT->inea_head_html=$heade_indicadores;
+
+
 // return tracking object
 $gpr = new grade_plugin_return(array('type'=>'report', 'plugin'=>'grader', 'courseid'=>$courseid, 'page'=>$page));
 
@@ -125,9 +134,10 @@ $reportname = get_string('pluginname', 'gradereport_grader');
 // Do this check just before printing the grade header (and only do it once).
 grade_regrade_final_grades_if_required($course);
 
+$CFG->grade_navmethod = -1; //Macuco - con este codigo no se muestran los menús, comentar si se quiere que se muestren
+
 // Print header
 print_grade_page_head($COURSE->id, 'report', 'grader', $reportname, false, $buttons);
-
 //Initialise the grader report object that produces the table
 //the class grade_report_grader_ajax was removed as part of MDL-21562
 $report = new grade_report_grader($courseid, $gpr, $context, $page, $sortitemid);
@@ -207,5 +217,8 @@ $event = \gradereport_grader\event\grade_report_viewed::create(
     )
 );
 $event->trigger();
+
+$pinta_header = false;
+include $CFG->dirroot."/grade/inea_carpeta.php";
 
 echo $OUTPUT->footer();

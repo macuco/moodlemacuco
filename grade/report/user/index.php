@@ -86,8 +86,18 @@ if (!isset($USER->grade_last_report)) {
 }
 $USER->grade_last_report[$course->id] = 'user';
 
+$CFG->grade_navmethod = -1; //Macuco - con este codigo no se muestran los menús, comentar si se quiere que se muestren
 // First make sure we have proper final grades.
 grade_regrade_final_grades_if_required($course);
+
+
+$pinta_header = true;
+include($CFG->dirroot."/grade/indicadores.php");//Cargar los javascript
+
+$OUTPUT = $PAGE->get_renderer('core');
+$OUTPUT->inea_head_html=$heade_indicadores;
+//print_grade_page_head($course->id, 'report', 'user');
+
 
 if (has_capability('moodle/grade:viewall', $context)) { //Teachers will see all student reports
     $groupmode    = groups_get_course_groupmode($course);   // Groups are being used
@@ -124,7 +134,7 @@ if (has_capability('moodle/grade:viewall', $context)) { //Teachers will see all 
         $gui->require_active_enrolment($showonlyactiveenrol);
         $gui->init();
         // Add tabs
-        print_grade_page_head($courseid, 'report', 'user');
+        print_grade_page_head($courseid, 'report', 'user',false, false, false, false);
         groups_print_course_menu($course, $gpr->get_return_url('index.php?id='.$courseid, array('userid'=>0)));
 
         if ($user_selector) {
@@ -151,7 +161,7 @@ if (has_capability('moodle/grade:viewall', $context)) { //Teachers will see all 
 
         $studentnamelink = html_writer::link(new moodle_url('/user/view.php', array('id' => $report->user->id, 'course' => $courseid)), fullname($report->user));
         print_grade_page_head($courseid, 'report', 'user', get_string('pluginname', 'gradereport_user') . ' - ' . $studentnamelink,
-                false, false, true, null, null, $report->user);
+                false, false, false, null, null, $report->user);
 
         groups_print_course_menu($course, $gpr->get_return_url('index.php?id='.$courseid, array('userid'=>0)));
 
@@ -174,7 +184,8 @@ if (has_capability('moodle/grade:viewall', $context)) { //Teachers will see all 
     
     // Create a report instance
     $report = new grade_report_user($courseid, $gpr, $context, $userid);
-    print_object($report->gtree->top_element['children']);exit();
+    
+    
     // print the page
     print_grade_page_head($courseid, 'report', 'user', get_string('pluginname', 'gradereport_user'). ' - '.fullname($report->user));
 
@@ -190,5 +201,7 @@ if (isset($report)) {
     echo html_writer::tag('div', '', array('class' => 'clearfix'));
     echo $OUTPUT->notification(get_string('nostudentsyet'));
 }
+$pinta_header = false;
+include $CFG->dirroot."/grade/inea_carpeta.php";
 
 echo $OUTPUT->footer();

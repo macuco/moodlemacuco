@@ -1,90 +1,72 @@
 <?PHP
     require_once("../config.php");
     require_once("lib.php");
-
+    
+    
+    
+    //MACUCO -- Agregar el nombre del role
+    if(file_exists($CFG->dirroot.'/mod/inea/inealib.php')){
+        require_once $CFG->dirroot.'/mod/inea/inealib.php';
+        
+    }
+    
+    
     $group        = optional_param('group', -1, PARAM_INT);                   // Group to show
-    $id       = required_param('id');              // course id
-    $download = optional_param('download');
-    $user     = optional_param('user', -1);
-    $action   = optional_param('action', 'grades');
-    $cview    = optional_param('cview', -1);
+    $id       = required_param('id', PARAM_INT);              // course id
+    $download = optional_param('download', 0, PARAM_INT);
+    $user     = optional_param('user', -1, PARAM_INT);
+    $action   = optional_param('action', 'grades', PARAM_TEXT);
+    $cview    = optional_param('cview', -1, PARAM_INT);
 
     $id_usuario = $USER->id; // ID del estudiante
-    $id_modulo = optional_param('id_modulo', PARAM_INT); // ID del curso
-
-    $rol_actual = obtiene_rol($USER->id,'',$id); // Obtiene el rol del usuario actual en el curso actual de acuerdo al id del modulo
+    $id_modulo = optional_param('id_modulo', 0, PARAM_INT); // ID del curso
+/*
+    $rol_actual = 5;// obtiene_rol($USER->id,'',$id); // Obtiene el rol del usuario actual en el curso actual de acuerdo al id del modulo
 	//echo $rol_actual[1];
     $rol_actual_objeto = $rol_actual[2]; // Obtiene el rol del usuario actual en el curso actual de acuerdo al id del modulo
 
-	
-    $id_estado_objeto = get_user_estado($USER->id); // vhackero para ontener el estado al que pertenece el usuario;
+*/	
+    $id_estado_objeto = inea_get_user_estado($USER->id); // vhackero para ontener el estado al que pertenece el usuario;
+    //print_object($id_estado_objeto);
     if($id_estado_objeto->institution) $id_estado = $id_estado_objeto->institution; // vhackero para ontener el estado al que pertenece el usuario;
 
-    if (!$course = get_record('course', 'id', $id)) {
-        error('No course ID');
-    }
-
-    require_login($course->id);
-	
-    // if the user set new prefs make sure they happen now
-    if ($action == 'set_grade_preferences' && $prefs = data_submitted()) {
-        if (!confirm_sesskey()) {
-            error(get_string('confirmsesskeybad', 'error'));
-        }
-        grade_set_preferences($course, $prefs);
-    }
-
-    $preferences = grade_get_preferences($course->id);
-
     
-    // we want this in its own window
-    if ($action == 'stats') {
-        grade_stats();
-        exit();
-    } else if ($action == 'ods') {
-        grade_download('ods', $id);
-        exit();
-    } else if ($action == 'excel') {
-        grade_download('xls', $id);
-        exit();
-    } else if ($action == 'text') {
-        grade_download('txt', $id);
-        exit();
+    
+    
+    /// basic access checks
+    if (!$course = $DB->get_record('course', array('id' => $id))) {
+        print_error('invalidcourseid');
     }
-
-/// Check to see if groups are being used in this forum
-/// and if so, set $currentgroup to reflect the current group
-
-    $groupmode    = groupmode($course);   // Groups are being used
-    $currentgroup = get_and_set_current_group($course, $groupmode, $group);
-
-    if (!$currentgroup) {      // To make some other functions work better later
-        $currentgroup  = NULL;
-    }
-
-    $isseparategroups = ($course->groupmode == SEPARATEGROUPS and $course->groupmodeforce and
-                         !has_capability('moodle/site:accessallgroups', $context));
-
-    if ($isseparategroups and (!$currentgroup) ) { 
-        print_header("$course->shortname: ".get_string('participants'), $course->fullname,
-                     "<a href=\"$CFG->wwwroot/course/view.php?id=$course->id\">$course->shortname</a> -> ".
-                     get_string('participants'), "", "", true, "&nbsp;", navmenu($course));
-        print_heading(get_string("notingroup", "forum"));
-        print_footer($course);
-        exit;
-    }
+    
+    $PAGE->set_url(new moodle_url('/grade/carpeta.php', array('id'=>$course->id)));
+    
+    require_login($course);
+    $context = context_course::instance($course->id);
+    
+   
+    //groups_get_activity_group();
+    //groups_get_my_groups();
+    $grupos = $grupos = groups_get_all_groups($course->id, 1);
+    $grupo = inea_get_user_group($course->id, 1);
+    
+    //print_object(count($grupos));
+    //print_object($course);
+    
+    
+   //exit;
 	
+    $rol_actual = 1; //TODO Poner el ID del responsable estatal
 
     //  ----  OBTENER LOS ALUMNOS DEL GRUPO PARA INDICADORES DE AVANCE (MACUCO)
-    if ($currentgroup != NULL) {
-        $groupmembers = get_group_users($currentgroup);
+    if (!empty($grupo) && count($grupos)==1 ) {
+        $groupmembers = groups_get_members($grupo->id);//groups_get_groups_members($groupsids);
 	
-    }else if ($id_estado != NULL && $rol_actual[1] != 1) {	//Para q filtre educandos SOLO a los RE y no al admin
+    }else if ($id_estado != NULL && $rol_actual != 1) {	//Para q filtre educandos SOLO a los RE y no al admin
 		//echo "Estado: ".$id_estado;
         $groupmembers = get_entidad_users($id_estado);
 		
     } else {
-        global $CFG;
+        global $CFG, $DB;
 
         $sort = 'u.lastaccess DESC';
         $exceptions = '';
@@ -97,32 +79,44 @@
         if (!empty($extrafield)) {
             $extrafield = ',' . $extrafield;
         }
-        $groupmembers = get_records_sql("SELECT DISTINCT u.* $extrafield
+        $groupmembers = $DB->get_records_sql("SELECT DISTINCT u.* $extrafield
                                   FROM {$CFG->prefix}user u,
                                        {$CFG->prefix}groups_members m
                                  WHERE m.userid = u.id
                               ORDER BY $sort");		
     }
 
+   
+    //exit();
+    
     foreach ($groupmembers as $id => $ouser) {	// Descarta usuarios q NO sean educandos
         if (!isstudent($course->id, $id))
             unset($groupmembers[$id]);
     }
     // ---------------------------------------------------------
 
-    $unidades = get_records_select('inea_total_ejercicios','courseid='.$course->id);
+    $unidades = $DB->get_records_select('inea_total_ejercicios','courseid='.$course->id);
     
-
+    
+    //$PAGE->set_pagelayout('report');
+    //echo $OUTPUT->heading(get_string('pluginname', 'gradereport_user') . ' - ' . "JUUUAN");
+    
+    
     $pinta_header = true;
-    include("indicadores.html");//Cargar los javascript
-    print_header($course->shortname.': '.get_string('grades'), $course->fullname, grade_nav($course, $action),'',$heade_indicadores);
-
-
-	$origen = get_user_estado($USER->id); // Datos de origen [id estado/id pais/municipio]
-//	print_object($origen);
-//print_object($USER);
-    $mi_estado=$origen->institution; // ID del estado
-    $mi_pais=$origen->country; // ID del pais
+    include("indicadores.php");//Cargar los javascript
+    
+    $OUTPUT = $PAGE->get_renderer('core');
+    $OUTPUT->inea_head_html=$heade_indicadores;
+    print_grade_page_head($course->id, 'report', 'user');
+    
+    
+    $pinta_header = false;
+    include("indicadores.php");//Cargar los javascript
+    
+    echo $OUTPUT->footer();
+    exit();
+    
+	//$origen = get_user_estado($USER->id); // Datos de origen [id estado/id pais/municipio]
     
     if(empty($estado)){ // se identifica el estado al que pertenecen y se muestra su plaza
     	$estado = $id_estado;
@@ -135,12 +129,13 @@
 	//echo "<br>Curso: <b>".utf8_decode($course->fullname)."</b>";
 	echo "<br>Curso: <b>".$course->fullname."</b>";
 	echo "<br> ".str_replace('_',' ',ucfirst(substr($rol_actual[0], 0, 1)).substr($rol_actual[0], 1)).": <b>".
-	get_field_sql("SELECT CONCAT(firstname, ' ', lastname, ' ', icq) FROM {$CFG->prefix}user WHERE id = $id_usuario")."</b>"; // Para imprimir el rol del usuario actual
+	$DB->get_field_sql("SELECT CONCAT(firstname, ' ', lastname, ' ', icq) FROM {$CFG->prefix}user WHERE id = $id_usuario")."</b>"; // Para imprimir el rol del usuario actual
 	echo "<br><br>";
 	
     // Should use this variable so that we don't break stuff every time a variable is added or changed.
     $baseurl = 'index.php?contextid='.$context->id.'&amp;roleid='.$roleid.'&amp;estado='.$estado.'&amp;plaza='.$plaza.'&amp;id='.$course->id.'&amp;group='.$currentgroup.'&amp;perpage='.$perpage.'&amp;accesssince='.$accesssince.'&amp;search='.s($search).'&amp;id_modulo='.$id_modulo;
-
+  
+    
     /// find out current groups mode
     $groupmode = groupmode($course);
 	

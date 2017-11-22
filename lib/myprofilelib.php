@@ -345,7 +345,9 @@ function core_myprofile_navigation(core_user\output\myprofile\tree $tree, $user,
         $tree->add_node($node);
     }
 
-    if ($user->skype && !isset($hiddenfields['skypeid'])) {
+    // -- MACUCO Se comenta para que no se muestre esta información en el perfil, ya que estos campos tienen información como sexo
+    
+   /* if ($user->skype && !isset($hiddenfields['skypeid'])) {
         $imurl = 'skype:'.urlencode($user->skype).'?call';
         $iconurl = new moodle_url('http://mystatus.skype.com/smallicon/'.urlencode($user->skype));
         if (is_https()) {
@@ -380,7 +382,7 @@ function core_myprofile_navigation(core_user\output\myprofile\tree $tree, $user,
         $node = new core_user\output\myprofile\node('contact', 'msnid', get_string('msnid'), null, null,
             s($user->msn));
         $tree->add_node($node);
-    }
+    }*/
 
     if ($categories = $DB->get_records('user_info_category', null, 'sortorder ASC')) {
         foreach ($categories as $category) {

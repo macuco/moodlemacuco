@@ -51,6 +51,12 @@ class core_renderer extends \core_renderer {
     protected $language = null;
 
     /**
+     * 
+     * @var string todo lo que se ponga aquí se colocará en el encabezado del HTML
+     */
+    public $inea_head_html = '';
+    
+    /**
      * Outputs the opening section of a box.
      *
      * @param string $classes A space-separated list of CSS classes
@@ -116,6 +122,15 @@ class core_renderer extends \core_renderer {
         }
 
         return $output;
+    }
+    
+    /**
+     * @author MACUCO juan.manuel.mp8@gmail.com
+     * FUNCION INEA PARA AGREGAR CODIGO EN EL ENCABEZADO DEL TEMA
+     * @return string
+     */
+    public function inea_head() {
+        return $this->inea_head_html;
     }
 
     /*

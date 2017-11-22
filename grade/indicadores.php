@@ -3,7 +3,7 @@
         $heade_indicadores = '
         <style type="text/css">
 ul {
-    list-style-type:none; /*con esto quitamos las viñetas*/
+    list-style-type:none; /*con esto quitamos las viï¿½etas*/
     margin:0; /*le quitamos el margen a la lista*/
     padding:0; /*y el relleno*/
 }
@@ -15,7 +15,7 @@ li.hecho, li.porhacer {
     color:#FFFFFF; /*mas*/
 
 
-    text-decoration:none; /*elimino el subrayado del vínculo*/
+    text-decoration:none; /*elimino el subrayado del vï¿½nculo*/
     text-transform:uppercase; /*decorare los vinculos en mayusculas*/
 
     height: 100%;
@@ -42,7 +42,7 @@ li.hecho {
 }
 
 </style>
-<script  src="jquery-1.4.2.js" type="text/javascript" language="javascript"></script>
+<script  src="'.$CFG->wwwroot.'/grade/jquery-1.4.2.js" type="text/javascript" language="javascript"></script>
 <script  type="text/javascript" language="javascript">
 <!--
 var unidades = {"unidad1":{"contestadas":70,"total":100},"unidad2":{"contestadas":99,"total":100}};
@@ -97,11 +97,11 @@ var unidades = {"unidad1":{"contestadas":70,"total":100},"unidad2":{"contestadas
                  $total_ejercicios = 0;
                 foreach($unidades as $unidad){
 
-                    $ejercicios = get_records_select('inea_ejercicios','courseid='.$course->id.' AND unidad='.$unidad->unidad,'','id');
+                    $ejercicios = $DB->get_records_select('inea_ejercicios','courseid='.$course->id.' AND unidad='.$unidad->unidad,array(),'','id');
                     $ejercicios = array_keys($ejercicios);
                     $ejercicios = implode(",",$ejercicios);
 
-                    $respuestas = get_records_select('inea_respuestas','userid='.$ouser->id.' AND ejercicios_id in('.$ejercicios.') group by ejercicios_id');
+                    $respuestas = $DB->get_records_select('inea_respuestas','userid='.$ouser->id.' AND ejercicios_id in('.$ejercicios.') group by ejercicios_id');
                     $contestadas = empty($respuestas)?0:count($respuestas);
 
                     $idunidad = $unidad->unidad."_".$ouser->id;
