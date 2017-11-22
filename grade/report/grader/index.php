@@ -66,12 +66,6 @@ require_capability('moodle/grade:viewall', $context);
 
 
 
-$pinta_header = true;
-include($CFG->dirroot."/grade/indicadores.php");//Cargar los javascript
-
-$OUTPUT = $PAGE->get_renderer('core');
-$OUTPUT->inea_head_html=$heade_indicadores;
-
 
 // return tracking object
 $gpr = new grade_plugin_return(array('type'=>'report', 'plugin'=>'grader', 'courseid'=>$courseid, 'page'=>$page));
@@ -134,7 +128,16 @@ $reportname = get_string('pluginname', 'gradereport_grader');
 // Do this check just before printing the grade header (and only do it once).
 grade_regrade_final_grades_if_required($course);
 
-$CFG->grade_navmethod = -1; //Macuco - con este codigo no se muestran los menús, comentar si se quiere que se muestren
+$CFG->grade_navmethod = -1; //Macuco - con este codigo no se muestran los menús superiores, comentar si se quiere que se muestren
+
+// -- MACUCO -- Para agregar el javascript en el encabezado
+$pinta_header = true;
+include($CFG->dirroot."/grade/indicadores.php");//Cargar los javascript
+
+$OUTPUT = $PAGE->get_renderer('core');
+$OUTPUT->inea_head_html=$heade_indicadores;
+// -----------------------------------------------------------
+
 
 // Print header
 print_grade_page_head($COURSE->id, 'report', 'grader', $reportname, false, $buttons);
@@ -168,6 +171,7 @@ $firstinitial = isset($SESSION->gradereport['filterfirstname']) ? $SESSION->grad
 $lastinitial  = isset($SESSION->gradereport['filtersurname']) ? $SESSION->gradereport['filtersurname'] : '';
 $totalusers = $report->get_numusers(true, false);
 $renderer = $PAGE->get_renderer('core_user');
+
 echo $renderer->user_search($url, $firstinitial, $lastinitial, $numusers, $totalusers, $report->currentgroupname);
 
 //show warnings if any
@@ -219,6 +223,7 @@ $event = \gradereport_grader\event\grade_report_viewed::create(
 $event->trigger();
 
 $pinta_header = false;
+$groupmembers = $report->users;
 include $CFG->dirroot."/grade/inea_carpeta.php";
 
 echo $OUTPUT->footer();
