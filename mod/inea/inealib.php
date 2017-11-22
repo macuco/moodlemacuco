@@ -18,6 +18,21 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+
+
+
+/**
+ * Id rol para educando
+ * @var unknown
+ */
+define('EDUCANDO', 5);
+/**
+ * Id rol para asesor
+ * @var unknown
+ */
+define('ASESOR', 4);
+
+
 /**
  * INEA - Obtiene una entidad o estado
  * @param int $id_pais
@@ -458,23 +473,23 @@ function add_category_profile(core_user\output\myprofile\tree $tree, $user, $cou
     
     complete_user_inea($user); //Completar el objeto usuario con los datos del inea
     
-    $node = new core_user\output\myprofile\node('contact', 'rfe', get_string("rfe","inea"), null, null, $user->rfe);
+    $node = new core_user\output\myprofile\node('contact', 'rfe', get_string("rfe","inea"), null, null, $user->idnumber);
     $tree->add_node($node);
     
-    $node = new core_user\output\myprofile\node('contact', 'sexo', get_string("sexo","inea"), null, null, $user->sexo);
+    $node = new core_user\output\myprofile\node('contact', 'sexo', get_string("sexo","inea"), null, null, $user->yahoo);
     $tree->add_node($node);
     
     //$node = new core_user\output\myprofile\node('ineadetails', 'prueba', "prueba", null, $url);
-    $node = new core_user\output\myprofile\node('contact', 'estado', get_string("estado","inea"), null, null, getEntidadString($user->estado));
+    $node = new core_user\output\myprofile\node('contact', 'estado', get_string("estado","inea"), null, null, getEntidadString($user->institution));
     $tree->add_node($node);
     
-    $node = new core_user\output\myprofile\node('contact', 'municipio', get_string("municipio","inea"), null, null, getMunicipioString($user->estado, $user->municipio) );
+    $node = new core_user\output\myprofile\node('contact', 'municipio', get_string("municipio","inea"), null, null, getMunicipioString($user->institution, $user->city) );
     $tree->add_node($node);
     
-    $node = new core_user\output\myprofile\node('contact', 'plaza', get_string("plaza","inea"), null, null, getPlazaString($user->plaza));
+    $node = new core_user\output\myprofile\node('contact', 'plaza', get_string("plaza","inea"), null, null, getPlazaString($user->skype));
     $tree->add_node($node);
     
-    $node = new core_user\output\myprofile\node('contact', 'ocupacion', get_string("ocupacion","inea"), null, null, getOcupacionString($user->ocupacion));
+    $node = new core_user\output\myprofile\node('contact', 'ocupacion', get_string("ocupacion","inea"), null, null, getOcupacionString($user->msn));
     $tree->add_node($node);
     
 }
@@ -491,29 +506,15 @@ function add_category_profile(core_user\output\myprofile\tree $tree, $user, $cou
  */
 function complete_user_inea($user){
     global $DB;
-    $data = $DB->get_record('inea_user', array('user_id'=>$user->id));
-    unset($data->id);
-    unset($data->user_id);
-    if(!empty($data)){
-        foreach ($data as $clave=>$valor){
-            $user->$clave = $valor;
-        }
-    }else{
-        $user->rfe='';
-        $user->sexo='';
-        $user->estado='';
-        $user->municipio='';
-        $user->plaza='';
-        $user->ocupacion='';
-    }
     
-    $user->destado = getEntidadString($user->estado);
+    $user->destado = getEntidadString($user->institution);
     
-    $user->dmunicipio = getMunicipioString($user->estado, $user->municipio);
+    $user->dmunicipio = getMunicipioString($user->institution, $user->city);
     
-    $user->dplaza = getPlazaString($user->plaza);
+    $user->dplaza = getPlazaString($user->skype);
     
-    $user->docupacion = getOcupacionString($user->ocupacion);
+    $user->docupacion = getOcupacionString($user->msn);
+    
 }
 
 function complete_user_role($user, $courseid){
@@ -658,3 +659,39 @@ function inea_get_user_group($courseid, $userid){
     }
     return [];
 }
+
+
+//RUDY: integre siguiente funcion partiendo de la anterior. 300712
+function inea_get_entidad_users($id_estado, $sort='u.lastaccess DESC', $exceptions='',
+    $fields='u.*') {
+        global $CFG, $DB;
+        if (!empty($exceptions)) {
+            $except = ' AND u.id NOT IN ('. $exceptions .') ';
+        } else {
+            $except = '';
+        }
+        // in postgres, you can't have things in sort that aren't in the select, so...
+        $extrafield = str_replace('ASC','',$sort);
+        $extrafield = str_replace('DESC','',$extrafield);
+        $extrafield = trim($extrafield);
+        if (!empty($extrafield)) {
+            $extrafield = ','.$extrafield;
+        }
+        return $DB->get_records_sql("SELECT DISTINCT $fields $extrafield
+                              FROM {$CFG->prefix}user u
+                             WHERE u.institution = '$id_estado' $except
+                          ORDER BY $sort");
+}
+
+function isstudent($courseid, $userid){
+    $cContext = context_course::instance($courseid); // global $COURSE
+    $roles = get_user_roles($cContext,$userid);
+    foreach($roles as $id=>$rol){
+        
+        if($rol->roleid == EDUCANDO){
+            return true;
+        }
+    }
+    return false;
+}
+
