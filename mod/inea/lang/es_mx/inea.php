@@ -240,8 +240,8 @@ $string['faltaorigen'] = 'Falta especificar el origen correctamente';
 $string['usuarioyaregistrado'] = 'Un usuario con el mismo RFE ya está registrado en el sistema.';
 
 //***************************************** PAÍS
-$string['1'] = 'México';
-$string['2'] = 'Estados Unidos';
+$string['mx'] = 'México';
+$string['eu'] = 'Estados Unidos';
 
 //***************************************** ESTADOS
 $string['AD'] = 'Aguas Calientes';
