@@ -101,7 +101,7 @@ function inea_get_zona($id_instituto, $id_zona) {
 function inea_get_modelo($id_modelo) {
     global $DB;
     
-    return $DB->get_record('inea_modelos', array('icvemodesume'=>$modelo), 'cdesmodelo');
+    return $DB->get_record('inea_modelos', array('icvemodesume'=>$id_modelo), 'cdesmodelo');
 }
 
 /**
@@ -111,7 +111,7 @@ function inea_get_modelo($id_modelo) {
 function inea_get_ocupaciones() {
     global $DB;
     
-    return $DB->get_records('inea_ocupaciones', null, 'ASC', 'cdesocupacion');
+    return $DB->get_records('inea_ocupaciones', null, '', 'cdesocupacion');
 }
 
 /**
@@ -278,17 +278,34 @@ function inea_get_record_sasa($entidad="", $rfe="") {
     //echo "<br>".$qry3. "<---- consulta sql server  ";
 	$sasa = $DB->get_record_sql('SELECT nombre, base, usuario, pass FROM {inea_sasa_conn} WHERE instituto = ?', array($entidad));
     
-    $nombre = $sasa->nombre;
-    $base = $sasa->base;
+    $servidor = $sasa->nombre;
+    $basedatos = $sasa->base;
     $usuario = $sasa->usuario;
-    $pass = $sasa->pass;
+    $clave = $sasa->pass;
     
-    /*echo "<br>".$nombre. "<---- nombre server de sql   ";
-     echo "<br>".$base. "<----- base";
-     echo "<br>".$usuario. "<---- usuario de sql   ";
-     echo "<br>".$pass. "<---- pass de sql   ";*/
-    //mysql_close($conectID2);
-    
+    /*echo "<br>".$servidor. "<---- nombre server de sql   ";
+    echo "<br>".$basedatos. "<----- base";
+    echo "<br>".$usuario. "<---- usuario de sql   ";
+    echo "<br>".$clave. "<---- pass de sql   ";*/
+   
+	$dsn = "Driver={SQL Server Native Client 10.0};Server=$servidor;Database=$basedatos;";
+	
+	//realizamos la conexion mediante odbc
+	$conexion = odbc_connect("Driver={SQL Server Native Client 10.0};Server=$servidor;Database=$basedatos;", $usuario, $clave);
+
+	if (!$conexion){
+		exit("<strong>Ya ocurrido un error tratando de conectarse con el origen de datos.</strong>");
+	}	
+
+	$consulta = "EXEC GetIdEducandoSASA '".$rfe."'";
+
+	// generamos la tabla mediante odbc_result_all(); utilizando borde 1
+	$resultado = odbc_exec($conexion, $consulta) or die(exit("Error en odbc_exec"));
+	
+	print_object(odbc_result_all($resultado, "border=1"));
+	
+	exit;
+	
     $conectID = mssql_connect($nombre, $usuario, $pass);
     mssql_select_db($base);
     
