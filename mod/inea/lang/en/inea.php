@@ -170,7 +170,7 @@ $string['ocupacion'] = 'Ocupación';
 $string['missingcity'] = 'Falta la ciudad';
 $string['missingcountry'] = 'Falta el país';
 $string['missingdescription'] = 'Falta la descripción';
-$string['missingemail'] = 'Falta la direcció de correo electrónico';
+$string['missingemail'] = 'Falta la dirección de correo electrónico';
 $string['nonumdocumento'] = 'Falta el número de documento';
 $string['nosexo'] = 'Falta especificar género';
 $string['noarea'] = 'Falta especificar área';
@@ -185,7 +185,7 @@ $string['noamaterno_'] = 'Error al especificar apellido materno';
 $string['noamaterno'] = 'Falta el apellido materno';
 $string['nonombres_'] = 'Error al especificar el/los nombre(s)';
 $string['nonombres'] = 'Falta el/los nombre(s)';
-$string['noocupacion'] = 'Falta Ocupaci&oacute;n)';
+$string['noocupacion'] = 'Falta Ocupaci&oacute;n';
 $string['missingnewpassword'] = 'Falta la nueva contraseña';
 $string['missingpassword'] = 'Falta la contraseña';
 $string['missingshortname'] = 'Falta el nombre corto';
@@ -240,8 +240,8 @@ $string['faltaorigen'] = 'Falta especificar el origen correctamente';
 $string['usuarioyaregistrado'] = 'Un usuario con el mismo RFE ya está registrado en el sistema.';
 
 //***************************************** PAÍS
-$string['1'] = 'México';
-$string['2'] = 'Estados Unidos';
+$string['mx'] = 'México';
+$string['eu'] = 'Estados Unidos';
 
 //***************************************** ESTADOS
 $string['AD'] = 'Aguas Calientes';
