@@ -72,15 +72,15 @@ var unidades = {"unidad1":{"contestadas":70,"total":100},"unidad2":{"contestadas
 <table align="center" border="0" cellspacing="5" cellpadding="0">
         <thead bgcolor="#FF9900">
             <tr>
-                <th>Nombre del educando</th>
+                <th> Nombre del educando </th>
                 <?php
                 foreach($unidades as $unidad){
                     echo '<th >Unidad '.$unidad->unidad.'</th>';
                 }
                 ?>
-                <th>Porcentaje 
-				total del curso</th>
-                <th>Total de ejercicios contestados</th>
+                <th> Porcentaje 
+				total del curso </th>
+                <th> Total de ejercicios contestados </th>
             </tr>
         </thead>
         <tbody>
@@ -120,7 +120,11 @@ var unidades = {"unidad1":{"contestadas":70,"total":100},"unidad2":{"contestadas
                     <div class="retro"><?=$avance?>%</div>
                 </td>
                 <?php }
-                $porcentaje_total = round($total_ejercicios_contestados*100/$total_ejercicios);
+                if($total_ejercicios<=0){
+                    $porcentaje_total = "NO REGISTRADO";
+                }else{
+                    $porcentaje_total = round($total_ejercicios_contestados*100/$total_ejercicios);
+                }
                 ?>
 
                 <td align="center"><?=$porcentaje_total?>%</td>

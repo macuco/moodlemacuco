@@ -28,7 +28,7 @@ require_once($CFG->dirroot."/grade/lib.php");
 //    if (!$course = $DB->get_record('course', array('id' => $id))) {
 //        print_error('invalidcourseid');
 //    }
-    
+   /* 
     $PAGE->set_url(new moodle_url('/grade/carpeta.php', array('id'=>$course->id)));
     
     //require_login($course);
@@ -76,13 +76,16 @@ require_once($CFG->dirroot."/grade/lib.php");
                                  WHERE m.userid = u.id
                               ORDER BY $sort");		
     }
-
+*/
    
     //exit();
     
     foreach ($groupmembers as $id => $ouser) {	// Descarta usuarios q NO sean educandos
-        if (!isstudent($course->id, $id))
+        if (!isstudent($course->id, $id)){
             unset($groupmembers[$id]);
+        }else{//Completar el usuario
+            $groupmembers[$id] = $DB->get_record('user', array('id'=>$id));
+        }
     }
     // ---------------------------------------------------------
 

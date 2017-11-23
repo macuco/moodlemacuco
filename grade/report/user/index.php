@@ -201,7 +201,11 @@ if (isset($report)) {
     echo html_writer::tag('div', '', array('class' => 'clearfix'));
     echo $OUTPUT->notification(get_string('nostudentsyet'));
 }
+
+//MACUCO ------- Mostrar la lista de actividades y usuarios
 $pinta_header = false;
+$groupmembers = array();
+$groupmembers[$report->user->id] = $report->user;//para pasarle la lista de usuarios
 include $CFG->dirroot."/grade/inea_carpeta.php";
 
 echo $OUTPUT->footer();
