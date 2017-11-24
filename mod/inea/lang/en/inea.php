@@ -238,6 +238,7 @@ $string['elegircursos'] = 'Elegir cursos';
 $string['ircursos'] = 'Ir a los cursos';
 $string['faltaorigen'] = 'Falta especificar el origen correctamente';
 $string['usuarioyaregistrado'] = 'Un usuario con el mismo RFE ya está registrado en el sistema.';
+$string['usersreg'] = 'Usuarios registrados';
 
 //***************************************** PAÍS
 $string['mx'] = 'México';
