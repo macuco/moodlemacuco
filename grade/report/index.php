@@ -75,6 +75,14 @@ if (empty($last)) {
     }
 }
 
+//MACUCO --- Para forsar que a los que no sean estudiantes se les muestre el reporte grade
+require_once($CFG->dirroot . '/mod/inea/inealib.php');
+if(isstudent($course->id, $USER->id)){
+    $last = "user";
+}else{
+    $last="grader";
+}
+
 //redirect to last or guessed report
 redirect($CFG->wwwroot.'/grade/report/'.$last.'/index.php?id='.$course->id);
 

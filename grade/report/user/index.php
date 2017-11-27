@@ -182,11 +182,12 @@ if (has_capability('moodle/grade:viewall', $context)) { //Teachers will see all 
     }
 } else { //Students will see just their own report
     
+    // MACUCO se agrega para generar el reporte de los examenes y secuenciarlos por unidad
+    require_once($CFG->dirroot . '/mod/inea/inealib_class.php');
+    
     // Create a report instance
-    $report = new grade_report_user($courseid, $gpr, $context, $userid);
-    
-    
-    // print the page
+    $report = new inea_grade_report_user($courseid, $gpr, $context, $userid);
+   
     print_grade_page_head($courseid, 'report', 'user', get_string('pluginname', 'gradereport_user'). ' - '.fullname($report->user));
 
     if ($report->fill_table()) {

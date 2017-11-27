@@ -71,8 +71,8 @@ $response->dataError = "";
 $response->contestado = false;
 
 // ---- OBTENGO LA URL DEL ARCHIVO ---------------
-//$id_archivo = $_SERVER['HTTP_REFERER'];
-$id_archivo = 'http://localhost/mevyt/moodle/pluginfile.php/31/mod_inea/content/2/B2MFM/contenidos/u_1/u1_act1.html';
+$id_archivo = $_SERVER['HTTP_REFERER'];
+//$id_archivo = 'http://localhost/mevyt/moodle/pluginfile.php/31/mod_inea/content/2/B2MFM/contenidos/u_1/u1_act1.html';
 //inea.php/28,35,177/B2MFM/index2.html
 $id_archivo = explode("/pluginfile.php/", $id_archivo); // Separando la ruta del archivo
 $id_archivo_curso = count($id_archivo) > 0 ? $id_archivo[1] : $id_archivo[0]; // Obteniendo la parte final de la ruta
@@ -197,6 +197,7 @@ if ($contestado) {
 if ($id_ejercicio && $courseid && $pregunta>-1) {
     $where = ' courseid=' . $courseid . " and id_ejercicio='".$id_ejercicio."' and url='".$relativepath."'";
     $ejercicio = $DB->get_record_select('inea_ejercicios', $where );
+   
     //print_object($ejercicio);exit();
     //if ($ejercicio == false) { // RUDY: Linea original, se cambia por la siguiente para evitar nuevos guardados de definiciones de acts. 9/7/14
 	if (false) {

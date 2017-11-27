@@ -735,3 +735,28 @@ function isstudent($courseid, $userid){
     return false;
 }
 
+/**
+ * Funcion para obtener el avance de las actividades INEA de una unidad de un curso de un usario
+ * @param $userid
+ * @param $courseid
+ * @param x$unidadid
+ */
+function obtener_avance_unidad($userid, $courseid, $unidadid){
+    global $DB;
+    $unidades = $DB->get_records_select('inea_total_ejercicios','courseid='.$courseid.' and unidad='.$unidadid);
+    $unidad = array_pop($unidades);
+    
+    $ejercicios = $DB->get_records_select('inea_ejercicios','courseid='.$courseid.' AND unidad='.$unidadid,array(),'','id');
+    $ejercicios = array_keys($ejercicios);
+    $ejercicios = implode(",",$ejercicios);
+    
+    $respuestas = $DB->get_records_select('inea_respuestas','userid='.$userid.' AND ejercicios_id in('.$ejercicios.') group by ejercicios_id');
+    $contestadas = empty($respuestas)?0:count($respuestas);
+    
+    $total = 100*$unidad->nactividades/$unidad->porcentaje;
+    $avance = round(($contestadas*100/$total)*100)/100;
+    
+    return $avance;
+    
+}
+

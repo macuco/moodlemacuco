@@ -230,10 +230,6 @@ if (!$viewobj->quizhasquestions) {
 
 $viewobj->showbacktocourse = ($viewobj->buttontext === '' &&
         course_get_format($course)->has_view_page());
-//MACUCO --- Agregar la parte para activiar o no el curso
-//TODO - MACUCO Agregar la parte para activiar o no el curso
-$viewobj->showbacktocourse = false;
-$viewobj->preventmessages[0]="JAJAJAJAJA";
 
 echo $OUTPUT->header();
 

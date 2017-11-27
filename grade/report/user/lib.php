@@ -244,7 +244,7 @@ class grade_report_user extends grade_report {
 
         // Grab the grade_tree for this course
         $this->gtree = new grade_tree($this->courseid, false, $this->switch, null, !$CFG->enableoutcomes);
-
+        
         // Get the user (for full name).
         $this->user = $DB->get_record('user', array('id' => $userid));
 
