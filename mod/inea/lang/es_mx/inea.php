@@ -145,7 +145,7 @@ $string['toolbar'] = 'Mostrar la barra de herramientas';
 $string['status'] = 'Estatus';
 
 //***************************************** REGISTRO
-$string['registro'] = 'Resgistro';
+$string['registro'] = 'Registro';
 $string['msjnoconfirmado'] = 'El usuario aun no ha confirmado su registro.<br/> Verifique el correo de confirmación en su correo electrónico.';
 $string['msjnoregistrado'] = 'El usuario no esta registrado en el sistema o no es educando.<br/> Comprueba que los datos que se proporcionaron sean los correctos.';
 $string['datospersonales'] = 'Datos personales';
@@ -161,6 +161,8 @@ $string['numdocumento'] = 'Número de documento o pasaporte';
 $string['rfe'] = 'RFE';
 $string['norfe'] = 'Falta especificar el RFE';
 $string['rfeincorrecto'] = 'Datos del RFE incorrectos';
+$string['rfenocoincide'] = 'Los datos no coinciden con el RFE proporcionado';
+$string['rfeyaregistrado'] = 'Un usuario con el mismo RFE ya esta registrado en el sistema';
 $string['sexo'] = 'Sexo (M/F)';
 $string['area'] = 'Área';
 $string['puesto'] = 'Puesto';
