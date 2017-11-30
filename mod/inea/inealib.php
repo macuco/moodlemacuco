@@ -253,6 +253,35 @@ function inea_list_entidades($id_pais) {
 	return $list;
 }
 
+/**
+ * INEA - Obtiene una zona segun la plaza
+ *
+ * @deprecated - Funcion personalizada.
+ * @return Int : Un valor con el id de la zona
+ * 
+ */
+function inea_get_zona_by_plaza($id_plaza = null) {
+	global $DB;
+	
+    if($zona = $DB->get_record('inea_plazas', array('idplaza'=>$id_plaza))){
+		return $zona->icvecz;
+	} 
+	
+	return 0;
+}
+
+/**
+ * INEA - Obtiene el modelo al que pertenece el usuario
+ *
+ * @param int $userid
+ * @return object modelo
+ */
+function inea_get_modelo_from_user($userid) {
+    global $CFG, $DB;
+
+    return $DB->get_record_sql('SELECT icvemodesume FROM {user} WHERE id = ?', array($userid));
+}
+
 //--------------------------------------------------------------------------------
 
 /*  ************** Funciones para MEVyt DAS ************** */
