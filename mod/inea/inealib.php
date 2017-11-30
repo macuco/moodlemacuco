@@ -155,13 +155,13 @@ function inea_get_zonas($id_instituto) {
 }
 
 /**
- * INEA - Obtiene el id del estado, municipio  y pais de un usuario
+ * INEA - Obtiene el id de la entidad, municipio y pais de un usuario
  * @return object
  */
-function inea_get_user_estado($id) {
+function inea_get_user_entidad($id_usuario) {
     global $DB;
     
-    return $DB->get_record('user', array('id'=>$id), 'institution, country, city, skype');
+    return $DB->get_record('user', array('id'=>$id_usuario), 'institution, country, city, skype');
 }
 
 /**
@@ -282,6 +282,73 @@ function inea_get_modelo_from_user($userid) {
     return $DB->get_record_sql('SELECT icvemodesume FROM {user} WHERE id = ?', array($userid));
 }
 
+/**
+ * INEA - Regresa la lista de cursos de acuerdo a la categoria
+ *
+ * @global object
+ * @uses CONTEXT_COURSE
+ * @param string|int $categoryid id de la categoria o 'all' para devolver todas
+ * @param string $sort El cambo y el tipo de orden
+ * @param string $fields Los campos a regresar
+ * @param string $clave_modelo La clave del modelo al que pertenece
+ * @return array Lista de cursos
+ */
+function inea_get_courses($categoryid="all", $sort="c.sortorder ASC", $fields="c.*", $clave_modelo=0) {
+
+    global $USER, $CFG, $DB;
+
+    $params = array();
+	
+	if ($categoryid != "all" && is_numeric($categoryid)) {
+        $categoryselect = "WHERE c.category = '$categoryid'";
+    } else {
+        $categoryselect = "";
+    }
+
+	//INEA: condicion agregada para el filtrado de cursos para educandos del modelo 10-14.
+	if($clave_modelo == 11){	// 10: Modelo MOL, 11: Modelo 10-14
+		$modelostatement = "AND c.idnumber_1014 IS NOT NULL"; 
+    } else {
+        $modelostatement = "";
+    }
+	
+    if (empty($sort)) {
+        $sortstatement = "";
+    } else {
+        $sortstatement = "ORDER BY $sort";
+    }
+
+    $visiblecourses = array();
+
+    $ccselect = ', ' . context_helper::get_preload_record_columns_sql('ctx');
+    $ccjoin = "LEFT JOIN {context} ctx ON (ctx.instanceid = c.id AND ctx.contextlevel = :contextlevel)";
+    $params['contextlevel'] = CONTEXT_COURSE;
+	
+    $sql = "SELECT $fields $ccselect
+              FROM {course} c
+           $ccjoin
+              $categoryselect
+			  $modelostatement
+              $sortstatement";
+
+    // pull out all course matching the cat
+    if ($courses = $DB->get_records_sql($sql, $params)) {
+
+        // loop throught them
+        foreach ($courses as $course) {
+            context_helper::preload_from_record($course);
+            if (isset($course->visible) && $course->visible <= 0) {
+                // for hidden courses, require visibility check
+                if (has_capability('moodle/course:viewhiddencourses', context_course::instance($course->id))) {
+                    $visiblecourses [$course->id] = $course;
+                }
+            } else {
+                $visiblecourses [$course->id] = $course;
+            }
+        }
+    }
+    return $visiblecourses;
+}
 //--------------------------------------------------------------------------------
 
 /*  ************** Funciones para MEVyt DAS ************** */
