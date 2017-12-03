@@ -655,6 +655,9 @@ function complete_user_inea($user){
 
 function complete_user_role($user, $courseid){
     $context = context_course::instance($courseid);
+    if(empty(get_user_roles($context, $user->id))){
+        return;
+    }
     $obj = array_values(get_user_roles($context, $user->id))[0];
     if(isset($obj->shortname)){
         $user->role = getRolename($obj->roleid);

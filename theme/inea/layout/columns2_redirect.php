@@ -33,10 +33,10 @@ if (isloggedin()) {
     $cContext = context_course::instance($COURSE->id); // global $COURSE
     $currenRole = current(get_user_roles($cContext, $USER->id));
     
-     
+    //print_object(get_user_roles($cContext, $USER->id));exit;
     if($currenRole){
-        $viewContentCourse = $currenRole->id==5||$currenRole->id==4? true : false;
-        if($ineas = $modinfo->get_instances_of('inea')){
+        $viewContentCourse = $currenRole->roleid==5||$currenRole->roleid==4? true : false;
+        if($viewContentCourse && $ineas = $modinfo->get_instances_of('inea')){
             //print_object($PAGE->pagelayout);exit;
             redirect($CFG->wwwroot .'/mod/inea/view.php?id='.array_values($modinfo->get_instances_of('inea'))[0]->id.'&redirect=0');
             array_values($modinfo->get_instances_of('inea'))[0]->id;

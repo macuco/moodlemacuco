@@ -17,9 +17,9 @@ require_once($CFG->dirroot."/grade/lib.php");
     $rol_actual_objeto = $rol_actual[2]; // Obtiene el rol del usuario actual en el curso actual de acuerdo al id del modulo
 
 */	
-    $id_estado_objeto = inea_get_user_estado($USER->id); // vhackero para ontener el estado al que pertenece el usuario;
+    //$id_estado_objeto = inea_get_user_estado($USER->id); // vhackero para ontener el estado al que pertenece el usuario;
     //print_object$id($id_estado_objeto);
-    if($id_estado_objeto->institution) $id_estado = $id_estado_objeto->institution; // vhackero para ontener el estado al que pertenece el usuario;
+    //if($id_estado_objeto->institution) $id_estado = $id_estado_objeto->institution; // vhackero para ontener el estado al que pertenece el usuario;
 
     
     
