@@ -27,6 +27,9 @@ if (!defined('MOODLE_INTERNAL')) {
 }
 
 require_once($CFG->dirroot.'/lib/formslib.php');
+if(file_exists($CFG->dirroot.'/lib/formslib.php')){
+    require_once($CFG->dirroot.'/mod/inea/inealib.php');
+}
 
 /**
  * Class user_editadvanced_form.
@@ -104,14 +107,14 @@ class user_editadvanced_form extends moodleform {
             $mform->disabledIf('username', 'auth', 'in', $cannotchangeusername);
         }
 
-        $mform->addElement('selectgroups', 'auth', get_string('chooseauthmethod', 'auth'), $authoptions);
-        $mform->addHelpButton('auth', 'chooseauthmethod', 'auth');
+        //$mform->addElement('selectgroups', 'auth', get_string('chooseauthmethod', 'auth'), $authoptions);
+        //$mform->addHelpButton('auth', 'chooseauthmethod', 'auth');
 
-        $mform->addElement('advcheckbox', 'suspended', get_string('suspended', 'auth'));
-        $mform->addHelpButton('suspended', 'suspended', 'auth');
+        //$mform->addElement('advcheckbox', 'suspended', get_string('suspended', 'auth'));
+        //$mform->addHelpButton('suspended', 'suspended', 'auth');
 
-        $mform->addElement('checkbox', 'createpassword', get_string('createpassword', 'auth'));
-        $mform->disabledIf('createpassword', 'auth', 'in', $cannotchangepass);
+        //$mform->addElement('checkbox', 'createpassword', get_string('createpassword', 'auth'));
+        //$mform->disabledIf('createpassword', 'auth', 'in', $cannotchangepass);
 
         if (!empty($CFG->passwordpolicy)) {
             $mform->addElement('static', 'passwordpolicyinfo', '', print_password_policy());
@@ -143,7 +146,7 @@ class user_editadvanced_form extends moodleform {
         $mform->disabledIf('preference_auth_forcepasswordchange', 'createpassword', 'checked');
 
         // Shared fields.
-        useredit_shared_definition($mform, $editoroptions, $filemanageroptions, $user);
+        inea_useredit_shared_definition($mform, $editoroptions, $filemanageroptions, $user);
 
         // Next the customisable profile fields.
         profile_definition($mform, $userid);

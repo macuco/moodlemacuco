@@ -859,3 +859,265 @@ function obtener_avance_unidad($userid, $courseid, $unidadid){
     
 }
 
+
+
+/**
+ * Funcion que personaliza los campos de registro de los usuarios
+ * Powerful function that is used by edit and editadvanced to add common form elements/rules/etc.
+ *
+ * @param moodleform $mform
+ * @param array $editoroptions
+ * @param array $filemanageroptions
+ * @param stdClass $user
+ */
+function inea_useredit_shared_definition(&$mform, $editoroptions, $filemanageroptions, $user) {
+    global $CFG, $USER, $DB;
+    
+    if ($user->id > 0) {
+        useredit_load_preferences($user, false);
+    }
+    
+    $strrequired = get_string('required');
+    $stringman = get_string_manager();
+    // Add the necessary names.
+    /*foreach (useredit_get_required_name_fields() as $fullname) {
+        $mform->addElement('text', $fullname,  get_string($fullname),  'maxlength="100" size="30"');
+        if ($stringman->string_exists('missing'.$fullname, 'core')) {
+            $strmissingfield = get_string('missing'.$fullname, 'core');
+        } else {
+            $strmissingfield = $strrequired;
+        }
+        $mform->addRule($fullname, $strmissingfield, 'required', null, 'client');
+        $mform->setType($fullname, PARAM_NOTAGS);
+    }*/
+    
+    $campo = 'firstname';
+    $mform->addElement('text', $campo,  get_string($campo),  'maxlength="100" size="30"');
+    $mform->addRule($campo, get_string($campo), 'required', null, 'client');
+    $mform->setType($campo, PARAM_NOTAGS);
+    
+    $campo = 'lastname';
+    $mform->addElement('text', $campo,  "Apellido paterno",  'maxlength="100" size="30"');
+    $mform->addRule($campo, get_string($campo), 'required', null, 'client');
+    $mform->setType($campo, PARAM_NOTAGS);
+    
+    $campo = 'icq';
+    $mform->addElement('text', $campo,  "Apellido materno",  'maxlength="100" size="30"');
+    //$mform->addRule($campo, get_string($campo), 'required', null, 'client');
+    $mform->setType($campo, PARAM_NOTAGS);
+
+    $mform->addElement('html', html_writer::empty_tag('hr'));
+    
+    $choices = Array("Masculino"=>"Masculino", "Femenino"=>"Femenino");
+    //print_object();
+    $choices = array('' => get_string('sexo','inea') . '...') + $choices;
+    $mform->addElement('select', 'yahoo', get_string('sexo','inea'), $choices);
+    $mform->addRule('yahoo', get_string('nosexo','inea'), 'required', null, 'server');
+    
+    $url = "";
+    $element = &$mform->addElement('date_selector', 'aim', utf8_encode(get_string('fechanacimiento','inea')),array ('startyear'=> 1900,'stopyear'=> 2009,'zona horaria'=> 99,'applydst'=> true , 'opcional' => true), 'onchange="generaRFE(document.getElementById(\'id_lastname\').value, document.getElementById(\'id_icq\').value, document.getElementById(\'id_firstname\').value, this.form,\''.$url.'\');"');
+    $mform->addRule('aim', utf8_encode(get_string('nofechanacimiento','inea')), 'required', null, 'client');
+    
+    $modificando = true;
+    $user->aim = "02/12/2017";
+    if($modificando){
+        $t = explode('/',$user->aim);
+        $script =  '<script type="text/javascript">
+addEvent(window,"load",ventanaBienvenida,false);
+var day = '.$t[0].';var month = '.$t[1].';var year = '.$t[2].';
+function ventanaBienvenida()
+{
+    selects = document.getElementsByTagName("select");
+    for(i=0;i<selects.length;i++){
+        select = selects[i];
+        if(select.getAttribute("name").indexOf("aim")>=0){
+            if(select.getAttribute("name").indexOf("day")>=0)
+                select.value=day;
+            if(select.getAttribute("name").indexOf("month")>=0)
+                select.value=month;
+            if(select.getAttribute("name").indexOf("year")>=0)
+                select.value=year;
+        }
+    }
+}
+    
+function addEvent(elemento,nomevento,funcion,captura)
+{
+  if (elemento.attachEvent)
+  {
+    elemento.attachEvent("on"+nomevento,funcion);
+    return true;
+  }
+  else
+    if (elemento.addEventListener)
+    {
+      elemento.addEventListener(nomevento,funcion,captura);
+      return true;
+    }
+    else
+      return false;
+}
+</script>';
+        //$mform->addElement('html',$script);
+    }
+    
+    
+    $mform->addElement('text', 'idnumber', get_string('rfe', "inea"), ' size="20" readonly="readonly"');
+    $mform->setType('idnumber', PARAM_TEXT);
+    $mform->addRule('idnumber', 'No se ha especificado el RFE.', 'required', null, 'client');
+    $mform->addRule('idnumber', 'Datos del
+	 incorrectos', 'rfc', null, 'client');
+    
+    
+    
+    $enabledusernamefields = useredit_get_enabled_name_fields();
+    // Add the enabled additional name fields.
+    foreach ($enabledusernamefields as $addname) {
+        $mform->addElement('text', $addname,  get_string($addname), 'maxlength="100" size="30"');
+        $mform->setType($addname, PARAM_NOTAGS);
+    }
+    
+    // Do not show email field if change confirmation is pending.
+    if ($user->id > 0 and !empty($CFG->emailchangeconfirmation) and !empty($user->preference_newemail)) {
+        $notice = get_string('emailchangepending', 'auth', $user);
+        $notice .= '<br /><a href="edit.php?cancelemailchange=1&amp;id='.$user->id.'">'
+            . get_string('emailchangecancel', 'auth') . '</a>';
+            $mform->addElement('static', 'emailpending', get_string('email'), $notice);
+    } else {
+        $mform->addElement('text', 'email', get_string('email'), 'maxlength="100" size="30"');
+        $mform->addRule('email', $strrequired, 'required', null, 'client');
+        $mform->setType('email', PARAM_RAW_TRIMMED);
+    }
+    
+    $choices = array();
+    $choices['0'] = get_string('emaildisplayno');
+    $choices['1'] = get_string('emaildisplayyes');
+    $choices['2'] = get_string('emaildisplaycourse');
+    //$mform->addElement('select', 'maildisplay', get_string('emaildisplay'), $choices);
+    $mform->addElement('hidden', 'maildisplay', get_string('emaildisplay'), $choices);
+    $mform->setDefault('maildisplay', core_user::get_property_default('maildisplay'));
+    $mform->setType('maildisplay', PARAM_INT);
+    
+    $mform->addElement('text', 'city', get_string('city'), 'maxlength="120" size="21"');
+    $mform->setType('city', PARAM_TEXT);
+    if (!empty($CFG->defaultcity)) {
+        $mform->setDefault('city', $CFG->defaultcity);
+    }
+    
+    $choices = get_string_manager()->get_list_of_countries();
+    $choices = array('' => get_string('selectacountry') . '...') + $choices;
+    $mform->addElement('select', 'country', get_string('selectacountry'), $choices);
+    if (!empty($CFG->country)) {
+        $mform->setDefault('country', core_user::get_property_default('country'));
+    }
+    
+    if (isset($CFG->forcetimezone) and $CFG->forcetimezone != 99) {
+        $choices = core_date::get_list_of_timezones($CFG->forcetimezone);
+        $mform->addElement('static', 'forcedtimezone', get_string('timezone'), $choices[$CFG->forcetimezone]);
+        $mform->addElement('hidden', 'timezone');
+        $mform->setType('timezone', core_user::get_property_type('timezone'));
+    } else {
+        $choices = core_date::get_list_of_timezones($user->timezone, true);
+        $mform->addElement('select', 'timezone', get_string('timezone'), $choices);
+    }
+    
+    if (!empty($CFG->allowuserthemes)) {
+        $choices = array();
+        $choices[''] = get_string('default');
+        $themes = get_list_of_themes();
+        foreach ($themes as $key => $theme) {
+            if (empty($theme->hidefromselector)) {
+                $choices[$key] = get_string('pluginname', 'theme_'.$theme->name);
+            }
+        }
+        $mform->addElement('select', 'theme', get_string('preferredtheme'), $choices);
+    }
+    
+    $mform->addElement('editor', 'description_editor', get_string('userdescription'), null, $editoroptions);
+    $mform->setType('description_editor', PARAM_CLEANHTML);
+    $mform->addHelpButton('description_editor', 'userdescription');
+    
+    if (empty($USER->newadminuser)) {
+        $mform->addElement('header', 'moodle_picture', get_string('pictureofuser'));
+        $mform->setExpanded('moodle_picture', true);
+        
+        if (!empty($CFG->enablegravatar)) {
+            $mform->addElement('html', html_writer::tag('p', get_string('gravatarenabled')));
+        }
+        
+        $mform->addElement('static', 'currentpicture', get_string('currentpicture'));
+        
+        $mform->addElement('checkbox', 'deletepicture', get_string('delete'));
+        $mform->setDefault('deletepicture', 0);
+        
+        $mform->addElement('filemanager', 'imagefile', get_string('newpicture'), '', $filemanageroptions);
+        $mform->addHelpButton('imagefile', 'newpicture');
+        
+        $mform->addElement('text', 'imagealt', get_string('imagealt'), 'maxlength="100" size="30"');
+        $mform->setType('imagealt', PARAM_TEXT);
+        
+    }
+    
+    // Display user name fields that are not currenlty enabled here if there are any.
+    $disabledusernamefields = useredit_get_disabled_name_fields($enabledusernamefields);
+    if (count($disabledusernamefields) > 0) {
+        $mform->addElement('header', 'moodle_additional_names', get_string('additionalnames'));
+        foreach ($disabledusernamefields as $allname) {
+            $mform->addElement('text', $allname, get_string($allname), 'maxlength="100" size="30"');
+            $mform->setType($allname, PARAM_NOTAGS);
+        }
+    }
+    
+    if (core_tag_tag::is_enabled('core', 'user') and empty($USER->newadminuser)) {
+        $mform->addElement('header', 'moodle_interests', get_string('interests'));
+        $mform->addElement('tags', 'interests', get_string('interestslist'),
+            array('itemtype' => 'user', 'component' => 'core'));
+        $mform->addHelpButton('interests', 'interestslist');
+    }
+    
+    // Moodle optional fields.
+    $mform->addElement('header', 'moodle_optional', get_string('optional', 'form'));
+    
+    $mform->addElement('text', 'url', get_string('webpage'), 'maxlength="255" size="50"');
+    $mform->setType('url', core_user::get_property_type('url'));
+    
+    /*$mform->addElement('text', 'icq', get_string('icqnumber'), 'maxlength="15" size="25"');
+    $mform->setType('icq', core_user::get_property_type('icq'));
+    $mform->setForceLtr('icq');
+    
+    $mform->addElement('text', 'skype', get_string('skypeid'), 'maxlength="50" size="25"');
+    $mform->setType('skype', core_user::get_property_type('skype'));
+    $mform->setForceLtr('skype');
+    
+    $mform->addElement('text', 'aim', get_string('aimid'), 'maxlength="50" size="25"');
+    $mform->setType('aim', core_user::get_property_type('aim'));
+    $mform->setForceLtr('aim');
+    
+   /* $mform->addElement('text', 'yahoo', get_string('yahooid'), 'maxlength="50" size="25"');
+    $mform->setType('yahoo', core_user::get_property_type('yahoo'));
+    $mform->setForceLtr('yahoo');
+    */
+    $mform->addElement('text', 'msn', get_string('msnid'), 'maxlength="50" size="25"');
+    $mform->setType('msn', core_user::get_property_type('msn'));
+    $mform->setForceLtr('msn');
+    
+    //$mform->addElement('text', 'idnumber', get_string('idnumber'), 'maxlength="255" size="25"');
+    //$mform->setType('idnumber', core_user::get_property_type('idnumber'));
+    
+    $mform->addElement('text', 'institution', get_string('institution'), 'maxlength="255" size="25"');
+    $mform->setType('institution', core_user::get_property_type('institution'));
+    
+    $mform->addElement('text', 'department', get_string('department'), 'maxlength="255" size="25"');
+    $mform->setType('department', core_user::get_property_type('department'));
+    
+    $mform->addElement('text', 'phone1', get_string('phone1'), 'maxlength="20" size="25"');
+    $mform->setType('phone1', core_user::get_property_type('phone1'));
+    $mform->setForceLtr('phone1');
+    
+    $mform->addElement('text', 'phone2', get_string('phone2'), 'maxlength="20" size="25"');
+    $mform->setType('phone2', core_user::get_property_type('phone2'));
+    $mform->setForceLtr('phone2');
+    
+    $mform->addElement('text', 'address', get_string('address'), 'maxlength="255" size="25"');
+    $mform->setType('address', core_user::get_property_type('address'));
+}
