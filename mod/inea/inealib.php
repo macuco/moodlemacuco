@@ -349,6 +349,70 @@ function inea_get_courses($categoryid="all", $sort="c.sortorder ASC", $fields="c
     }
     return $visiblecourses;
 }
+
+/**
+ * INEA - Regresa la lista de cursos de acuerdo a la categoria
+ *
+ * Similar a inea_get_courses, pero permite la paginacion
+ *
+ * @global object
+ * @uses CONTEXT_COURSE
+ * @param string|int $categoryid id de la categoria o 'all' para devolver todas
+ * @param string $sort El cambo y el tipo de orden
+ * @param string $fields Los campos a regresar
+ * @param int $totalcount Referencia para el numero de cursos
+ * @param string $limitfrom El numero de curso donde se empieza
+ * @param string $limitnum El numero de cursos limite
+ * @return array Arreglo de cursos
+ */
+function inea_get_courses_page($categoryid="all", $sort="c.sortorder ASC", $fields="c.*",
+                          &$totalcount, $limitfrom="", $limitnum="") {
+    global $USER, $CFG, $DB;
+
+    $params = array();
+
+    $categoryselect = "";
+    if ($categoryid !== "all" && is_numeric($categoryid)) {
+        $categoryselect = "WHERE c.category = :catid";
+        $params['catid'] = $categoryid;
+    } else {
+		if($categoryid == "all") {
+			$categoryselect = "";
+		} else {
+			$categoryselect = "WHERE c.".$categoryid;
+		}
+    }
+
+    $ccselect = ', ' . context_helper::get_preload_record_columns_sql('ctx');
+    $ccjoin = "LEFT JOIN {context} ctx ON (ctx.instanceid = c.id AND ctx.contextlevel = :contextlevel)";
+    $params['contextlevel'] = CONTEXT_COURSE;
+
+    $totalcount = 0;
+    if (!$limitfrom) {
+        $limitfrom = 0;
+    }
+    $visiblecourses = array();
+
+    $sql = "SELECT $fields $ccselect
+              FROM {course} c
+              $ccjoin
+           $categoryselect
+          ORDER BY $sort";
+
+    // pull out all course matching the cat
+    $rs = $DB->get_recordset_sql($sql, $params);
+    // iteration will have to be done inside loop to keep track of the limitfrom and limitnum
+    foreach($rs as $course) {
+        context_helper::preload_from_record($course);
+		$totalcount++;
+        if ($totalcount > $limitfrom && (!$limitnum or count($visiblecourses) < $limitnum)) {
+            $visiblecourses [$course->id] = $course;
+        }
+    }
+    $rs->close();
+    return $visiblecourses;
+}
+//--------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------
 
 /*  ************** Funciones para MEVyt DAS ************** */
@@ -859,8 +923,6 @@ function obtener_avance_unidad($userid, $courseid, $unidadid){
     
 }
 
-
-
 /**
  * Funcion que personaliza los campos de registro de los usuarios
  * Powerful function that is used by edit and editadvanced to add common form elements/rules/etc.
@@ -1121,3 +1183,4 @@ function addEvent(elemento,nomevento,funcion,captura)
     $mform->addElement('text', 'address', get_string('address'), 'maxlength="255" size="25"');
     $mform->setType('address', core_user::get_property_type('address'));
 }
+?>
