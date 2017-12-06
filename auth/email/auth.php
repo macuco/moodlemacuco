@@ -150,6 +150,77 @@ class auth_plugin_email extends auth_plugin_base {
         }
     }
 
+	/**
+     * INEA Da de alta un nuevo usuario listo para confirmar.
+     * La contraseña se pasa en texto plano.
+     *
+     * @param object $user nuevo objeto usuario
+     * @param boolean $notify imprime un aviso con un url y termina
+     */
+    function inea_user_signup($user, $notify=true, $rol=null) {
+        // Standard signup, without custom confirmatinurl.
+        return $this->inea_user_signup_with_confirmation($user, $notify, null, $rol);
+    }
+	
+	/**
+     * INEA - Registra un usuario listo para confirmar.
+     *
+     * La contraseña se pasa en texto plano.
+     * Una url de confirmacion podria ser utilizada.
+     *
+     * @param object $user nuevo objeto usuario
+     * @param boolean $notify imprime un aviso con un url y termina
+     * @param string $confirmationurl URL de confirmacion de usuario
+     * @return boolean true si todo sale bien y $notify es true
+     * @throws moodle_exception
+     * @since Moodle 3.2
+     */
+    public function inea_user_signup_with_confirmation($user, $notify=true, $confirmationurl = null, $rol=null) {
+        global $CFG, $DB;
+        require_once($CFG->dirroot.'/user/profile/lib.php');
+        require_once($CFG->dirroot.'/user/lib.php');
+
+        $plainpassword = $user->password;
+        $user->password = hash_internal_user_password($user->password);
+        if (empty($user->calendartype)) {
+            $user->calendartype = $CFG->calendartype;
+        }
+
+		if (! ($user->id = inea_user_create_user($user, false, false)) ) {
+            print_error('auth_emailnoinsert','auth_email');
+        }
+
+        user_add_password_history($user->id, $plainpassword);
+
+        // Save any custom profile field information.
+        profile_save_data($user);
+
+        // Trigger event.
+        \core\event\user_created::create_from_userid($user->id)->trigger();
+		
+		if($rol != null){// Macuco   -- Para agregar el rol en la confirmación.
+        	if (! inea_send_confirmation_email($user, $rol)) {
+				print_error('auth_emailnoemail', 'auth_email');
+        	}
+        }else {
+	        if (! send_confirmation_email($user, $confirmationurl)) {
+	            print_error('auth_emailnoemail', 'auth_email');
+	        }
+        }
+
+        if ($notify) {
+            global $CFG, $PAGE, $OUTPUT;
+            $emailconfirm = get_string('emailconfirm');
+            $PAGE->navbar->add($emailconfirm);
+            $PAGE->set_title($emailconfirm);
+            $PAGE->set_heading($PAGE->course->fullname);
+            echo $OUTPUT->header();
+            notice(get_string('emailconfirmsent', '', $user->email), "$CFG->wwwroot/index.php");
+        } else {
+            return true;
+        }
+    }
+	
     /**
      * Returns true if plugin allows confirming of new users.
      *

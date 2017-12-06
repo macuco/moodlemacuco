@@ -6028,7 +6028,6 @@ function email_to_user($user, $from, $subject, $messagetext, $messagehtml = '', 
     foreach ($tempreplyto as $values) {
         $mail->addReplyTo($values[0], $values[1]);
     }
-
     if ($mail->send()) {
         set_send_count($user);
         if (!empty($mail->SMTPDebug)) {
@@ -6047,6 +6046,8 @@ function email_to_user($user, $from, $subject, $messagetext, $messagehtml = '', 
                 'errorinfo' => $mail->ErrorInfo
             )
         ));
+		print_object($mail);
+		exit;
         $event->trigger();
         if (CLI_SCRIPT) {
             mtrace('Error: lib/moodlelib.php email_to_user(): '.$mail->ErrorInfo);
@@ -6235,6 +6236,64 @@ function send_confirmation_email($user, $confirmationurl = null) {
 
     // Directly email rather than using the messaging system to ensure its not routed to a popup or jabber.
     return email_to_user($user, $supportuser, $subject, $message, $messagehtml);
+}
+
+/**
+ * INEA - Envia un e-mail a un usuario especifico con texto de confirmacion y un url de activacion.
+ *
+ * @param stdClass $user A {@link $USER} object
+ * @param string $rol id del rol del usuario
+ * @return bool Returns true si el e-mail fue enviado y false si hubo un error.
+ */
+function inea_send_confirmation_email($user, $rol = null) {
+    global $CFG;
+
+    $site = get_site();
+    $supportuser = core_user::get_support_user();
+
+    $data = new stdClass();
+    $data->firstname = fullname($user);
+    $data->sitename  = format_string($site->fullname);
+    $data->admin     = generate_email_signoff();
+
+    $subject = get_string('emailconfirmationsubject', '', format_string($site->fullname));
+
+    //if (empty($confirmationurl)) {
+        $confirmationurl = '/login/confirm.php';
+    //}
+
+    $confirmationurl = new moodle_url($confirmationurl);
+    // Remove data parameter just in case it was included in the confirmation so we can add it manually later.
+    $confirmationurl->remove_params('data');
+    $confirmationpath = $confirmationurl->out(false);
+
+    // We need to custom encode the username to include trailing dots in the link.
+    // Because of this custom encoding we can't use moodle_url directly.
+    // Determine if a query string is present in the confirmation url.
+    $hasquerystring = strpos($confirmationpath, '?') !== false;
+    // Perform normal url encoding of the username first.
+    $username = urlencode($user->username);
+    // Prevent problems with trailing dots not being included as part of link in some mail clients.
+    $username = str_replace('.', '%2E', $username);
+
+	if($rol != null){//Macuco  -- Agrado para el Id_rol para la confirmacion
+    	$data->link = $confirmationpath . ( $hasquerystring ? '&' : '?') . 'data='. $user->secret .'/'. $username .'&id_user='.$user->id.'&id_rol='.$rol; // Vhackero tenia $id_rol
+    }else {
+    	$data->link = $confirmationpath . ( $hasquerystring ? '&' : '?') . 'data='. $user->secret .'/'. $username;
+    }
+
+    $message     = get_string('emailconfirmation', '', $data);
+    $messagehtml = text_to_html(get_string('emailconfirmation', '', $data), false, false, true);
+
+    $user->mailformat = 1;  // Always send HTML version as well.
+
+    // Directly email rather than using the messaging system to ensure its not routed to a popup or jabber.
+    //echo "<br>User: ";
+	//print_object($user);	
+	//echo "<br>Data: ";
+	//print_object($data);
+	//exit;	
+	return email_to_user($user, $supportuser, $subject, $message, $messagehtml);
 }
 
 /**

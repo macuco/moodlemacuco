@@ -119,6 +119,92 @@ function user_create_user($user, $updatepassword = true, $triggerevent = true) {
 }
 
 /**
+ * INEA - Crea un usuario
+ *
+ * @throws moodle_exception
+ * @param stdClass $user el objeto con los datos del usuario a crear
+ * @param bool $updatepassword si es true, el plugin de autenticacion actualizara el password.
+ * @param bool $triggerevent poner a false si el evento user_created no debe ser registrado.
+ *             Esto no afectara el evento user_password_updated.
+ * @return int id del nuevo id del usuario creado
+ */
+function inea_user_create_user($user, $updatepassword = true, $triggerevent = true) {
+    global $DB;
+
+    // Set the timecreate field to the current time.
+    if (!is_object($user)) {
+        $user = (object) $user;
+    }
+
+    // Check username.
+    /*if ($user->username !== core_user::clean_field($user->username, 'username')) {
+        throw new moodle_exception('invalidusername');
+    }*/
+
+    // Save the password in a temp value for later.
+    if ($updatepassword && isset($user->password)) {
+        $userpassword = $user->password;
+        unset($user->password);
+    }
+
+    // Apply default values for user preferences that are stored in users table.
+    if (!isset($user->calendartype)) {
+        $user->calendartype = core_user::get_property_default('calendartype');
+    }
+    if (!isset($user->maildisplay)) {
+        $user->maildisplay = core_user::get_property_default('maildisplay');
+    }
+    if (!isset($user->mailformat)) {
+        $user->mailformat = core_user::get_property_default('mailformat');
+    }
+    if (!isset($user->maildigest)) {
+        $user->maildigest = core_user::get_property_default('maildigest');
+    }
+    if (!isset($user->autosubscribe)) {
+        $user->autosubscribe = core_user::get_property_default('autosubscribe');
+    }
+    if (!isset($user->trackforums)) {
+        $user->trackforums = core_user::get_property_default('trackforums');
+    }
+    if (!isset($user->lang)) {
+        $user->lang = core_user::get_property_default('lang');
+    }
+
+    $user->timecreated = time();
+    $user->timemodified = $user->timecreated;
+
+    // Validate user data object.
+    //$uservalidation = core_user::validate($user);
+    //if ($uservalidation !== true) {
+    //    foreach ($uservalidation as $field => $message) {
+    //        debugging("The property '$field' has invalid data and has been cleaned.", DEBUG_DEVELOPER);
+    //        $user->$field = core_user::clean_field($user->$field, $field);
+    //    }
+    //}
+
+    // Insert the user into the database.
+    $newuserid = $DB->insert_record('user', $user);
+
+    // Create USER context for this user.
+    $usercontext = context_user::instance($newuserid);
+
+    // Update user password if necessary.
+    if (isset($userpassword)) {
+        // Get full database user row, in case auth is default.
+        $newuser = $DB->get_record('user', array('id' => $newuserid));
+        $authplugin = get_auth_plugin($newuser->auth);
+        $authplugin->user_update_password($newuser, $userpassword);
+    }
+
+    // Trigger event If required.
+    if ($triggerevent) {
+        \core\event\user_created::create_from_userid($newuserid)->trigger();
+    }
+
+    return $newuserid;
+}
+
+/**
  * Update a user with a user object (will compare against the ID)
  *
  * @throws moodle_exception
