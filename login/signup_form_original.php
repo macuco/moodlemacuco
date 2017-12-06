@@ -26,79 +26,17 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-require_once($CFG->libdir . '/formslib.php');
-require_once($CFG->dirroot . '/user/profile/lib.php');
-require_once($CFG->dirroot  . '/user/editlib.php');
-require_once($CFG->dirroot  . '/mod/inea/inealib.php');
+require_once($CFG->libdir.'/formslib.php');
+require_once($CFG->dirroot.'/user/profile/lib.php');
+require_once($CFG->dirroot . '/user/editlib.php');
 
-class login_signup_form extends moodleform implements renderable/*, templatable*/ {
+class login_signup_form extends moodleform implements renderable, templatable {
     function definition() {
-        global $USER, $CFG, $REG;
+        global $USER, $CFG;
 
         $mform = $this->_form;
-        
-        if($REG->rfe == 1){
-        	// Nota
-            $nota = "<br />Ingrese la informaci&oacute;n requerida en los campos para obtener su RFE, enseguida d&eacute; clic en el bot&oacute;n 'Siguiente' para inscribirse a los cursos.";
-            $mform->setRequiredNote($nota);
 
-			// Encabezado
-            $mform->addElement('header', '', get_string('usersreg', 'inea'), '');
-
-			// Apellido Paterno
-            $mform->addElement('text', 'lastname', get_string('apaterno', 'inea'), 'size="25" onblur="generaRFE(document.getElementById(\'id_lastname\').value, document.getElementById(\'id_icq\').value, document.getElementById(\'id_firstname\').value, this.form);"');
-            $mform->setType('lastname', PARAM_TEXT);
-            $mform->addRule('lastname', get_string('noapaterno', 'inea'), 'required', null, 'client');
-            $mform->addRule('lastname', get_string('noapaterno_', 'inea'), 'lettersonly', null, 'client');
-        	
-        	// Apellido Materno
-        	$mform->addElement('text', 'icq', get_string('amaterno', 'inea'), 'size="25" onblur="generaRFE(document.getElementById(\'id_lastname\').value, document.getElementById(\'id_icq\').value, document.getElementById(\'id_firstname\').value, this.form);"');	
-            $mform->setType('icq', PARAM_TEXT);
-        	$mform->addRule('icq', get_string('noamaterno_', 'inea'), 'lettersonly', null, 'client');
-        	
-        	// Nombre
-        	$mform->addElement('text', 'firstname', get_string('nombres', 'inea'), 'size="25" onblur="generaRFE(document.getElementById(\'id_lastname\').value, document.getElementById(\'id_icq\').value, document.getElementById(\'id_firstname\').value, this.form);"');
-            $mform->setType('firstname', PARAM_TEXT);
-            $mform->addRule('firstname', get_string('nonombres', 'inea'), 'required', null, 'client');
-            $mform->addRule('firstname', get_string('nonombres_', 'inea'), 'lettersonly', null, 'client');
-
-			// Fecha de Nacimiento
-			$element = &$mform->addElement('date_selector', 'aim', get_string('fechanacimiento', 'inea'), '', 'onchange="generaRFE(document.getElementById(\'id_lastname\').value, document.getElementById(\'id_icq\').value, document.getElementById(\'id_firstname\').value, this.form);"');
-			$mform->addRule('aim', get_string('nofechanacimiento', 'inea'), 'required', null, 'server');
-			
-			// RFE
-			$mform->addElement('text', 'idnumber', get_string('rfe', 'inea'), 'size="20" readonly');
-            $mform->setType('idnumber', PARAM_TEXT);
-            $mform->addRule('idnumber', get_string('norfe', 'inea'), 'required', null, 'server');
-            $mform->addRule('idnumber', get_string('rfeincorrecto', 'inea'), 'alphanumeric', null, 'client');
-            
-            $this->add_action_buttons(false, get_string('next'));
-		
-			$REG->rfe = NULL;		
-		} else {
-			// Encabezado
-			$mform->addElement('header', '', 'Para registrarte, ingresa tu RFE/RFC y el Estado. <br/><br/><span class="subtitle"><b>Importante:</b> Antes de iniciar el registro, debes estar dado de alta en el sistema SASA en l&iacute;nea, y haber realizado la solicitud en tu Plaza comunitaria para estudiar con esta modalidad.</span><br/><br/><span class="subtitle"><b>CUSE: YA NO ES NECESARIO EL USO DE LOS ZIP.</b></span><br/><br/>','');
-			
-			// RFE
-			$mform->addElement('text', 'idnumber', get_string('rfe', 'inea'), 'size="20"');
-            $mform->setType('idnumber', PARAM_TEXT);
-            $mform->addRule('idnumber', get_string('norfe', 'inea'), 'required', null, 'server');
-            $mform->addRule('idnumber', get_string('rfeincorrecto', 'inea'), 'alphanumeric', null, 'client');
-            
-            // Entidades
-            $estados = inea_list_entidades(1);
-            $mform->addElement('select', 'entidad', get_string('estado', 'inea'), $estados);
-            //$mform->setType('entidad', PARAM_TEXT);
-            $mform->addRule('entidad', get_string('noestado', 'inea'), 'required', null, 'server');
-			
-			$this->add_action_buttons(false, get_string('next'));
-			
-			$mform->addElement('link', '', '', $this->_form->_attributes['action'].'&rfe=1&saltar=1', "<br /><br />Si no recuerdas tu RFE/RFC haz clic aqu&iacute;");
-		}
-		$REG->rfe = NULL;
-	}
-			
-     /*   $mform->addElement('header', 'createuserandpass', get_string('createuserandpass'), '');
+        $mform->addElement('header', 'createuserandpass', get_string('createuserandpass'), '');
 
 
         $mform->addElement('text', 'username', get_string('username'), 'maxlength="100" size="12"');
@@ -171,7 +109,7 @@ class login_signup_form extends moodleform implements renderable/*, templatable*
         // buttons
         $this->add_action_buttons(true, get_string('createaccount'));
 
-    }*/
+    }
 
     function definition_after_data(){
         $mform = $this->_form;
@@ -199,18 +137,11 @@ class login_signup_form extends moodleform implements renderable/*, templatable*
             }
         }
 
-        //$errors += signup_validate_data($data, $files);
+        $errors += signup_validate_data($data, $files);
+
         return $errors;
+
     }
-	
-	//Force to not submit data
-	/*function prevent_submit() {
-		$mform = $this->_form;
-		
-		if($mform->_flagSubmitted == 1){
-			$mform->_flagSubmitted = NULL;
-		}
-	}*/
 
     /**
      * Export this data so it can be used as the context for a mustache template.

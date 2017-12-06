@@ -353,6 +353,28 @@ $PAGE->set_heading("$site->fullname");
 
 echo $OUTPUT->header();
 
+// Modificacion INEA
+if($SESSION->wantsurl) {
+    $_miUrl = parse_url($SESSION->wantsurl);
+    if(isset($_miUrl['query'])) {
+		list($_id, $_numero) = explode('=', $_miUrl['query']);
+    } else {
+		$_numero =1;
+	}
+} else {
+	$_numero =1;
+}
+
+/*$temporal = get_record_select("course","id=".$_numero,"*");
+if(empty($temporal)){
+	$temporal = get_record_select("course","id=1","*");
+}
+
+$portada_curso = $CFG->wwwroot.'/'.basename($CFG->cursoroot).'/'.$temporal->shortname.'/portada.jpg';
+$nombre_curso = $temporal->fullname;
+   	
+include("registro.htm");*/
+
 if (isloggedin() and !isguestuser()) {
     // prevent logging when already logged in, we do not want them to relogin by accident because sesskey would be changed
     echo $OUTPUT->box_start();

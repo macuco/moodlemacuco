@@ -82,14 +82,14 @@ class login_signup_form extends moodleform implements renderable/*, templatable*
 			// RFE
 			$mform->addElement('text', 'idnumber', get_string('rfe', 'inea'), 'size="20"');
             $mform->setType('idnumber', PARAM_TEXT);
-            $mform->addRule('idnumber', get_string('norfe', 'inea'), 'required', null, 'server');
+            $mform->addRule('idnumber', get_string('norfe', 'inea'), 'required', null, 'client');
             $mform->addRule('idnumber', get_string('rfeincorrecto', 'inea'), 'alphanumeric', null, 'client');
             
             // Entidades
             $estados = inea_list_entidades(1);
             $mform->addElement('select', 'entidad', get_string('estado', 'inea'), $estados);
             //$mform->setType('entidad', PARAM_TEXT);
-            $mform->addRule('entidad', get_string('noestado', 'inea'), 'required', null, 'server');
+            $mform->addRule('entidad', get_string('noestado', 'inea'), 'required', null, 'client');
 			
 			$this->add_action_buttons(false, get_string('next'));
 			
@@ -199,19 +199,19 @@ class login_signup_form extends moodleform implements renderable/*, templatable*
             }
         }
 
-        //$errors += signup_validate_data($data, $files);
+        $errors += signup_validate_data($data, $files);
+
         return $errors;
     }
 	
 	//Force to not submit data
-	/*function prevent_submit() {
+	function prevent_submit() {
 		$mform = $this->_form;
-		
-		if($mform->_flagSubmitted == 1){
+		if(isset($mform->_flagSubmitted) && $mform->_flagSubmitted==1){
 			$mform->_flagSubmitted = NULL;
 		}
-	}*/
-
+	}
+	
     /**
      * Export this data so it can be used as the context for a mustache template.
      *

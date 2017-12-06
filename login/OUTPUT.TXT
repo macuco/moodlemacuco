@@ -1,0 +1,45 @@
+stdClass Object
+(
+    [lastname] => ESCOBEDO
+    [icq] => SEGURA
+    [firstname] => JUAN JOSE
+    [yahoo] => Masculino
+    [aim] => 27/07/1998
+    [idnumber] => ROTE850619N3A
+    [modelo] => MODELO EDUCACION PARA LA VIDA Y EL TRABAJO
+    [id_sasa] => 456313
+    [instituto_] => DISTRITO FEDERAL - DELEGACION EN EL DISTRITO FEDERAL
+    [instituto] => 9
+    [country] => 1
+    [institution] => 9
+    [city] => 13
+    [zona] => 16
+    [icvemodesume] => 10
+    [sasa] => 456313
+    [eseducando] => 1
+    [location] => Array
+        (
+            [0] => 9
+            [1] => 13
+            [2] => 5671
+        )
+
+    [email] => mevyt456313@inea.com
+    [email2] => mevyt456313@inea.com
+    [msn] => TRABAJADOR AGROPECUARIO                                     
+    [username] => ROTE850619N3A
+    [password] => ROTE850619N3A
+    [id_rol] => 5
+    [id_user] => 
+    [finalizar] => 1
+    [submitbutton] => Registro
+    [confirmed] => 0
+    [lang] => es_mx
+    [firstaccess] => 0
+    [timecreated] => 1512267582
+    [mnethostid] => 1
+    [secret] => vsH4dY8G6VKNs3U
+    [auth] => email
+    [id] => 
+    [skype] => 5671
+)
