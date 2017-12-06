@@ -89,9 +89,9 @@ if ($mform_signup->is_cancelled()) {
 // Boton Registrar presionado
 //print_object($_POST);
 if($finalizar) {
-	echo "<BR>Usuario registrado ...";
+	//echo "<BR>Usuario registrado ...";
 	if($user = $mform_signup->get_data()) {	
-		echo "<BR>Datos validados?";
+		//echo "<BR>Datos validados?";
 		$user->confirmed   = 0;
 		$user->lang        = current_language();
 		$user->firstaccess = 0;
@@ -112,11 +112,11 @@ if($finalizar) {
 		
         if(count(explode("/", $user->aim)) == 1)
         	$user->aim = date("d/m/Y", $user->aim); //MACUCO
-		print_object($user);
+		//print_object($user);
         //print_object($authplugin);
 		//exit;
 		//RUDY: insertamos registro en tabla user
-        //$authplugin->inea_user_signup($user, true, $id_rol);
+        $authplugin->inea_user_signup($user, true, $id_rol);
 		exit; //never reached
 	}
 }
