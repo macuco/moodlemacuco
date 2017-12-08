@@ -35,7 +35,7 @@ class login_signup_form extends moodleform implements renderable{
 	function definition() {
 		global $DB, $USER, $CFG, $REG;
 		
-		print_object($_POST);
+		//print_object($_POST);
 		$quitalogin = false;//Macuco Variable que utilizo para saber si voy a quitar los elementos del formulario para registrar
         $no_usuario = false;//Macuco para saber si el RFE que se ingreso es correcto.
 		$esasesor = true;
@@ -177,7 +177,7 @@ class login_signup_form extends moodleform implements renderable{
 				$mform->setDefault('aim', $fecha_nacimiento);
 			}
 		} else {
-			$element = &$mform->addElement('date_selector', 'aim', get_string('fechanacimiento','inea'), '', 'onchange="generaRFE(document.getElementById(\'id_lastname\').value, document.getElementById(\'id_icq\').value, document.getElementById(\'id_firstname\').value, this.form);"');
+			$element = &$mform->addElement('date_selector', 'aim', get_string('fechanacimiento', 'inea'), '', 'onchange="generaRFE(document.getElementById(\'id_lastname\').value, document.getElementById(\'id_icq\').value, document.getElementById(\'id_firstname\').value, this.form);"');
 			//$element->setAttributes('onchange="generaRFE(document.getElementById(\'id_lastname\').value, document.getElementById(\'id_icq\').value, document.getElementById(\'id_firstname\').value, this.form);"');
 			//$mform->setHelpButton('fecha_nacimiento', array('coursestartdate', utf8_encode(get_string('startdate')), true);
 			$mform->addRule('aim', get_string('nofechanacimiento','inea'), 'required', null, 'server');
@@ -446,7 +446,7 @@ class login_signup_form extends moodleform implements renderable{
 			$mform->setType('finalizar', PARAM_TEXT);
 			$mform->setDefault('finalizar', true);
 			
-			$this->add_action_buttons(true, "Registro");
+			$this->add_action_buttons(true, get_string('registro', 'inea'));
 		}
 		
 		// Establecer las categorías del perfil para los campos
@@ -518,7 +518,7 @@ class login_signup_form extends moodleform implements renderable{
 			// verificar que ambos rfe coincidan
 			if(isset($data['idnumber_ant']) && isset($data['idnumber'])) {
 				if($data['idnumber_ant'] != $data['idnumber']) {
-					$errors['firtsname'] = get_string('rfenocoincide', 'inea');
+					$errors['username'] = get_string('rfenocoincide', 'inea');
 				}
 			}
 			
@@ -558,12 +558,13 @@ class login_signup_form extends moodleform implements renderable{
 			if ($data['country'] == 0 || $data['city'] == 0 || $data['skype'] == 0) {
 				$errors['location'] = get_string('faltaorigen', 'inea');
 			}
-		} else {
+		} else if (isset($data['idnumber_'])) {
 			if ($DB->record_exists('user', array('idnumber'=>$data['idnumber_']))) {
 				$errors['idnumber_'] = '';
 			}
 		}
 		
+		//print_object($errors);
 		// Regresar los errores (si existen)
 		if (count($errors)){
 			return $errors;

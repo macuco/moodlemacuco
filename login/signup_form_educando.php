@@ -167,7 +167,7 @@ class login_signup_form extends moodleform implements renderable/*, templatable*
         $mform->addElement('text', 'firstname', get_string('nombres', 'inea'), 'size="25" '.$readonly);
         $mform->setType('firstname', PARAM_TEXT);
         if(!$esnuevo) {
-			$mform->addRule('firstname', get_string('nonombres_', 'inea'), 'lettersonly', null, 'client');
+			$mform->addRule('firstname', get_string('nonombres_', 'inea'), 'lettersonly', null, 'server');
 		}
         if(isset($nombre)) {
 			$mform->setDefault('firstname', $nombre);
@@ -486,7 +486,6 @@ class login_signup_form extends moodleform implements renderable/*, templatable*
 
     function validation($data, $files) {
 		global $CFG, $DB;
-		
 		$errors = parent::validation($data, $files);
 		
         if (signup_captcha_enabled()) {

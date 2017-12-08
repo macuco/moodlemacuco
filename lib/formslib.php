@@ -619,7 +619,12 @@ abstract class moodleform {
     function get_data() {
         $mform =& $this->_form;
 
+		//echo "<br>Not Canceled: ".!$this->is_cancelled();
+		//echo "<br>Data submitted: ".$this->is_submitted();
+		//echo "<br>Data validated: ".$this->is_validated();
+		//exit;
         if (!$this->is_cancelled() and $this->is_submitted() and $this->is_validated()) {
+			//echo "<br>I must enter here"; exit;
             $data = $mform->exportValues();
             unset($data['sesskey']); // we do not need to return sesskey
             unset($data['_qf__'.$this->_formname]);   // we do not need the submission marker too
@@ -629,6 +634,7 @@ abstract class moodleform {
                 return (object)$data;
             }
         } else {
+			//echo "<br>I must not enter here"; exit;
             return NULL;
         }
     }

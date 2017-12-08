@@ -26,6 +26,7 @@
 
 require('../config.php');
 require_once($CFG->libdir . '/authlib.php');
+require_once($CFG->dirroot . '/mod/inea/inealib.php');
 
 $data = optional_param('data', '', PARAM_RAW);  // Formatted as:  secret/username
 
@@ -33,7 +34,11 @@ $p = optional_param('p', '', PARAM_ALPHANUM);   // Old parameter:  secret
 $s = optional_param('s', '', PARAM_RAW);        // Old parameter:  username
 $redirect = optional_param('redirect', '', PARAM_LOCALURL);    // Where to redirect the browser once the user has been confirmed.
 
-$PAGE->set_url('/login/confirm.php');
+// INEA - ID del usuario para confirmar e ID del rol para el enrolado
+$id_user = optional_param('id_user', '', PARAM_CLEAN);  // El id del usuario a confirmar.
+$id_rol = optional_param('id_rol', '', PARAM_CLEAN);  // Asignacion del rol en un curso.
+
+$PAGE->set_url('/login/confirm.php', array('id_user'=>$id_user, 'id_rol'=>$id_rol));
 $PAGE->set_context(context_system::instance());
 
 if (!$authplugin = signup_get_user_confirmation_authplugin()) {
@@ -49,8 +54,24 @@ if (!empty($data) || (!empty($p) && !empty($s))) {
     } else {
         $usersecret = $p;
         $username   = $s;
+    } 
+	
+	// INEA --
+	if($id_rol == EDUCANDO) {
+		$es_educando = true; // Es educando
+	} else {
+		$es_educando = false; // Es asesor u otro tipo de rol
+	}
+	
+	if($eseducando){
+		//El usuario ya existe?
+        if(!$user = $DB->get_record('user', array('id'=>$id_user))) {//Macuco si no esta registrado.
+			print_error("Este usuario no se ha dado de alta");
+        }
+		
+        $id_user = $user->id; //Macuco Se obtiene el id del usuario que se agrego en la tabla User
     }
-
+	
     $confirmed = $authplugin->user_confirm($username, $usersecret);
 
     if ($confirmed == AUTH_CONFIRM_ALREADY) {
@@ -61,7 +82,12 @@ if (!empty($data) || (!empty($p) && !empty($s))) {
         echo $OUTPUT->header();
         echo $OUTPUT->box_start('generalbox centerpara boxwidthnormal boxaligncenter');
         echo "<p>".get_string("alreadyconfirmed")."</p>\n";
-        echo $OUTPUT->single_button("$CFG->wwwroot/course/", get_string('courses'));
+		if(!empty($id_user) and  !empty($id_rol)) { // Agregar valores al url para enrolar
+			$params = array('id_user'=>$id_user, "id_rol"=>$id_rol);
+            $OUTPUT->single_button(new moodle_url('/login/enrol.php', $params), get_string('courses'), 'POST');
+        } else {
+            $OUTPUT->single_button("$CFG->wwwroot/course/", get_string('courses'));
+        }
         echo $OUTPUT->box_end();
         echo $OUTPUT->footer();
         exit;
@@ -73,7 +99,18 @@ if (!empty($data) || (!empty($p) && !empty($s))) {
         if (!$user = get_complete_user_data('username', $username)) {
             print_error('cannotfinduser', '', '', s($username));
         }
-
+		
+		// INEA -- Poner el id del rol en el campo url
+		$user->url = $id_rol;
+		if(!$DB->update_record('user', $user)) {
+			print_error('cannotfinduser', '', '', s($username));
+		}
+		
+		// INEA -- Eliminar los registros de la tabla mdl_inea_user
+		if($es_educando) {
+			$DB->delete_records('inea_user', array('id'=>$id_inea)); //Macuco Se elimina el registro de INEA_USER
+		}
+		
         if (!$user->suspended) {
             complete_user_login($user);
 
@@ -97,7 +134,14 @@ if (!empty($data) || (!empty($p) && !empty($s))) {
         echo $OUTPUT->box_start('generalbox centerpara boxwidthnormal boxaligncenter');
         echo "<h3>".get_string("thanks").", ". fullname($USER) . "</h3>\n";
         echo "<p>".get_string("confirmed")."</p>\n";
-        echo $OUTPUT->single_button("$CFG->wwwroot/course/", get_string('courses'));
+		if(!empty($id_user) and  !empty($id_rol)) { // Agregar valores al url para enrolar
+			$params = array('id_user'=>$id_user, "id_rol"=>$id_rol);
+            $OUTPUT->single_button(new moodle_url('/login/enrol.php', $params), get_string('courses'), 'POST');
+			echo '<input type="hidden" name="id_user" value="'.$id_user.'"/>';
+            echo '<input type="hidden" name="id_rol" value="'.$id_rol.'"/>';
+        } else {
+            echo $OUTPUT->single_button("$CFG->wwwroot/course/", get_string('courses'));
+        }
         echo $OUTPUT->box_end();
         echo $OUTPUT->footer();
         exit;
