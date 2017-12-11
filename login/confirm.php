@@ -56,14 +56,13 @@ if (!empty($data) || (!empty($p) && !empty($s))) {
         $username   = $s;
     } 
 	
-	// INEA --
-	if($id_rol == EDUCANDO) {
-		$es_educando = true; // Es educando
-	} else {
-		$es_educando = false; // Es asesor u otro tipo de rol
+	switch($id_rol) {
+		case ASESOR : $es_educando = false; break;
+		case EDUCANDO : $es_educando = true; break;
+		default: break;
 	}
 	
-	if($eseducando){
+	if($es_educando){
 		//El usuario ya existe?
         if(!$user = $DB->get_record('user', array('id'=>$id_user))) {//Macuco si no esta registrado.
 			print_error("Este usuario no se ha dado de alta");
@@ -84,9 +83,9 @@ if (!empty($data) || (!empty($p) && !empty($s))) {
         echo "<p>".get_string("alreadyconfirmed")."</p>\n";
 		if(!empty($id_user) and  !empty($id_rol)) { // Agregar valores al url para enrolar
 			$params = array('id_user'=>$id_user, "id_rol"=>$id_rol);
-            $OUTPUT->single_button(new moodle_url('/login/enrol.php', $params), get_string('courses'), 'POST');
+            echo $OUTPUT->single_button(new moodle_url('/login/enrol.php', $params), get_string('courses'), 'POST');
         } else {
-            $OUTPUT->single_button("$CFG->wwwroot/course/", get_string('courses'));
+            echo $OUTPUT->single_button("$CFG->wwwroot/course/", get_string('courses'));
         }
         echo $OUTPUT->box_end();
         echo $OUTPUT->footer();
@@ -107,7 +106,7 @@ if (!empty($data) || (!empty($p) && !empty($s))) {
 		}
 		
 		// INEA -- Eliminar los registros de la tabla mdl_inea_user
-		if($es_educando) {
+		if(isset($id_inea) && !empty($id_inea) && $es_educando) {
 			$DB->delete_records('inea_user', array('id'=>$id_inea)); //Macuco Se elimina el registro de INEA_USER
 		}
 		
@@ -136,7 +135,7 @@ if (!empty($data) || (!empty($p) && !empty($s))) {
         echo "<p>".get_string("confirmed")."</p>\n";
 		if(!empty($id_user) and  !empty($id_rol)) { // Agregar valores al url para enrolar
 			$params = array('id_user'=>$id_user, "id_rol"=>$id_rol);
-            $OUTPUT->single_button(new moodle_url('/login/enrol.php', $params), get_string('courses'), 'POST');
+            echo $OUTPUT->single_button(new moodle_url('/login/enrol.php', $params), get_string('courses'), 'POST');
 			echo '<input type="hidden" name="id_user" value="'.$id_user.'"/>';
             echo '<input type="hidden" name="id_rol" value="'.$id_rol.'"/>';
         } else {

@@ -1,32 +1,40 @@
-<?phpphp
+<?php
 require_once('../config.php');
 require_once($CFG->libdir . '/datalib.php');
+require_once($CFG->libdir . '/authlib.php');
+require_once $CFG->libdir . '/coursecatlib.php';
 require_once($CFG->dirroot . '/mod/inea/inealib.php');
+
+//print_object($_POST);
+//exit;
 
 $id_usuario = required_param('id_user', PARAM_INT);//$_GET['id_user'];
 $id_rol = required_param('id_rol', PARAM_INT);//$_GET['id_rol'];
-//print_r($_POST);
 
 if (!$authplugin = signup_is_enabled()) {
     print_error('notlocalisederrormessage', 'error', '', 'Sorry, you may not use this page.');
 }
+
+//$categorias = coursecat::make_categories_list();
+//print_object($categorias);
+//exit;
 	
-$PAGE->set_url('/login/enrol.php', array(id_rol=>$id_rol, 'id_user'=>$id_usuario);
+$PAGE->set_url('/login/enrol.php', array('id_rol'=>$id_rol, 'id_user'=>$id_usuario));
 $PAGE->set_context(context_system::instance());
 $PAGE->set_pagelayout('embedded');
 
 switch($id_rol) {
-	case ASESOR : $eseducando = false; break;
-	case EDUCANDO : $eseducando = true; break;
+	case ASESOR : $es_educando = false; break;
+	case EDUCANDO : $es_educando = true; break;
 	default: break;
 }
 
-if(!isset($eseducando))	{
+if(!isset($es_educando))	{
 	print_error("No es posible identificar el rol que tienes dentro del sistema. <br/> Por favor intenta entrar nuevamente.");
 }
 
 //TODO mandar error si el rol no es el correcto
-if(!$user = inea_get_user_from_id($id_usuario));
+if(!$user = inea_get_user_from_id($id_usuario)) {
     print_error("El usuario no esta registrado en el sistema");
 }
 
@@ -49,21 +57,32 @@ if($id_rol == ASESOR) {
   $maxcurses = 2;
 }
 
+$ajax_url = $CFG->wwwroot . '/login/funcionesAjax.js';
+
+//$url = new moodle_url($ajax_url);
+//print_object($url);
+//exit;
+		
 $PAGE->set_title($titulo);
 $PAGE->set_heading($SITE->fullname);
-$PAGE->requires->js('funcionesAjax.js')->in_head();
-$PAGE->requires->js_function_call('generarCursosRegistrados', array($id_usuario, $id_rol))->on_dom_ready();
-
+if (file_exists('funcionesAjax.js')) {
+	//echo "entro aqui?";
+	$PAGE->requires->js('/login/funcionesAjax.js');
+	//$PAGE->requires->js('/login/funcionesAjax.js')->in_head();
+	//$PAGE->requires->js_function_call('generarCursosRegistrados', array($id_usuario, $id_rol))->on_dom_ready();
+	$PAGE->requires->js_function_call('generarCursosRegistrados', array($id_usuario, $id_rol));
+}
 echo $OUTPUT->header();
-
+//echo $OUTPUT->footer();
+//exit;
 /*print_header("Cursos", $heading='', $navigation='', $focus='',
                        $meta='<script language="javascript" src="funcionesAjax.js"></script>', $cache=true, $button='&nbsp;', $menu='',
                        $usexml=false, $bodytags='onload="generarCursosRegistrados('.$id_usuario.','.$id_rol.');"', $return=false);*/
 ?>
 <table width="800" border="0" cellpadding="0" cellspacing="0" align="center">
 	<tr>
-      <td valign="top" align="center"><?php   $DB->$user = get_record('user', array('id'=>$id_usuario), 'id, firstname, lastname, lastaccess, skype as plaza');
-		$user->fullname = fullname($user, true);?><br/><br/><br/><?php echo $rol; ?>: <?php echo $user->fullname; ?><br /><br />
+      <td valign="top" align="center"><?php   $user = $DB->get_record('user', array('id'=>$id_usuario), 'id, firstname, lastname, lastaccess, skype as plaza, lastnamephonetic, firstnamephonetic, middlename, alternatename');
+		$user->fullname = fullname($user, true); ?><br/><br/><br/><?php echo $rol; ?>: <?php echo $user->fullname; ?><br /><br />
 	  </td>
     </tr>
 </table>
@@ -83,11 +102,14 @@ Registro de <?php echo $titulo; ?>
     <td valign="top" width="40%" align="right">&nbsp;&nbsp;&nbsp;Tipo de curso:&nbsp;&nbsp;&nbsp;</td>
     <td valign="top" width="60%" align="left">
       <select name="id_categoria" id="id_categoria" onchange="generarCursos(this.value,'getcursos',<?php echo $id_usuario; ?>);">
-        <option value="-1">------Seleccionar------</option>
+        <option value="-1" selected>------Seleccionar------</option>
         <?php
-			foreach (get_categories() as $valores) {
-				print("<option value='".$valores->id."'>".$valores->name."</option>");
+			if($categorias = coursecat::make_categories_list()) {
+				foreach ($categorias as $idcat=>$nombrecat) {
+					print("<option value='".$idcat."'>".$nombrecat."</option>");
+				}
 			}
+			
         ?>
       </select>
 	</td>

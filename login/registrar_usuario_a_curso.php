@@ -1,5 +1,4 @@
 <?php
-
 require_once('../config.php');
 require_once($CFG->libdir . '/weblib.php');
 require_once($CFG->libdir . '/adminlib.php');
@@ -14,11 +13,14 @@ header("Content-Type: text/xml");
 echo '<?xml version="1.0" encoding="UTF-8" ?>';
 
 $id_usuario	= optional_param('id_usuario', 0, PARAM_INT);
-$id_rol		= required_param('id_rol', 0, PARAM_INT);
-$id_curso	= required_param('id_curso', 0, PARAM_INT);
-$id_grupo	= required_param('id_grupo', 0, PARAM_INT);
-$id_categoria	= required_param('id_categoria', 0, PARAM_INT);
-$accion		= required_param('accion', '', PARAM_TEXT);
+$id_rol		= optional_param('id_rol', 0, PARAM_INT);
+$id_curso	= optional_param('id_curso', 0, PARAM_INT);
+$id_grupo	= optional_param('id_grupo', 0, PARAM_INT);
+$id_categoria	= optional_param('id_categoria', 0, PARAM_INT);
+$accion		= optional_param('accion', '', PARAM_TEXT);
+
+$PAGE->set_url('/login/signup.php', array('id_rol'=>$id_rol));
+$PAGE->set_context(context_system::instance());
 
 //$_POST['accion'] = isset($_POST['accion']) ? $_POST['accion'] : $_GET['accion'];
 //$_POST['id_categoria'] = $_GET['id_categoria'];
@@ -37,7 +39,7 @@ if(!empty($accion)) {
 	//print_object($modelo);
 	//echo "Modelo: ".$modelo->icvemodesume;
 			  
-    switch($accion){
+    switch($accion) {
         case 'getcursos':
             if($id_categoria && $id_usuario) {
 			// cualquier echo dentro de este if truena el select siguiente
@@ -133,7 +135,8 @@ function getCursos($id_categoria, $clave_modelo, $id_usuario) {	//RUDY: se añad
     global $CFG, $DB;
 	
     $depth = -1;
-    $courses = inea_get_courses($id_categoria, 'c.sortorder ASC', 'c.id,c.sortorder,c.visible,c.fullname,c.shortname,c.password,c.summary,c.guest,c.cost,c.currency', $clave_modelo);	
+    //$courses = inea_get_courses($id_categoria, 'c.sortorder ASC', 'c.id, c.sortorder, c.visible, c.fullname, c.shortname, c.password, c.summary, c.guest, c.cost, c.currency', $clave_modelo);	
+    $courses = inea_get_courses($id_categoria, 'c.sortorder ASC', 'c.id, c.sortorder, c.visible, c.fullname, c.shortname, c.summary', $clave_modelo);	
 	//print_object($courses);
     $mycourses = enrol_get_users_courses($id_usuario); // Los cursos en los que esta inscrito el usuario (MACUCO).
 	//echo '<option value="'.$CFG->wwwroot.'/course/category.php?id='.$category->id.'" selected="selected">'. format_string($category->name).'</option>';
@@ -142,11 +145,10 @@ function getCursos($id_categoria, $clave_modelo, $id_usuario) {	//RUDY: se añad
 	if ($courses && !(isset($CFG->max_category_depth) && ($depth >= $CFG->max_category_depth-1))) {
 		foreach ($courses as $course) {
 			if($course->visible && (!isset($mycourses[$course->id]))) { //&& ($mycourses->id != $course->id)
-				$cursos .= '<option  value="'.$course->id.'" >'. format_string($course->fullname).'</option>';
+				$cursos .= '<option  value="'.$course->id.'">'.format_string($course->fullname).'</option>';
 			}
 		}
 	}
-    
 	return $cursos;
 }
 
@@ -295,7 +297,6 @@ function desmatricular($id_usuario, $id_rol, $id_curso){
  * @param int $id_rol
  * @return string
  */
- // ME QUEDE AQUI ********
 function getCursosRegistrados($id_usuario, $id_rol){
     global $CFG, $DB;
 
@@ -303,7 +304,7 @@ function getCursosRegistrados($id_usuario, $id_rol){
 		return false;
 	}
     
-    $user = $DB->get_record('user', array('id'=>$id_usuario), 'id, firstname, lastname, lastaccess, skype as plaza');
+    $user = $DB->get_record('user', array('id'=>$id_usuario), 'id, firstname, lastname, lastaccess, skype as plaza, lastnamephonetic, firstnamephonetic, middlename, alternatename');
     $user->fullname = fullname($user, true);
     //unset($user->firstname);
     //unset($user->lastname);
@@ -314,16 +315,16 @@ function getCursosRegistrados($id_usuario, $id_rol){
     // Definir si es educando o asesor
 	if($id_rol == ASESOR){// si es asesor podra registrarse 5
         $maxcurses = $totalcount;
-        $eseducando = false;
+        $es_educando = false;
     } else {// si es alumno solo podra registrarse en 2
         $maxcurses = 2;
-        $eseducando = true;
+        $es_educando = true;
     }
 
-    $mycourses = enrol_get_users_courses($id_usuario) // Los cursos en los que esta inscrito el usuario (MACUCO).
+    $mycourses = enrol_get_users_courses($id_usuario); // Los cursos en los que esta inscrito el usuario (MACUCO).
     // Agregado para saber en que cusos ya ha concluido
-    if($eseducando) { 
-        $id_groups_members = get_records_sql('SELECT groupid, acreditado FROM {groups_members} WHERE userid = ?', array($id_usuario));
+    if($es_educando) { 
+        $id_groups_members = $DB->get_records_sql('SELECT groupid, acreditado FROM {groups_members} WHERE userid = ?', array($id_usuario));
         $i=0;
         foreach($mycourses as $tmpcourse){
 			if($grupos_educando = groups_get_user_groups($tmpcurse->id, $id_usuario)) {
@@ -346,7 +347,7 @@ function getCursosRegistrados($id_usuario, $id_rol){
 	foreach($courses as $acourse) {
 		//if($i==$tmp){continue;}  //PARA EL CURSO CERO
 		$encurso = false;
-		if($eseducando)	{//OBTIENE LA LISTA DE ASESORES SI EL ROL ES 5 o EDUCANDO
+		if($es_educando)	{//OBTIENE LA LISTA DE ASESORES SI EL ROL ES 5 o EDUCANDO
 			$asesores = asesores($acourse->id, $user->plaza);//Obtener los asesores
 			/* verifico los cursos en los que esta inscrito y cursando. */
 			//$tmp = get_records_sql("select count(*) nactividades from {$CFG->prefix}inea inea, {$CFG->prefix}inea_answers answers where  inea.id=answers.ineaid and inea.course={$acourse->id} AND userid={$user->id}");
@@ -382,7 +383,7 @@ function getCursosRegistrados($id_usuario, $id_rol){
 					//$temparray[$i] .= "<input type='checkbox' name='selected".$count."' checked='yes' onclick='my_check(\"selected".$count."\",".$user->id.",".$acourse->id.",false); revisar(this);' $readonly />" ;
 					$ncursos++;
 				} else {
-					if($eseducando) {// Si es educando muestro la lista de asesores
+					if($es_educando) {// Si es educando muestro la lista de asesores
 						//if(!empty($asesores)){
 						//  $ncursos++;
                         //if((!$encurso) && (!isset( $grupos[$acourse->id]->acreditado ))){
@@ -429,7 +430,7 @@ function getCursosRegistrados($id_usuario, $id_rol){
 				}
 			}//END ELSE
             
-			if($eseducando){ //MACUCO - Obtener el nombre del asesor
+			if($es_educando){ //MACUCO - Obtener el nombre del asesor
 				$asesores = asesores($acourse->id, $user->plaza);//Obtener los asesores
 				if(empty($asesores)) {
 					$tbl_participantes[$i] = "Estudiando sin asesor";
@@ -451,7 +452,7 @@ function getCursosRegistrados($id_usuario, $id_rol){
 	}	
 	$table = '<div><table width="100%" border="1" cellpadding="5" cellspacing="1" class="generaltable boxaligncenter">'."\n";
 	$table .= "<tr><th colspan='4' class='header c0' scope='col'>".$mens."</th></tr>\n";
-	$eseducando ? $etiqueta = "Nombre del asesor" : $etiqueta = "Participantes";
+	$es_educando ? $etiqueta = "Nombre del asesor" : $etiqueta = "Participantes";
 	$table .= "<tr><th class='header c0' scope='col'>Curso</th><th class='header c0' scope='col'>Grupo</th><th class='header c0' scope='col'>$etiqueta</th><th class='header c0' scope='col'>Elegir</th></tr>\n";
 		
 	for($j=0;$j<$i;$j++) {
@@ -519,7 +520,7 @@ function alumnosAcreditados($id_asesor, $id_curso){
 		return false;
 	}
     
-	return get_records_sql("SELECT DISTINCT u.*, grup_plaz_ases.groupid groupid
+	return $DB->get_records_sql("SELECT DISTINCT u.*, grup_plaz_ases.groupid groupid
 	FROM {groups_members} gm, {role_assignments} a, {user} u, (
 		SELECT distinct g.id as groupid, u.skype as plaza
 		FROM {groups} g, {groups_members} gm, {role_assignments} a, {user} u
@@ -576,7 +577,7 @@ function asesores($id_curso, $id_plaza) {
 		return false;
 	}
 	
-    return get_records_sql("SELECT distinct gm.userid, g.id as idgrupo, u.*
+    return $DB->get_records_sql("SELECT distinct gm.userid, g.id as idgrupo, u.*
     FROM {groups} g, {groups_members} gm, {role_assignments} a, {user} u
     WHERE courseid = ?
     AND g.id = gm.groupid

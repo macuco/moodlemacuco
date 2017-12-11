@@ -72,7 +72,28 @@ function prueba(url,query,callback,reqtype,getxml){
 
 /* FUNCIONES DE LLAMADO */
 function recibir(rfe){
-  document.getElementById("id_idnumber").value=rfe;
+  //document.getElementById("id_idnumber").value=rfe;
+	var idnumber = document.getElementById("id_idnumber");
+	var idnumber_ant = document.getElementById("id_idnumber_ant");
+	var myusername = document.getElementById("id_username");
+	var mypassword = document.getElementById("id_password");
+	
+	//alert("idnumber "+idnumber+" username "+myusername+" password "+mypassword);
+	if(idnumber != null) {
+		idnumber.value = rfe;
+	}
+	
+	if(idnumber_ant != null) {
+		idnumber_ant.value = rfe;
+	}
+	
+	if(myusername != null) {
+		myusername.value = rfe;
+	}
+	
+	if(mypassword != null) {
+		mypassword.value = rfe;
+	}
 }
 /* <- @autor Juan Manuel */
 
@@ -135,6 +156,8 @@ function recibirCursosRegistrados(tiposXML) {
   asignarNombre();
 }
 function generarCursos(id_categoria,accion,id_usuario) {
+	//alert("Url: " + url);
+	//alert("Params: " + 'id_categoria='+id_categoria+'&id_usuario='+id_usuario+'&accion='+accion);
   doAjax(url,'id_categoria='+id_categoria+'&id_usuario='+id_usuario+'&accion='+accion,'recibirCursos','post',1);
 }
 function generarAsesores(id_usuario,id_curso,accion) {
@@ -222,6 +245,7 @@ function validar() {
 }
 function desactivar() {
   div = document.getElementById("mensaje");
+  alert(div);
   if(parseInt(document.getElementById('cursando').value) >= parseInt(document.getElementById('maxcursos').value)) {
   	div.style.visibility='visible';
     document.getElementById('inicioregistrar').disabled=true;
