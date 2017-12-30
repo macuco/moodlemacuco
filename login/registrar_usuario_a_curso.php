@@ -7,10 +7,10 @@ require_once($CFG->libdir . '/grouplib.php');
 require_once($CFG->dirroot . '/course/lib.php');
 require_once($CFG->dirroot . '/group/lib.php');
 require_once($CFG->dirroot . '/mod/inea/inealib.php');
-//require_once($CFG->dirroot.'/lib/datalib.php');  //print_object(get_categories());
+require_once($CFG->dirroot . '/mod/inea/classes/event/inea_enrolment.php');
 
 header("Content-Type: text/xml");
-echo '<?xml version="1.0" encoding="UTF-8" ?>';
+echo '<?xml version="1.0" encoding="UTF-8"?>';
 
 $id_usuario	= optional_param('id_usuario', 0, PARAM_INT);
 $id_rol		= optional_param('id_rol', 0, PARAM_INT);
@@ -55,23 +55,36 @@ if(!empty($accion)) {
                 } else {
                     registrarCurso($id_usuario, EDUCANDO, $id_curso, $id_grupo);
                 }
-                echo "<usuario><id>$id_usuario</id><id_rol>$id_rol</id_rol></usuario>";
-            }
-            // Guardar en el LOG
-            $usuarios_matriculados = $DB->count_records('groups_members');
-            $porsentaje_afectado = $usuarios_matriculados*100/$usuarios_matriculados_antes;
-            $post = print_r($_POST, true);
-            $mensaje = "Se registra en un curso con $usuarios_matriculados_antes y $usuarios_matriculados registros antes y despues de su ejecucion, eliminando un ".($porsentaje_afectado-100)."% (".($usuarios_matriculados_antes-$usuarios_matriculados)."). Con datos en post $post   ";
-            $event = \INEA\event\REGISTRO::create(array(
-					'objectid' => $mensaje,
-					'context' => context_course::instance($id_curso)
-			));
-			$event->trigger();
-			//add_to_log($_POST['id_curso'],'','registrarcursos/LOGIN/JMP','',$mensaje,$_POST['id_curso']);
-            if($porsentaje_afectado < 98){
-            	enviarMail($mensaje);
-            }
-            // Fin del LOG
+                echo '<usuario><id>'.$id_usuario.'</id><id_rol>'.$id_rol.'</id_rol></usuario>';
+				// Guardar en el LOG
+				$usuarios_matriculados = $DB->count_records('groups_members');
+				if(($usuarios_matriculados > 0) && ($usuarios_matriculados_antes > 0)) {
+					$porsentaje_afectado = round((($usuarios_matriculados*100)/$usuarios_matriculados_antes)-100);
+					$diferencia = abs($usuarios_matriculados_antes - $usuarios_matriculados);
+				} else {
+					$porsentaje_afectado = 0;
+					$diferencia = 0;
+				}
+				// Crear el evento en el log
+				$mensaje = "Se registra en un curso con {$usuarios_matriculados_antes} registros antes y {$usuarios_matriculados} despues de su ejecucion, eliminando un {$porsentaje_afectado}% ({$diferencia}). Con datos en post: id_usuario->{$id_usuario}, id_rol->{$id_rol}, id_curso->{$id_curso}";
+				$event = \inea\event\inea_enrolment::create(
+					array(
+					'context' => context_course::instance($id_curso),
+					'relateduserid' => $id_usuario,
+					'courseid' => $id_curso, 
+					'other' => array(
+						'id_rol' => $id_rol, 
+						'matr_antes' => $usuarios_matriculados_antes, 
+						'matr_ahora' => $usuarios_matriculados, 
+						'afectado' => $porsentaje_afectado, 
+						'diferencia' => $diferencia,
+						'mensaje' => $mensaje)
+				));
+				$event->trigger();
+				if($porsentaje_afectado < 98){
+					enviarMail($mensaje);
+				}
+			}
         break;
         case 'getcursosregistrados':
             if($id_usuario && $id_rol) {
@@ -89,27 +102,41 @@ if(!empty($accion)) {
 					$nombre_curso = $curso->fullname;
 				}
                 echo "<usuario><id>$id_usuario</id><id_rol>$id_rol</id_rol><curso>$nombre_curso</curso></usuario>";
-            }
-            // Guardar en el LOG
-            $usuarios_matriculados = $DB->count_records('groups_members');
-            $porsentaje_afectado = $usuarios_matriculados*100/$usuarios_matriculados_antes;
-            $post = print_r($_POST,true);
-            $mensaje = "Se registra en un curso con $usuarios_matriculados_antes y $usuarios_matriculados registros antes y despues de su ejecucion, eliminando un ".($porsentaje_afectado-100)."% (".($usuarios_matriculados_antes-$usuarios_matriculados)."). Con datos en post $post   ";
-            //add_to_log($_POST['id_curso'],'','desmatricular/LOGIN/JMP','',$mensaje,$_POST['id_curso']);
-            $event = \INEA\event\REGISTRO::create(array(
-					'objectid' => $mensaje,
-					'context' => context_course::instance($id_curso)
-			));
-			$event->trigger();
-			if($porsentaje_afectado < 98){
-            	enviarMail($mensaje);
-            }
-           // Fin del LOG
+				// Guardar en el LOG
+				$usuarios_matriculados = $DB->count_records('groups_members');
+				if(($usuarios_matriculados > 0) && ($usuarios_matriculados_antes > 0)) {
+					$porsentaje_afectado = round((($usuarios_matriculados*100)/$usuarios_matriculados_antes)-100);
+					$diferencia = abs($usuarios_matriculados_antes - $usuarios_matriculados);
+				} else {
+					$porsentaje_afectado = 0;
+					$diferencia = 0;
+				}
+				// Crear el evento en el log
+				$mensaje = "Se registra en un curso con {$usuarios_matriculados_antes} registros antes y {$usuarios_matriculados} despues de su ejecucion, eliminando un {$porsentaje_afectado}% ({$diferencia}). Con datos en post: id_usuario->{$id_usuario}, id_rol->{$id_rol}, id_curso->{$id_curso}";
+				$event = \inea\event\inea_enrolment::create(
+					array(
+					'context' => context_course::instance($id_curso),
+					'relateduserid' => $id_usuario,
+					'courseid' => $id_curso, 
+					'other' => array(
+						'id_rol' => $id_rol, 
+						'matr_antes' => $usuarios_matriculados_antes, 
+						'matr_ahora' => $usuarios_matriculados, 
+						'afectado' => $porsentaje_afectado, 
+						'diferencia' => $diferencia,
+						'mensaje' => $mensaje)
+				));
+				$event->trigger();
+				if($porsentaje_afectado < 98){
+					enviarMail($mensaje);
+				}
+			}			   
         break;
         case 'getasesores':
             if($id_usuario && $id_curso) {
-				$user = $DB->get_record('user', array('id'=>$id_usuario));
+				$user = $DB->get_record('user', array('id' => $id_usuario, 'deleted' => 0), '*', MUST_EXIST);
                 $asesores = asesores($id_curso, $user->skype);
+				//print_object($asesores);
 				// Imprimir los asesores
                 echo "<select name='asesor'>" ;
                 if(!empty($asesores)) {
@@ -138,13 +165,13 @@ function getCursos($id_categoria, $clave_modelo, $id_usuario) {	//RUDY: se añad
     //$courses = inea_get_courses($id_categoria, 'c.sortorder ASC', 'c.id, c.sortorder, c.visible, c.fullname, c.shortname, c.password, c.summary, c.guest, c.cost, c.currency', $clave_modelo);	
     $courses = inea_get_courses($id_categoria, 'c.sortorder ASC', 'c.id, c.sortorder, c.visible, c.fullname, c.shortname, c.summary', $clave_modelo);	
 	//print_object($courses);
-    $mycourses = enrol_get_users_courses($id_usuario); // Los cursos en los que esta inscrito el usuario (MACUCO).
+    $usercourses = enrol_get_users_courses($id_usuario); // Los cursos en los que esta inscrito el usuario (MACUCO).
 	//echo '<option value="'.$CFG->wwwroot.'/course/category.php?id='.$category->id.'" selected="selected">'. format_string($category->name).'</option>';
 	$cursos = "";
 
 	if ($courses && !(isset($CFG->max_category_depth) && ($depth >= $CFG->max_category_depth-1))) {
 		foreach ($courses as $course) {
-			if($course->visible && (!isset($mycourses[$course->id]))) { //&& ($mycourses->id != $course->id)
+			if($course->visible && (!isset($usercourses[$course->id]))) { //&& ($usercourses->id != $course->id)
 				$cursos .= '<option  value="'.$course->id.'">'.format_string($course->fullname).'</option>';
 			}
 		}
@@ -173,16 +200,17 @@ function registrarCurso($id_usuario, $id_rol, $id_curso, $id_grupo=null){
 
     if($id_rol == EDUCANDO) { //Si es educando, obtengo el id del grupo del asesor al que se esta inscribiendo.
         if($id_grupo==-2){
-            $asesor_estado = inea_get_user_entidad($id_usuario); // Obtenemos el estado del asesor
-            $asesor_estado = $asesor_estado->skype;
-            $name_g = "Grupo_".$id_curso."_p".$asesor_estado;
-            $id_grupo = groups_get_group_by_name($id_curso, $name_g);
-            if( !$id_grupo ) {
+            $entidad_usuario = inea_get_user_entidad($id_usuario); // Obtenemos el estado del educando
+			$plaza_usuario = $entidad_usuario->skype;
+            $nombre_grupo = "Grupo_".$id_curso."_p".$plaza_usuario;
+            $id_grupo = groups_get_group_by_name($id_curso, $nombre_grupo);
+			// Verificamos si existe en base de datos
+            if(empty($id_grupo) || !($groupid = $DB->get_record('groups', array('id' => $id_grupo)))) {
 				// Crear un objeto grupo
 				$newgroup = new stdClass();
 				$newgroup->courseid = $id_curso;				
-                $newgroup->name = "Grupo_".$id_curso."_p".$asesor_estado; // Creamos el nombre del grupo
-                $newgroup->description = $asesor_estado->institution; // Le metemos una variable de la entidad al grupo
+                $newgroup->name = $nombre_grupo; // Creamos el nombre del grupo
+                $newgroup->description = $entidad_usuario->institution; // Le metemos una variable de la entidad al grupo
                 $newgroup->descriptionformat = '';
                 $id_grupo = groups_create_group($newgroup); // Creamos el grupo
             }
@@ -190,12 +218,12 @@ function registrarCurso($id_usuario, $id_rol, $id_curso, $id_grupo=null){
             return false;
         }
     } else {//si es asesor creo un nuevo grupo.
-        $asesor_estado = inea_get_user_entidad($id_usuario);// Obtenemos el estado del asesor
+        $entidad_usuario = inea_get_user_entidad($id_usuario);// Obtenemos el estado del asesor
 		// Crear un objeto grupo
 		$newgroup = new stdClass();
 		$newgroup->courseid = $id_curso;
         $newgroup->name = "Grupo_".$id_curso."_".$id_usuario; // Creamos el nombre del grupo
-        $newgroup->description  = $asesor_estado->institution; // Le metemos una variable de la entidad al grupo
+        $newgroup->description  = $entidad_usuario->institution; // Le metemos una variable de la entidad al grupo
 		$newgroup->descriptionformat = '';
         $id_grupo = groups_create_group($newgroup); // Creamos el grupo
     }
@@ -217,9 +245,14 @@ function registrarCurso($id_usuario, $id_rol, $id_curso, $id_grupo=null){
 		echo $OUTPUT->box_end();
 	}
 	
-	// role_assign($id_rol, $id_usuario, $id_grupo, $context->id);
-	$assignments = array('roleid' => $id_rol, 'userid' => $id_usuario , 'contextid' => $coursecontext->id);
-    core_role_external::assign_roles($assignments);
+	//Enrolar el usuario a un curso
+	if(!inea_enrol_user($id_usuario, $id_curso, $id_rol)) {
+		$message = 'El usuario no pudo ser enrolado al curso '.$id_curso.", con rol ".$id_rol.", se debe asignar manualmente.";
+		echo $OUTPUT->box($message);
+		echo $OUTPUT->box_start();
+		echo $OUTPUT->box_end();
+	}
+	//role_assign($id_rol, $id_usuario, $coursecontext->id);
 }
 
 /**
@@ -264,29 +297,34 @@ function desmatricular($id_usuario, $id_rol, $id_curso){
 		return false;
 	}
 	
-    $user = $DB->get_record('user', array('id'=>$id_usuario, 'id, firstname, lastname, lastaccess, skype as plaza'));
+    $user = $DB->get_record('user', array('id' => $id_usuario), 'id, firstname, lastname, lastaccess, skype as plaza');
     $coursecontext = context_course::instance($id_curso);
-
+	
     if($id_rol == EDUCANDO) { //elimino de groups_members y ejecuto role_unassign
-		$assignments = array('roleid' => $id_rol, 'userid' => $id_usuario , 'contextid' => $coursecontext->id);
-        core_role_external::unassign_roles($assignments);
+		$groupid = grupoInscrito($id_usuario, $id_curso);
+		inea_unenrol_user($id_usuario, $id_curso);
+		$members = groups_get_members($groupid);
+		// Si no hay miembros en el grupo, eliminamos grupo
+		if(empty($members)) {
+			groups_delete_group($groupid);
+		}
 		//role_unassign($id_rol, $id_usuario, $coursecontext->id);
-        desagrupar($id_curso, $id_usuario);
+        //desagrupar($id_curso, $id_usuario);
 		//$db->Execute('DELETE gm FROM '.$CFG->prefix."groups_members gm, ".$CFG->prefix."groups_courses_groups cg WHERE gm.groupid=cg.groupid AND cg.courseid=".$id_curso." AND gm.userid=".$id_usuario);
     } else if($id_rol == ASESOR) { //Si es asesor, obtengo el grupo al que esta inscrito y si no tiene educandos inscritos elimino el grupo. Si no hay alumnos ejecuto role_unassign
-        $id_grupo_inscrito = grupoInscrito($id_usuario, $id_curso);
-        //TODO Verificar si no hay alumnos asociados se elimina el grupo, de no ser asi solo se quita de goup_menvers
+        $groupid = grupoInscrito($id_usuario, $id_curso);
+        //echo "ID Grupo: ".$groupid;
+		//TODO Verificar si no hay alumnos asociados se elimina el grupo, de no ser asi solo se quita de goup_menvers
         $alumnos = alumnos($user->id, $id_curso, $user->plaza);
         $acredit = alumnosAcreditados($id_usuario, $id_curso);
-        if(empty($acredit)){
-            if(empty($alumnos)){
-                groups_delete_group($id_grupo_inscrito);
-            }
+		
+        if(empty($acredit) && empty($alumnos)){
+            groups_delete_group($groupid);
         }
-        if(empty($alumnos)){
-            $assignments = array('roleid' => $id_rol, 'userid' => $id_usuario , 'contextid' => $coursecontext->id);
-			core_role_external::unassign_roles($assignments);
-			//role_unassign($id_rol, $id_usuario, 0, $context->id);
+		
+        if(empty($alumnos)) {
+			//role_unassign($id_rol, $id_usuario, 0, $coursecontext->id);
+			inea_unenrol_user($id_usuario, $id_curso);
         }
     }
 }
@@ -306,12 +344,13 @@ function getCursosRegistrados($id_usuario, $id_rol){
     
     $user = $DB->get_record('user', array('id'=>$id_usuario), 'id, firstname, lastname, lastaccess, skype as plaza, lastnamephonetic, firstnamephonetic, middlename, alternatename');
     $user->fullname = fullname($user, true);
-    //unset($user->firstname);
+	//unset($user->firstname);
     //unset($user->lastname);
     //$users[$key] = $user;
 
     //Macuco
     $courses = inea_get_courses_page('all', 'c.sortorder ASC', 'c.id, c.shortname, c.fullname', $totalcount);
+	
     // Definir si es educando o asesor
 	if($id_rol == ASESOR){// si es asesor podra registrarse 5
         $maxcurses = $totalcount;
@@ -321,20 +360,23 @@ function getCursosRegistrados($id_usuario, $id_rol){
         $es_educando = true;
     }
 
-    $mycourses = enrol_get_users_courses($id_usuario); // Los cursos en los que esta inscrito el usuario (MACUCO).
+    //$usercourses = enrol_get_users_courses($id_usuario); // Los cursos en los que esta inscrito el usuario (MACUCO).
+	//echo "ID Usuario: ".$id_usuario;
+    $usercourses = enrol_get_all_users_courses($id_usuario); // Los cursos en los que esta inscrito el usuario (MACUCO).
+	
     // Agregado para saber en que cusos ya ha concluido
     if($es_educando) { 
         $id_groups_members = $DB->get_records_sql('SELECT groupid, acreditado FROM {groups_members} WHERE userid = ?', array($id_usuario));
         $i=0;
-        foreach($mycourses as $tmpcourse){
-			if($grupos_educando = groups_get_user_groups($tmpcurse->id, $id_usuario)) {
+        foreach($usercourses as $course){
+			if($grupos_educando = groups_get_user_groups($course->id, $id_usuario)) {
 				$tmp_g = $grupos_educando[0];
 				//$tmp_g = get_groups($tmpcurse->id, $id_usuario);
 				if(!empty($tmp_g)) {
 					foreach($tmp_g as $idgrupo){
 						$grupo_tmp = groups_get_group($idgrupo);
-						$grupos[$tmpcurse->id] = $grupo_tmp;
-						$i = $tmpcourse->id;
+						$grupos[$course->id] = $grupo_tmp;
+						$i = $course->id;
 					}
 					$grupos[$i]->acreditado = $id_groups_members[$grupos[$i]->id]->acreditado; //Agrego el campo acreditado por cada uno de los grupos.
 				}
@@ -344,59 +386,52 @@ function getCursosRegistrados($id_usuario, $id_rol){
 		
 	$ncursos = 0;
 	$i = 0;
-	foreach($courses as $acourse) {
+	$tb_grupo = array();
+	foreach($courses as $course) {
 		//if($i==$tmp){continue;}  //PARA EL CURSO CERO
 		$encurso = false;
-		if($es_educando)	{//OBTIENE LA LISTA DE ASESORES SI EL ROL ES 5 o EDUCANDO
-			$asesores = asesores($acourse->id, $user->plaza);//Obtener los asesores
+		if($es_educando) { //OBTIENE LA LISTA DE ASESORES SI EL ROL ES 5 o EDUCANDO
+			$asesores = asesores($course->id, $user->plaza);//Obtener los asesores
 			/* verifico los cursos en los que esta inscrito y cursando. */
-			//$tmp = get_records_sql("select count(*) nactividades from {$CFG->prefix}inea inea, {$CFG->prefix}inea_answers answers where  inea.id=answers.ineaid and inea.course={$acourse->id} AND userid={$user->id}");
-			$tmp = $DB->get_records_sql("SELECT count(*) nactividades FROM {inea_respuestas r, {inea_ejercicios} e WHERE r.userid = ? AND r.ejercicios_id = e.id AND e.courseid = ?", array($user->id, $acourse->id));
+			//$tmp = get_records_sql("select count(*) nactividades from {$CFG->prefix}inea inea, {$CFG->prefix}inea_answers answers where  inea.id=answers.ineaid and inea.course={$course->id} AND userid={$user->id}");
+			$tmp = $DB->get_records_sql("SELECT count(*) nactividades FROM {inea_respuestas} r, {inea_ejercicios} e WHERE r.userid = ? AND r.ejercicios_id = e.id AND e.courseid = ?", array($user->id, $course->id));
             
 			foreach($tmp as $actividad) {
 				$encurso = $actividad->nactividades;
 			}
 		}
 
-		if(isset($mycourses[$acourse->id])) {
-			$grupoinscrito = grupoInscrito($id_usuario, $acourse->id);
-			//$ogrupo = get_groups($acourse->id, $id_usuario);
-			//print_object($ogrupo);
-			$ogrupo = array();
-			$tb_grupo = array();
-			if($grupos_educando = groups_get_user_groups($tmpcurse->id, $id_usuario)) {
-				$id_grupos = $grupos_educando[0];
-				foreach($id_grupos as $idgrupo) {
-					$ogrupo[] = groups_get_group($idgrupo);
-				}	
-			}
-			$tb_grupo[$i] = $ogrupo[$grupoinscrito]->name;
+		if(isset($usercourses[$course->id])) {
+			$groupid = grupoInscrito($id_usuario, $course->id);
+			$group = groups_get_group($groupid);
+			//$ogrupo = get_groups($course->id, $id_usuario);
+			$tb_grupo[$i] = $group->name;
 
 			// Para desactivar los cursos
-			if(isset($grupos) && isset($grupos[$acourse->id]) && $grupos[$acourse->id]->acreditado) {
-				$tb_curso[$i] = "<p align='center'><a href='{$CFG->wwwroot}/course/view.php?id={$acourse->id}'>{$acourse->fullname}</a></p>";
+			if(isset($grupos) && isset($grupos[$course->id]) && $grupos[$course->id]->acreditado) {
+				$tb_curso[$i] = "<p align='center'><a href='{$CFG->wwwroot}/course/view.php?id={$course->id}'>{$course->fullname}</a></p>";
 				$tb_elegir[$i] = "<p align='center'>Curso acreditado</p>";
 			} else {
 				if($encurso) {
-					$tb_curso[$i] = "<p align='center'><a href='{$CFG->wwwroot}/course/view.php?id={$acourse->id}'>{$acourse->fullname}</a></p>";
+					$tb_curso[$i] = "<p align='center'><a href='{$CFG->wwwroot}/course/view.php?id={$course->id}'>{$course->fullname}</a></p>";
 					$tb_elegir[$i] = '<p align="center"><input type="button" value="Desmatricular" disabled="disabled" onclick="alert(\'Ya estas cursando\');"/></p>';
-					//$temparray[$i] .= "<input type='checkbox' name='selected".$count."' checked='yes' onclick='my_check(\"selected".$count."\",".$user->id.",".$acourse->id.",false); revisar(this);' $readonly />" ;
+					//$temparray[$i] .= "<input type='checkbox' name='selected".$count."' checked='yes' onclick='my_check(\"selected".$count."\",".$user->id.",".$course->id.",false); revisar(this);' $readonly />" ;
 					$ncursos++;
 				} else {
 					if($es_educando) {// Si es educando muestro la lista de asesores
 						//if(!empty($asesores)){
 						//  $ncursos++;
-                        //if((!$encurso) && (!isset( $grupos[$acourse->id]->acreditado ))){
-                        //$temparray[$i]  = '<input type="hidden" name="selected'.$count.'" value="'.$user->id.' '.$acourse->id.'" />';
+                        //if((!$encurso) && (!isset( $grupos[$course->id]->acreditado ))){
+                        //$temparray[$i]  = '<input type="hidden" name="selected'.$count.'" value="'.$user->id.' '.$course->id.'" />';
                         //}
-                        //$temparray[$i] .= "<input type='checkbox' name='selected".$count."' checked='yes' value='".$user->id." ".$acourse->id." ".true."' onclick='my_check(\"selected".$count."\",".$user->id.",".$acourse->id.",this.checked); revisar(this);' $readonly /><a href='{$CFG->wwwroot}/course/view.php?id={$acourse->id}'>Ir al curso</a>" ;
-                        $tb_curso[$i] = "<p><a href='{$CFG->wwwroot}/course/view.php?id={$acourse->id}'>{$acourse->fullname}</a></p>";
-                        $tb_elegir[$i] = '<p align="center"><input type="button" value="Desmatricular" onclick="activarDesactivarBoton(this,1);desmatricular('."$id_usuario, $id_rol, $acourse->id".');"/></p>';
+                        //$temparray[$i] .= "<input type='checkbox' name='selected".$count."' checked='yes' value='".$user->id." ".$course->id." ".true."' onclick='my_check(\"selected".$count."\",".$user->id.",".$course->id.",this.checked); revisar(this);' $readonly /><a href='{$CFG->wwwroot}/course/view.php?id={$course->id}'>Ir al curso</a>" ;
+                        $tb_curso[$i] = "<p><a href='{$CFG->wwwroot}/course/view.php?id={$course->id}'>{$course->fullname}</a></p>";
+                        $tb_elegir[$i] = '<p align="center"><input type="button" value="Desmatricular" onclick="activarDesactivarBoton(this,1);desmatricular('."$id_usuario, $id_rol, $course->id".');"/></p>';
                         $ncursos++;
                         // obtengo el asesor al que esta inscrito
-						//echo $acourse->id;
+						//echo $course->id;
                         // Imprimo los asesores
-                        /*$temparray[$i] .= "<select name='asesor".$count."' onchange='my_check(\"selected".$count."\",".$user->id.",".$acourse->id.",true);revisar(document.multienrol.selected".$count.");'>"; // checked='yes' onclick='my_check(\"selected".$count."\",".$user->id.",".$acourse->id.",false); revisar(this);' $readonly />" ;
+                        /*$temparray[$i] .= "<select name='asesor".$count."' onchange='my_check(\"selected".$count."\",".$user->id.",".$course->id.",true);revisar(document.multienrol.selected".$count.");'>"; // checked='yes' onclick='my_check(\"selected".$count."\",".$user->id.",".$course->id.",false); revisar(this);' $readonly />" ;
 						foreach($asesores as $asesor){
                             $grupoinscrito==$asesor->idgrupo?$selected='selected="selected"':$selected="";//para seleccionar asesor
                             $temparray[$i] .= "<option value='".$asesor->idgrupo."' $selected>".$asesor->firstname."  ".$asesor->lastname."</option>";
@@ -407,36 +442,40 @@ function getCursosRegistrados($id_usuario, $id_rol){
 						}*/
 					} else {//No es educando, es asesor
 						$ncursos++;
-						$alumnos = alumnos($user->id,$acourse->id,$user->plaza);//Obtener los asesores
+						$alumnos = alumnos($user->id,$course->id,$user->plaza);//Obtener los asesores
+						//print_object($alumnos);
                         // Para saber si tiene educandos ensu grupo 
 						//  echo "JUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU ".empty($alumnos)." <br/>";
-						$tb_curso[$i] = "<p><a href='{$CFG->wwwroot}/course/view.php?id={$acourse->id}'>{$acourse->fullname}</a></p>";
+						$tb_curso[$i] = "<p><a href='{$CFG->wwwroot}/course/view.php?id={$course->id}'>{$course->fullname}</a></p>";
 						if(!empty($alumnos)) {
 							if(count($alumnos) == 1) {
-								$tbl_participantes[$i] = "<p align='center'>Tiene ".count($alumnos)." alumno inscrito</p>";
+								$tbl_participantes[$i] = "<p align='left'>Tiene ".count($alumnos)." alumno inscrito</p>";
 							} else {
-								$tbl_participantes[$i] = "<p align='cente'>Tiene ".count($alumnos)." alumnos inscritos</p>";
+								$tbl_participantes[$i] = "<p align='left'>Tiene ".count($alumnos)." alumnos inscritos</p>";
 							}
 							$tb_elegir[$i] = '<p align="center"><input type="button" value="Desmatricular" disabled="disabled" onclick="alert(\'Ya estas cursando\');"/></p>';
 						} else {
-							$tbl_participantes[$i] = "<p align='center'>No tiene alumnos inscritos</p>";
-							/*if((!$encurso) && (!isset( $grupos[$acourse->id]->acreditado ))){
-                            $temparray[$i]  = '<input type="hidden" name="selected'.$count.'" value="'.$user->id.' '.$acourse->id.'" />';
+							$tbl_participantes[$i] = "<p align='left'>No tiene alumnos inscritos</p>";
+							/*if((!$encurso) && (!isset( $grupos[$course->id]->acreditado ))){
+                            $temparray[$i]  = '<input type="hidden" name="selected'.$count.'" value="'.$user->id.' '.$course->id.'" />';
 							}*/
-							//$temparray[$i] .= "<input type='checkbox'  name='selected".$count."' checked='yes' onclick='my_check(\"selected".$count."\",".$user->id.",".$acourse->id.",false); revisar(this);' $readonly /><a href='{$CFG->wwwroot}/course/view.php?id={$acourse->id}'>Ir al curso</a>" ;
-							$tb_elegir[$i] = '<p align="center"><input type="button" value="Desmatricular" onclick="activarDesactivarBoton(this,1);desmatricular('."$id_usuario,$id_rol,$acourse->id".');"/></p>';
+							//$temparray[$i] .= "<input type='checkbox'  name='selected".$count."' checked='yes' onclick='my_check(\"selected".$count."\",".$user->id.",".$course->id.",false); revisar(this);' $readonly /><a href='{$CFG->wwwroot}/course/view.php?id={$course->id}'>Ir al curso</a>" ;
+							$tb_elegir[$i] = '<p align="center"><input type="button" value="Desmatricular" onclick="activarDesactivarBoton(this,1);desmatricular('.$id_usuario.', '.$id_rol.', '.$course->id.');"/></p>';
+							//$tb_elegir[$i] = '';
 						}
 					}
 				}
 			}//END ELSE
             
 			if($es_educando){ //MACUCO - Obtener el nombre del asesor
-				$asesores = asesores($acourse->id, $user->plaza);//Obtener los asesores
+				$asesores = asesores($course->id, $user->plaza);//Obtener los asesores
+				echo "<br>Grupo: ".$group->name;
+				print_object($asesores);
 				if(empty($asesores)) {
 					$tbl_participantes[$i] = "Estudiando sin asesor";
 				}
 				foreach($asesores as $asesor){
-					if($grupoinscrito==$asesor->idgrupo) {
+					if($groupid == $asesor->idgrupo) {
 						$tbl_participantes[$i] = $asesor->firstname."  ".$asesor->lastname;
 					}
 				}
@@ -444,14 +483,14 @@ function getCursosRegistrados($id_usuario, $id_rol){
 			$i++;
 		}//END IF
 	}//END FOREACH
-
+	print_object($tbl_participantes);
 	if($ncursos > 1) {
-		$mens = "Usted est&aacute; inscrito en los siguientes cursos";
+		$mens = "Usted está inscrito en los siguientes cursos";
 	} else {
-		$mens = "Usted est&aacute; inscrito en el siguiente curso";
+		$mens = "Usted está inscrito en el siguiente curso";
 	}	
 	$table = '<div><table width="100%" border="1" cellpadding="5" cellspacing="1" class="generaltable boxaligncenter">'."\n";
-	$table .= "<tr><th colspan='4' class='header c0' scope='col'>".$mens."</th></tr>\n";
+	$table .= "<tr><th colspan='4' class='header c0' scope='col' style='text-align: center;'>".$mens."</th></tr>\n";
 	$es_educando ? $etiqueta = "Nombre del asesor" : $etiqueta = "Participantes";
 	$table .= "<tr><th class='header c0' scope='col'>Curso</th><th class='header c0' scope='col'>Grupo</th><th class='header c0' scope='col'>$etiqueta</th><th class='header c0' scope='col'>Elegir</th></tr>\n";
 		
@@ -465,7 +504,7 @@ function getCursosRegistrados($id_usuario, $id_rol){
 	}
 	if($i==0) {
 		$table ='<div><table width="100%" border="1" cellpadding="5" cellspacing="1" class="generaltable boxaligncenter">'."\n";
-		$table .= '<tr align="center"><td colspan="4">Usted no se ha inscrito a&uacute;n a ning&uacute;n curso.</td></tr>';
+		$table .= '<tr align="center"><td colspan="4">Usted no se ha inscrito aún a ningún curso.</td></tr>';
 	}
 	$table .= "</table>\n";
 	$table .= '<input type="hidden" name="cursando" id="cursando" value="'.$ncursos.'"/></div>';
@@ -481,6 +520,7 @@ function getCursosRegistrados($id_usuario, $id_rol){
  */
 // DAVE: 07 05 2015 la siguente es la linea original, se cambia porque no muestra a los educandos
 //select distinct cg.id as groupid, u.skype as plaza
+// FALTA PROBAR
 function alumnos($id_asesor, $id_curso){
     global $CFG, $DB;
 	
@@ -488,23 +528,27 @@ function alumnos($id_asesor, $id_curso){
 		return false;
 	}
 	
-    return $DB->get_records_sql("select distinct u.*, grup_plaz_ases.groupid groupid
-from {groups_members} gm, {role_assignments} a, {user} u, (
-select distinct g.id as groupid, u.skype as plaza
-from {groups} g, {groups_members} gm, {role_assignments} a, {user} u
-where g.courseid = ?
-    AND gm.userid = ?
-    AND g.id = gm.groupid
-    AND a.userid = gm.userid
-    AND a.roleid = ?
-    AND u.id = a.userid
-) as grup_plaz_ases
-where gm.groupid = grup_plaz_ases.groupid
-    AND a.userid = gm.userid
-    AND a.roleid = ?
-    AND u.id = gm.userid
-	AND gm.acreditado = 0
-    AND u.skype = grup_plaz_ases.plaza ORDER BY u.firstname, u.lastname", array($id_curso, $id_asesor, ASESOR, EDUCANDO));
+	$sql = "SELECT DISTINCT u.id, u.firstname, u.lastname, u.icq, grup_plaz_ases.groupid AS groupid, gm.acreditado
+		FROM {groups_members} gm, {user} u, {role_assignments} a, (
+			SELECT DISTINCT g.id AS groupid, u.skype AS plaza
+			FROM {groups} g, {groups_members} gm, {user} u, {role_assignments} a
+			WHERE g.id = gm.groupid
+			AND gm.userid = u.id
+			AND u.id = a.userid 
+			AND g.courseid = ?
+			AND u.id = ?
+			AND a.roleid = ?) AS grup_plaz_ases
+		WHERE grup_plaz_ases.groupid = gm.groupid
+		AND gm.userid = u.id 
+		AND u.id = a.userid
+		AND gm.acreditado = 0
+		AND a.roleid = ?
+		AND u.skype = grup_plaz_ases.plaza
+		ORDER BY u.firstname, u.lastname";
+
+	$params = array($id_curso, $id_asesor, ASESOR, EDUCANDO);
+	//print_object(array($id_curso, $id_asesor, ASESOR, EDUCANDO));
+    return $DB->get_records_sql($sql, $params);
 }
 
 /**
@@ -513,6 +557,7 @@ where gm.groupid = grup_plaz_ases.groupid
  * @param int $id_curso
  * @return Object
  */
+ // FALTA PROBAR
 function alumnosAcreditados($id_asesor, $id_curso){
     global $CFG, $DB;
 	
@@ -520,23 +565,27 @@ function alumnosAcreditados($id_asesor, $id_curso){
 		return false;
 	}
     
-	return $DB->get_records_sql("SELECT DISTINCT u.*, grup_plaz_ases.groupid groupid
-	FROM {groups_members} gm, {role_assignments} a, {user} u, (
-		SELECT distinct g.id as groupid, u.skype as plaza
-		FROM {groups} g, {groups_members} gm, {role_assignments} a, {user} u
-		WHERE g.courseid = ?
-		AND gm.userid = ?
-		AND g.id = gm.groupid
-		AND a.userid = gm.userid
-		AND a.roleid = ?
+	$sql = "SELECT DISTINCT u.id, u.firstname, u.lastname, u.icq, grup_plaz_ases.groupid AS groupid, gm.acreditado
+		FROM {groups_members} gm, {user} u, {role_assignments} a, (
+			SELECT DISTINCT g.id AS groupid, u.skype AS plaza
+			FROM {groups} g, {groups_members} gm, {user} u, {role_assignments} a
+			WHERE g.id = gm.groupid
+			AND gm.userid = u.id
+			AND u.id = a.userid 
+			AND g.courseid = ?
+			AND u.id = ?
+			AND a.roleid = ?) AS grup_plaz_ases
+		WHERE grup_plaz_ases.groupid = gm.groupid
+		AND gm.userid = u.id 
 		AND u.id = a.userid
-	) AS grup_plaz_ases
-	WHERE gm.groupid = grup_plaz_ases.groupid
-    AND a.userid = gm.userid
-    AND a.roleid = ?
-    AND u.id = gm.userid
-    AND gm.acreditado = 1
-    AND u.skype = grup_plaz_ases.plaza ORDER BY u.firstname, u.lastname", array($id_curso, $id_asesor, ASESOR, EDUCANDO));
+		AND gm.acreditado = 1
+		AND a.roleid = ?
+		AND u.skype = grup_plaz_ases.plaza
+		ORDER BY u.firstname, u.lastname";
+
+	$params = array($id_curso, $id_asesor, ASESOR, EDUCANDO);
+	//print_object(array($id_curso, $id_asesor, ASESOR, EDUCANDO));
+    return $DB->get_records_sql($sql, $params);
 }
 
 /**
@@ -577,14 +626,19 @@ function asesores($id_curso, $id_plaza) {
 		return false;
 	}
 	
-    return $DB->get_records_sql("SELECT distinct gm.userid, g.id as idgrupo, u.*
-    FROM {groups} g, {groups_members} gm, {role_assignments} a, {user} u
-    WHERE courseid = ?
-    AND g.id = gm.groupid
-    AND a.userid = gm.userid
-    AND a.roleid = ?
-    AND u.id = gm.userid
-    AND u.skype = ? ORDER BY u.firstname, u.lastname", array($id_curso, EDUCANDO, $id_plaza));
+	$sql = "SELECT DISTINCT gm.userid, g.courseid, g.id as idgrupo, u.*
+		FROM {groups} g, {groups_members} gm, {role_assignments} a, {user} u
+		WHERE g.id = gm.groupid
+		AND gm.userid = a.userid
+		AND a.userid = u.id
+		AND g.courseid = ?
+		AND a.roleid = ?
+		AND u.skype = ? ORDER BY u.firstname, u.lastname";
+	
+	$params = array($id_curso, ASESOR, $id_plaza);
+	//echo $sql;
+	//print_object($params);
+    return $DB->get_records_sql($sql, $params);
 }
 
 /**
@@ -595,11 +649,19 @@ function enviarMail($message){
 	global $CFG;
 	
 	$from = get_admin();
+	
+	//Usuario al cual informaremos de la matriculacion/desmatriculacion
 	$user = new stdClass();
-	$user->email = "juan.manuel.mp8@gmail.com";
+	$user->id = -1;
+	$user->firstname = "Edwin";
+	$user->lastname = "Romano";
+	$user->email = "eromanot@gmail.com";
 	$user->mailformat = 1;
-	$user->firstname = "Juan Manuel";
-	$user->lastname = "Muñoz Pérez";
+	$user->deleted = 0;
+	$user->lastnamephonetic = '';
+	$user->firstnamephonetic = '';
+	$user->middlename = '';
+	$user->alternatename = '';
 	
 	// Enviar email de aviso de desmatriculacion
 	email_to_user($user, $from, "IMPORTANTE: Posible desmatriculación amevyt.", $message);

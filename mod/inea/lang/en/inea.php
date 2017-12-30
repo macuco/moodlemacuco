@@ -278,3 +278,6 @@ $string['BO'] = 'Tlaxcala';
 $string['BR'] = 'Veracruz';
 $string['BS'] = 'Yucatán';
 $string['BT'] = 'Zacatecas';
+
+//***************************************** ENROLAMIENTO
+$string['eventenrolamientoinea'] = 'Enrolamiento de usuarios en el MEVyt';

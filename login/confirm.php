@@ -115,8 +115,8 @@ if (!empty($data) || (!empty($p) && !empty($s))) {
 
             \core\session\manager::apply_concurrent_login_limit($user->id, session_id());
 
-            // Check where to go, $redirect has a higher preference.
-            if (empty($redirect) and !empty($SESSION->wantsurl) ) {
+            // Check where to go, $redirect has a higher preference.}
+            if (empty($redirect) and !empty($SESSION->wantsurl) and empty($id_user)) {
                 $redirect = $SESSION->wantsurl;
                 unset($SESSION->wantsurl);
             }

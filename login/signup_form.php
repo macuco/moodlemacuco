@@ -72,6 +72,11 @@ class login_signup_form extends moodleform implements renderable/*, templatable*
             $mform->addRule('idnumber', get_string('norfe', 'inea'), 'required', null, 'server');
             $mform->addRule('idnumber', get_string('rfeincorrecto', 'inea'), 'alphanumeric', null, 'client');
             
+			// Campo escondido iniciar
+			$mform->addElement('hidden', 'iniciar', '');
+			$mform->setType('iniciar', PARAM_TEXT);
+			$mform->setDefault('iniciar', true);
+			
             $this->add_action_buttons(false, get_string('next'));
 		
 			$REG->rfe = NULL;		
@@ -90,6 +95,11 @@ class login_signup_form extends moodleform implements renderable/*, templatable*
             $mform->addElement('select', 'entidad', get_string('estado', 'inea'), $estados);
             //$mform->setType('entidad', PARAM_TEXT);
             $mform->addRule('entidad', get_string('noestado', 'inea'), 'required', null, 'server');
+			
+			// Campo escondido iniciar
+			$mform->addElement('hidden', 'iniciar', '');
+			$mform->setType('iniciar', PARAM_TEXT);
+			$mform->setDefault('iniciar', true);
 			
 			$this->add_action_buttons(false, get_string('next'));
 			

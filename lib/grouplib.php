@@ -1087,6 +1087,7 @@ function groups_get_course_data($courseid, cache $cache = null) {
     }
     // Try to retrieve it from the cache.
     $data = $cache->get($courseid);
+	
     if ($data === false) {
         $data = groups_cache_groupdata($courseid, $cache);
     }

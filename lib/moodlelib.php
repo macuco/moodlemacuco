@@ -6046,8 +6046,6 @@ function email_to_user($user, $from, $subject, $messagetext, $messagehtml = '', 
                 'errorinfo' => $mail->ErrorInfo
             )
         ));
-		print_object($mail);
-		exit;
         $event->trigger();
         if (CLI_SCRIPT) {
             mtrace('Error: lib/moodlelib.php email_to_user(): '.$mail->ErrorInfo);

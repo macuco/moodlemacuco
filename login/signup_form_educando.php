@@ -36,16 +36,36 @@ class login_signup_form extends moodleform implements renderable/*, templatable*
         global $DB, $USER, $CFG, $REG;
 		
 		// SCRIPT INEA
-		// RUDY: Recupero RFE y entidad
+		// RUDY: Recupero RFE y entidad (cuando conozco el RFE)
 		$idnumber   = optional_param('idnumber', 1, PARAM_TEXT);
 		$entidad    = optional_param('entidad', 1, PARAM_INT);
+		
+		// EDDY: Recupero datos el usuario (cuando no conozco RFE)
+		$lastname   = optional_param('lastname', '', PARAM_TEXT);
+		$firstname  = optional_param('firstname', '', PARAM_TEXT);
+		$icq   		= optional_param('icq', '', PARAM_TEXT);
+		$aim   		= isset($_POST['aim'])? $_POST['aim'] : '';
+	
+		$iniciar	= optional_param('iniciar', 0, PARAM_INT);
+		
 		$eseducando = isset($_POST['eseducando'])? $_POST['eseducando'] : false;
 		$quitalogin = false;
 		$readonly = 'readonly style="border: 0px;"';
 		
-		$mform = $this->_form;
+		// Cambiamos el formato de la fecha de nacimiento
+		if(!empty($aim)) {
+			if(is_array($aim)) {
+				$aim = $aim['day'].'/'.$aim['month'].'/'.$aim['year'];
+			}
+		}
 		
-		if(isset($idnumber) && $idnumber != "") {	//RUDY: si se tiene el RFE se permite continuar	
+		//Si es un nuevo formulario borramos el $_POST
+		if($iniciar) {
+			unset($_POST);
+		}
+		
+		$mform = $this->_form;
+		if(isset($idnumber) && $idnumber != "") {	//RUDY: si se tiene el RFE se permite continuar
             if($DB->record_exists('user', array('idnumber'=>$idnumber))) {	//RuDY: si existe el registro en la tabla user
 				
 				//buscamos el rfe en la tabla user
@@ -89,27 +109,35 @@ class login_signup_form extends moodleform implements renderable/*, templatable*
 					$_POST['email'] = $email;
 					$_POST['email2'] = $email2;
 				}
-					
                 //if(!$user->msn){
 					//$_POST['msn']=$msn;
                 //}
-			   
-			   
             } else {	//RuDY: si NO existe el registro en la tabla user
-				
 				//$registro = inea_get_record_sasa($entidad, $idnumber);	// RUDY: Funcion que realiza conexion con SASA
 				// No se puede vincular con la base de datos externa, se crea un arreglo ficticio
+				/*$registro = array(
+					'ideducando' => 456313,
+					'icvemodelo' => 10,
+					'cpaterno' => 'ESCOBEDO',
+					'cmaterno' => 'SEGURA',
+					'cnombre' => 'JUAN JOSE',
+					'sexo' => 1,
+					'cfecha' => '27/07/1998',
+					'icveentfed' => 9,
+					'icvemunicipio' => 37,
+					'icvecz' => 8,
+				);*/
 				$registro = array(
-				'ideducando' => 456313,
-				'icvemodelo' => 10,
-				'cpaterno' => 'ESCOBEDO',
-				'cmaterno' => 'SEGURA',
-				'cnombre' => 'JUAN JOSE',
-				'sexo' => 1,
-				'cfecha' => '27/07/1998',
-				'icveentfed' => 9,
-				'icvemunicipio' => 37,
-				'icvecz' => 8,
+					'ideducando' => 456319,
+					'icvemodelo' => 10,
+					'cpaterno' => 'RUGERIO',
+					'cmaterno' => 'XICOHTENCATL',
+					'cnombre' => 'MAGALI',
+					'sexo' => 1,
+					'cfecha' => '01/06/1980',
+					'icveentfed' => 9,
+					'icvemunicipio' => 14,
+					'icvecz' => 3,
 				);
 				
 				if(isset($registro) && $registro['ideducando']!=0) {	//RUDY: si se encuentra el registro en SASA procede. SASA regresa un cero para el ideducando si no encuentra el registro.
@@ -190,7 +218,7 @@ class login_signup_form extends moodleform implements renderable/*, templatable*
         
 		if($quitalogin) {
 			// RFE/RFC
-            $rfe = $_POST['idnumber'];
+            $rfe = $idnumber;
             $mform->addElement('text', 'idnumber_', get_string('rfe', 'inea'), 'size="20" '.$readonly);
             $mform->setType('idnumber_', PARAM_TEXT);
             $mform->addRule('idnumber_', get_string('rfeincorrecto', 'inea'), 'alphanumeric', null, 'client');
@@ -213,6 +241,7 @@ class login_signup_form extends moodleform implements renderable/*, templatable*
             $mform->setDefault('zona_', $clave_zona);
         } else {
 			// RFE/RFC
+			$rfe = $idnumber;
             $mform->addElement('text', 'idnumber', get_string('rfe', 'inea'), 'size="20"'.$readonly);
             $mform->setType('idnumber', PARAM_TEXT);
             if(isset($rfe)) {

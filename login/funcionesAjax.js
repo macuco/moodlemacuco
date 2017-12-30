@@ -161,18 +161,26 @@ function generarCursos(id_categoria,accion,id_usuario) {
   doAjax(url,'id_categoria='+id_categoria+'&id_usuario='+id_usuario+'&accion='+accion,'recibirCursos','post',1);
 }
 function generarAsesores(id_usuario,id_curso,accion) {
+	//alert('Url: ' + url);
+	//alert('Params: ' + 'id_usuario='+id_usuario+'&id_curso='+id_curso+'&accion='+accion);
   doAjax(url,'id_usuario='+id_usuario+'&id_curso='+id_curso+'&accion='+accion,'recibirAsesores','post',1);
 }
 function generarCursosRegistrados(id_usuario,id_rol) {
+	//alert('Url: ' + url);
+	//alert('Params: ' + 'id_usuario='+id_usuario+'&id_rol='+id_rol+'&accion=getcursosregistrados');
   doAjax(url,'id_usuario='+id_usuario+'&id_rol='+id_rol+'&accion=getcursosregistrados','recibirCursosRegistrados','post',0);
 }
 function registrarCurso(id_usuario,id_rol,id_curso,id_grupo) {
   control = validar();
   if(control == 0) {
-    if(id_grupo > 0 || id_grupo==-2)
-      doAjax(url,'id_usuario='+id_usuario+'&id_rol='+id_rol+'&id_curso='+id_curso+'&id_grupo='+id_grupo+'&accion=registrarcursos','recibeUsuario','post',1);
-    else
-      doAjax(url,'id_usuario='+id_usuario+'&id_rol='+id_rol+'&id_curso='+id_curso+'&accion=registrarcursos','recibeUsuario','post',1);
+	//alert('Url: ' + url);
+    if(id_grupo > 0 || id_grupo==-2) {
+		//alert('Params: ' + 'id_usuario='+id_usuario+'&id_rol='+id_rol+'&id_curso='+id_curso+'&id_grupo='+id_grupo+'&accion=registrarcursos');
+		doAjax(url,'id_usuario='+id_usuario+'&id_rol='+id_rol+'&id_curso='+id_curso+'&id_grupo='+id_grupo+'&accion=registrarcursos','recibeUsuario','post',1);
+    } else {
+		//alert('Params: ' + 'id_usuario='+id_usuario+'&id_rol='+id_rol+'&id_curso='+id_curso+'&accion=registrarcursos');
+		doAjax(url,'id_usuario='+id_usuario+'&id_rol='+id_rol+'&id_curso='+id_curso+'&accion=registrarcursos','recibeUsuario','post',1);
+	}
   } // if
 }
 function recibeUsuario(tiposXML) {
@@ -214,6 +222,7 @@ function respuesta(msg,tmp) {
   }
 }
 function desmatricular(id_usuario,id_rol,id_curso) {
+	//alert('id_usuario='+id_usuario+'&id_rol='+id_rol+'&id_curso='+id_curso+'&accion=desmatricular');
   doAjax(url,'id_usuario='+id_usuario+'&id_rol='+id_rol+'&id_curso='+id_curso+'&accion=desmatricular','recibeDesmatricular','post',1);
 }
 function recibeDesmatricular(tiposXML) {
@@ -245,7 +254,7 @@ function validar() {
 }
 function desactivar() {
   div = document.getElementById("mensaje");
-  alert(div);
+  //alert(div);
   if(parseInt(document.getElementById('cursando').value) >= parseInt(document.getElementById('maxcursos').value)) {
   	div.style.visibility='visible';
     document.getElementById('inicioregistrar').disabled=true;
