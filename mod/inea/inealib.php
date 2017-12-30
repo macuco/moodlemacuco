@@ -1183,4 +1183,91 @@ function addEvent(elemento,nomevento,funcion,captura)
     $mform->addElement('text', 'address', get_string('address'), 'maxlength="255" size="25"');
     $mform->setType('address', core_user::get_property_type('address'));
 }
+
+/**
+ * INEA - Enrola a un usuario a un curso
+ *
+ * @param int $userid El usuario a enrolar
+ * @param int $courseid El curso en el cual se va a enrolar el usuario
+ * @param int $roleid El rol que va a tener dentro del curso
+ * @return bool
+ */
+function inea_enrol_user($userid, $courseid, $roleid) {
+	global $DB;
+	
+    $user = $DB->get_record('user', array('id' => $userid, 'deleted' => 0), '*', MUST_EXIST);
+    $course = $DB->get_record('course', array('id' => $courseid), '*', MUST_EXIST);
+    $context = context_course::instance($course->id);
+    
+	if(!$roleid) {
+		return false;
+	}
+	
+	if (!is_enrolled($context, $user)) {
+		// We need manual enrol type
+        $enrol = enrol_get_plugin('manual');
+        if ($enrol === null) {
+            return false;
+        }
+        $instances = enrol_get_instances($course->id, true);
+        $manualinstance = null;
+        foreach ($instances as $instance) {
+            if ($instance->enrol == 'manual') {
+                $manualinstance = $instance;
+                break;
+            }
+        }
+		
+        if ($manualinstance === null) {
+			return false;
+        } 
+		
+		$enrol->enrol_user($manualinstance, $userid, $roleid);
+    } else {
+		return false;
+	}
+	
+    return true;
+}
+
+/**
+ * INEA - Desenrola a un usuario de un curso
+ *
+ * @param int $userid El usuario a desenrolar
+ * @param int $courseid El curso en el cual se va a desenrolar el usuario
+ * @return bool
+ */
+function inea_unenrol_user($userid, $courseid) {
+	global $DB;
+	
+    $user = $DB->get_record('user', array('id' => $userid, 'deleted' => 0), '*', MUST_EXIST);
+    $course = $DB->get_record('course', array('id' => $courseid), '*', MUST_EXIST);
+    $context = context_course::instance($course->id);
+	
+	if (is_enrolled($context, $user)) {
+		// We need manual enrol type
+        $enrol = enrol_get_plugin('manual');
+        if ($enrol === null) {
+            return false;
+        }
+        $instances = enrol_get_instances($course->id, true);
+        $manualinstance = null;
+        foreach ($instances as $instance) {
+			if($enrol->allow_unenrol($instance) && $instance->enrol == 'manual') {
+                $manualinstance = $instance;
+                break;
+            }
+        }
+        
+		if ($manualinstance === null) {
+			return false;
+		}
+        
+		$enrol->unenrol_user($instance, $userid);
+    } else {
+		return false;
+	}
+	
+    return true;
+}
 ?>
