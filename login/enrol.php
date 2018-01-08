@@ -59,6 +59,12 @@ if($id_rol == ASESOR) {
 
 $ajax_url = $CFG->wwwroot . '/login/funcionesAjax.js';
 
+//session_start();
+//if(!isset($_SESSION["accion"]))
+//	$_SESSION["accion"]="";
+//if(!isset($_SESSION["datos"]))
+//	$_SESSION["datos"]="";
+
 //$url = new moodle_url($ajax_url);
 //print_object($url);
 //exit;
@@ -73,6 +79,7 @@ if (file_exists('funcionesAjax.js')) {
 	$PAGE->requires->js_function_call('generarCursosRegistrados', array($id_usuario, $id_rol));
 }
 echo $OUTPUT->header();
+//print_object($_SESSION);
 //echo $OUTPUT->footer();
 //exit;
 /*print_header("Cursos", $heading='', $navigation='', $focus='',

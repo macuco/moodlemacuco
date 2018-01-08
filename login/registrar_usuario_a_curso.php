@@ -130,7 +130,7 @@ if(!empty($accion)) {
 				if($porsentaje_afectado < 98){
 					enviarMail($mensaje);
 				}
-			}			   
+			}
         break;
         case 'getasesores':
             if($id_usuario && $id_curso) {
@@ -263,12 +263,13 @@ function registrarCurso($id_usuario, $id_rol, $id_curso, $id_grupo=null){
  * @return 
  */
 function desagrupar($id_curso, $id_usuario) {
-	
+	//$_SESSION["accion"] = "Desagrupar";
 	if(empty($id_curso) && empty($id_usuario)) {
 		return false;
 	}
 	
 	if($grupos_educando = groups_get_user_groups($id_curso, $id_usuario)) {
+		//$_SESSION["datos"] = $grupos_educando;
 		$grupos_educando = $grupos_educando[0];
 		if(is_array($grupos_educando)) {
 			foreach($grupos_educando as $grupo_id) {
@@ -296,7 +297,6 @@ function desmatricular($id_usuario, $id_rol, $id_curso){
 	if(empty($id_curso) && empty($id_usuario)) {
 		return false;
 	}
-	
     $user = $DB->get_record('user', array('id' => $id_usuario), 'id, firstname, lastname, lastaccess, skype as plaza');
     $coursecontext = context_course::instance($id_curso);
 	
@@ -391,7 +391,7 @@ function getCursosRegistrados($id_usuario, $id_rol){
 		//if($i==$tmp){continue;}  //PARA EL CURSO CERO
 		$encurso = false;
 		if($es_educando) { //OBTIENE LA LISTA DE ASESORES SI EL ROL ES 5 o EDUCANDO
-			$asesores = asesores($course->id, $user->plaza);//Obtener los asesores
+			//$asesores = asesores($course->id, $user->plaza);//Obtener los asesores
 			/* verifico los cursos en los que esta inscrito y cursando. */
 			//$tmp = get_records_sql("select count(*) nactividades from {$CFG->prefix}inea inea, {$CFG->prefix}inea_answers answers where  inea.id=answers.ineaid and inea.course={$course->id} AND userid={$user->id}");
 			$tmp = $DB->get_records_sql("SELECT count(*) nactividades FROM {inea_respuestas} r, {inea_ejercicios} e WHERE r.userid = ? AND r.ejercicios_id = e.id AND e.courseid = ?", array($user->id, $course->id));
@@ -409,11 +409,11 @@ function getCursosRegistrados($id_usuario, $id_rol){
 
 			// Para desactivar los cursos
 			if(isset($grupos) && isset($grupos[$course->id]) && $grupos[$course->id]->acreditado) {
-				$tb_curso[$i] = "<p align='center'><a href='{$CFG->wwwroot}/course/view.php?id={$course->id}'>{$course->fullname}</a></p>";
+				$tb_curso[$i] = "<p><a href='{$CFG->wwwroot}/course/view.php?id={$course->id}'>{$course->fullname}</a></p>";
 				$tb_elegir[$i] = "<p align='center'>Curso acreditado</p>";
 			} else {
 				if($encurso) {
-					$tb_curso[$i] = "<p align='center'><a href='{$CFG->wwwroot}/course/view.php?id={$course->id}'>{$course->fullname}</a></p>";
+					$tb_curso[$i] = "<p><a href='{$CFG->wwwroot}/course/view.php?id={$course->id}'>{$course->fullname}</a></p>";
 					$tb_elegir[$i] = '<p align="center"><input type="button" value="Desmatricular" disabled="disabled" onclick="alert(\'Ya estas cursando\');"/></p>';
 					//$temparray[$i] .= "<input type='checkbox' name='selected".$count."' checked='yes' onclick='my_check(\"selected".$count."\",".$user->id.",".$course->id.",false); revisar(this);' $readonly />" ;
 					$ncursos++;
@@ -468,9 +468,9 @@ function getCursosRegistrados($id_usuario, $id_rol){
 			}//END ELSE
             
 			if($es_educando){ //MACUCO - Obtener el nombre del asesor
-				$asesores = asesores($course->id, $user->plaza);//Obtener los asesores
-				echo "<br>Grupo: ".$group->name;
-				print_object($asesores);
+				$asesores = misAsesores($course->id, $group->id, $user->plaza);//Obtener los asesores
+				//echo "<br>Grupo: ".$group->name;
+				//print_object($asesores);
 				if(empty($asesores)) {
 					$tbl_participantes[$i] = "Estudiando sin asesor";
 				}
@@ -483,7 +483,7 @@ function getCursosRegistrados($id_usuario, $id_rol){
 			$i++;
 		}//END IF
 	}//END FOREACH
-	print_object($tbl_participantes);
+	
 	if($ncursos > 1) {
 		$mens = "Usted está inscrito en los siguientes cursos";
 	} else {
@@ -615,8 +615,8 @@ function grupoInscrito($id_usuario, $id_curso){
 
 /**
  * INEA - Obtiene a los asesores en un curso
- * @param int $id_asesor
  * @param int $id_curso
+ * @param int $id_plaza
  * @return Object
  */
 function asesores($id_curso, $id_plaza) {
@@ -642,6 +642,36 @@ function asesores($id_curso, $id_plaza) {
 }
 
 /**
+ * INEA - Obtiene al asesor (si existe) asociado a un curso, grupo y plaza 
+ * @param int $id_curso
+ * @param int $id_grupo
+ * @param int $id_plaza
+ * @return Object
+ */
+function misAsesores($id_curso, $id_grupo, $id_plaza) {
+    global $CFG, $DB;
+
+	if(empty($id_curso) && empty($id_grupo) && empty($id_plaza)) {
+		return false;
+	}
+	
+	$sql = "SELECT DISTINCT gm.userid, g.courseid, g.id as idgrupo, u.*
+		FROM {user} u, {role_assignments} a, {groups_members} gm, {groups} g
+		WHERE u.id = a.userid
+		AND a.userid = gm.userid
+		AND gm.groupid = g.id
+		AND g.id = ?
+		AND g.courseid = ?
+		AND a.roleid = ?
+		AND u.skype = ? ORDER BY u.firstname, u.lastname";
+	
+	$params = array($id_grupo, $id_curso, ASESOR, $id_plaza);
+	//echo $sql;
+	//print_object($params);
+    return $DB->get_records_sql($sql, $params);
+}
+
+/**
  * INEA - Envia un correo con un aviso
  * @param string $message
  */
@@ -653,9 +683,9 @@ function enviarMail($message){
 	//Usuario al cual informaremos de la matriculacion/desmatriculacion
 	$user = new stdClass();
 	$user->id = -1;
-	$user->firstname = "Edwin";
-	$user->lastname = "Romano";
-	$user->email = "eromanot@gmail.com";
+	$user->firstname = "Admin";
+	$user->lastname = "Mevyt";
+	$user->email = "admin@mevyt.com";
 	$user->mailformat = 1;
 	$user->deleted = 0;
 	$user->lastnamephonetic = '';

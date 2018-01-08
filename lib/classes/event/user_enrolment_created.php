@@ -84,7 +84,7 @@ class user_enrolment_created extends base {
      * @return string legacy event name
      */
     public static function get_legacy_eventname() {
-        return 'inea_enrolment';
+        return 'user_enrolled';
     }
 
     /**

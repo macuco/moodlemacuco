@@ -1270,4 +1270,24 @@ function inea_unenrol_user($userid, $courseid) {
 	
     return true;
 }
+
+/**
+ * Imprime datos en consola web
+ *
+ * @param String $data Cualquier cadena de datos
+ *
+ */
+function debug_to_console( $data ) {
+    $output = $data;
+	
+	if (is_object($output)) {
+		$output = var_dump((array)$output);
+	}
+    
+	if (is_array($output)) {
+        $output = implode(',', $output);
+	}
+
+    echo "<script>console.log( 'Debug Objects: " . $output . "' );</script>";
+}
 ?>
