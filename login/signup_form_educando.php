@@ -250,9 +250,10 @@ class login_signup_form extends moodleform implements renderable/*, templatable*
             
 			// Modelo
             $mform->addElement('text', 'modelo', get_string('modelo','inea'), 'size="20" '.$readonly);
-			$modelo = inea_get_modelo($id_modelo);
-			print_object($modelo);
-			$nombre_modelo = $modelo->cdesmodelo;
+			$nombre_modelo = "";
+			if($modelo = inea_get_modelo($id_modelo)) {
+				$nombre_modelo = $modelo->cdesmodelo;
+			}
             $mform->setType('modelo', PARAM_TEXT);
             $mform->setDefault('modelo', $nombre_modelo);
 
