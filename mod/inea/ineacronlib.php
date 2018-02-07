@@ -515,6 +515,23 @@ function set_historial_values_for_user($user, $courseid, $roleid, $type){
 	
 	return $usuario;
 }
+
+/**
+ * INEA - Obtiene un registro del log estandar.
+ *
+ * @param array $params - Un arreglo con los parametros de consulta
+ * @return array
+ * 
+ */
+function get_user_data_from_log($params) {
+	global $CFG, $DB;
+	
+	if(empty($params) || !is_array($params)) {
+		return false;
+	}
+	
+	return $DB->get_record_sql('SELECT * FROM {logstore_standard_log} WHERE action = ? AND target = ? AND userid = ? AND courseid = ? ORDER BY id LIMIT 1', $params);
+}
  
 /**
  * Shared code that handles running of a single scheduled task within the cron.
