@@ -1,7 +1,9 @@
 <?php
-defined('MOODLE_INTERNAL') || die();
+
+//defined('MOODLE_INTERNAL') || die();
 
 require_once('../config.php');
+
 require_once $CFG->dirroot . '/mod/inea/inealib.php';
 
 $id_instituto	= optional_param('id_instituto',1, PARAM_INT);

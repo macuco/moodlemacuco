@@ -19,6 +19,9 @@
 defined('MOODLE_INTERNAL') || die();
 
 
+if(file_exists($CFG->dirroot . '/mod/inea/inealib_jmp.php')){
+    require_once($CFG->dirroot . '/mod/inea/inealib_jmp.php');
+}
 
 
 /**
@@ -939,35 +942,59 @@ function inea_useredit_shared_definition(&$mform, $editoroptions, $filemanagerop
         useredit_load_preferences($user, false);
     }
     
+    
+    $id_estado_objeto = inea_get_user_entidad($USER->id); // vhackero para ontener el estado al que pertenece el usuario;
+    
+    if($USER->id!=0) $id_estado = $id_estado_objeto->institution; // vhackero para ontener el estado al que pertenece el usuario;
+    
     $strrequired = get_string('required');
     $stringman = get_string_manager();
     // Add the necessary names.
     /*foreach (useredit_get_required_name_fields() as $fullname) {
-        $mform->addElement('text', $fullname,  get_string($fullname),  'maxlength="100" size="30"');
-        if ($stringman->string_exists('missing'.$fullname, 'core')) {
-            $strmissingfield = get_string('missing'.$fullname, 'core');
-        } else {
-            $strmissingfield = $strrequired;
-        }
-        $mform->addRule($fullname, $strmissingfield, 'required', null, 'client');
-        $mform->setType($fullname, PARAM_NOTAGS);
-    }*/
+     $mform->addElement('text', $fullname,  get_string($fullname),  'maxlength="100" size="30"');
+     if ($stringman->string_exists('missing'.$fullname, 'core')) {
+     $strmissingfield = get_string('missing'.$fullname, 'core');
+     } else {
+     $strmissingfield = $strrequired;
+     }
+     $mform->addRule($fullname, $strmissingfield, 'required', null, 'client');
+     $mform->setType($fullname, PARAM_NOTAGS);
+     }*/
     
+    $url = $CFG->wwwroot.'/login/genera_rfe.php';
+  /*  
+    $mform->addElement('text', 'lastname', get_string('apaterno','registro'), 'size="25" onblur="generaRFE(document.getElementById(\'id_lastname\').value, document.getElementById(\'id_icq\').value, document.getElementById(\'id_firstname\').value, this.form,\''.$url.'\');"');
+    $mform->addRule('lastname', get_string('noapaterno','registro'), 'required', null, 'server');
+    $mform->setType('lastname', PARAM_NOTAGS);
+    
+    $mform->addElement('text', 'icq', get_string('amaterno','registro'), 'size="25" onblur="generaRFE(document.getElementById(\'id_lastname\').value, document.getElementById(\'id_icq\').value, document.getElementById(\'id_firstname\').value, this.form,\''.$url.'\');"');
+    $mform->setType('icq', PARAM_TEXT);
+    //$mform->addRule('icq', get_string('noamaterno','registro'), 'required', null, 'server');
+    //$mform->setDefault('icq', $aMaterno);
+    /*$mform->addElement('text', 'icq', get_string('amaterno','registro'), 'size="25"');
+     $mform->setType('icq', PARAM_TEXT);
+     $mform->addRule('icq', get_string('noamaterno','registro'), 'required', null, 'server');
+     $mform->setDefault('icq', PARAM_NOTAGS);
+     */
+    /*$mform->addElement('text', 'firstname', get_string('nombres','registro'), 'size="25" onblur="generaRFE(document.getElementById(\'id_lastname\').value, document.getElementById(\'id_icq\').value, document.getElementById(\'id_firstname\').value, this.form,\''.$url.'\');"');
+    $mform->addRule('firstname',  get_string('nonombres','registro'), 'required', null, 'client');
+    $mform->setType('firstname', PARAM_NOTAGS);
+    */
     $campo = 'firstname';
-    $mform->addElement('text', $campo,  get_string($campo),  'maxlength="100" size="30"');
+    $mform->addElement('text', $campo,  get_string($campo),  'maxlength="100" size="30 onblur="generaRFE(document.getElementById(\'id_lastname\').value, document.getElementById(\'id_icq\').value, document.getElementById(\'id_firstname\').value, this.form,\''.$url.'\');"');
     $mform->addRule($campo, get_string($campo), 'required', null, 'client');
     $mform->setType($campo, PARAM_NOTAGS);
     
     $campo = 'lastname';
-    $mform->addElement('text', $campo,  "Apellido paterno",  'maxlength="100" size="30"');
+    $mform->addElement('text', $campo,  "Apellido paterno",  'maxlength="100" size="30" onblur="generaRFE(document.getElementById(\'id_lastname\').value, document.getElementById(\'id_icq\').value, document.getElementById(\'id_firstname\').value, this.form,\''.$url.'\');"');
     $mform->addRule($campo, get_string($campo), 'required', null, 'client');
     $mform->setType($campo, PARAM_NOTAGS);
     
     $campo = 'icq';
-    $mform->addElement('text', $campo,  "Apellido materno",  'maxlength="100" size="30"');
+    $mform->addElement('text', $campo,  "Apellido materno",  'maxlength="100" size="30" onblur="generaRFE(document.getElementById(\'id_lastname\').value, document.getElementById(\'id_icq\').value, document.getElementById(\'id_firstname\').value, this.form,\''.$url.'\');"');
     //$mform->addRule($campo, get_string($campo), 'required', null, 'client');
     $mform->setType($campo, PARAM_NOTAGS);
-
+    
     $mform->addElement('html', html_writer::empty_tag('hr'));
     
     $choices = Array("Masculino"=>"Masculino", "Femenino"=>"Femenino");
@@ -978,12 +1005,13 @@ function inea_useredit_shared_definition(&$mform, $editoroptions, $filemanagerop
     
     $url = "";
     $element = &$mform->addElement('date_selector', 'aim', utf8_encode(get_string('fechanacimiento','inea')),array ('startyear'=> 1900,'stopyear'=> 2009,'zona horaria'=> 99,'applydst'=> true , 'opcional' => true), 'onchange="generaRFE(document.getElementById(\'id_lastname\').value, document.getElementById(\'id_icq\').value, document.getElementById(\'id_firstname\').value, this.form,\''.$url.'\');"');
-    $mform->addRule('aim', utf8_encode(get_string('nofechanacimiento','inea')), 'required', null, 'client');
+    //$mform->addRule('aim', '', 'required', null, 'client');
     
     $modificando = true;
-    $user->aim = "02/12/2017";
+    //$user->aim = "02/12/2017";
+    $fecha = "02/12/2009";
     if($modificando){
-        $t = explode('/',$user->aim);
+        $t = explode('/',$fecha);
         $script =  '<script type="text/javascript">
 addEvent(window,"load",ventanaBienvenida,false);
 var day = '.$t[0].';var month = '.$t[1].';var year = '.$t[2].';
@@ -1020,7 +1048,7 @@ function addEvent(elemento,nomevento,funcion,captura)
       return false;
 }
 </script>';
-        //$mform->addElement('html',$script);
+        $mform->addElement('html',$script);
     }
     
     
@@ -1060,6 +1088,107 @@ function addEvent(elemento,nomevento,funcion,captura)
     $mform->setDefault('maildisplay', core_user::get_property_default('maildisplay'));
     $mform->setType('maildisplay', PARAM_INT);
     
+    
+    
+    
+    /**/$mform->addElement('hidden', 'institution', '', 'size="20" id="institution"');
+    $mform->addRule('institution', 'Origen requerido', 'required', null, 'server');
+    //$mform->setDefault('institution');
+    
+    $mform->addElement('hidden', 'instituto', '', 'size="20" id="instituto"');
+    //$mform->addRule('instituto', 'Origen requerido', 'required', null, 'server');
+    if(!$modificando){
+        $mform->setDefault('instituto',$id_estado);
+    }
+    
+    $mform->addElement('hidden', 'country', '', 'size="20" id="country"');
+    $mform->setType('country', PARAM_TEXT);
+    $mform->setDefault('country', $MEXICO);
+    
+    $mform->addElement('hidden', 'city', '', 'size="20" id="city"');// City es el municipio
+    //$mform->setDefault('city');
+    $mform->addElement('hidden', 'skype', '', 'id="skype"');// skype es la plaza
+    
+    
+    $entities = get_all_entities();
+    $municipios = get_all_municipios();
+    $plazas = get_all_plazas();
+    
+    
+    $select2[0]=" -- Seleccionar entidad -- ";
+    $MEXICO = 1;
+    foreach ($entities as $entityid) {
+        if($entityid->icvepais==$MEXICO){
+            $select2[$entityid->icveentfed] = $entityid->cdesentfed;
+        }
+    }
+    
+    $select3[0][0] = " -- Seleccionar municipio -- ";
+    foreach ($municipios as $municipioid) {
+        if($municipioid->icvepais==$MEXICO){
+            $select3[$municipioid->icveentfed][$municipioid->icvemunicipio] = $municipioid->cdesmunicipio;
+        }
+    }
+    $select4[0][0][0] =  " -- Seleccionar plaza -- ";
+    foreach ($plazas as $plazaid) {
+        if($plazaid->icvepais==$MEXICO){
+            $select4[$plazaid->icveentfed][$plazaid->icvemunicipio][$plazaid->id] = $plazaid->cnomplaza;
+        }
+    }
+    
+    // Create the Element
+    $url = $CFG->wwwroot.'/login/filtro_ajax.php';
+    $sel =& $mform->addElement('hierselect', 'location', 'Origen: ( Estado | Municipio | Plaza)','onchange="asignarOrigen(this.form,\''.$url.'\');" id="location"');// And add the selection options
+    $sel->setOptions(array( $select2,$select3,$select4));
+    $mform->addRule('location', 'Falta especificar el origen correctamente', 'required', null, 'client');
+    
+    $modificando = false;
+    
+    if($modificando){
+        $sel->setValue(array($user->institution,$user->city,$user->skype));
+    
+} else {
+    $zonas = get_all_zonas($id_estado);
+}
+
+//if(!$modificando)
+    $desczonas[''] = " -- Seleccionar zona -- ";
+    //print_object($zonas);
+    if(!empty($zonas))
+        foreach($zonas as $zona){
+            $desczonas[$zona->icvecz] =  $zona->cdescz;
+    }
+    //$default_sexo[''] = " Seleccionar ";
+    //$zons = array_merge($default_sexo, $desczonas);
+    $mform->addElement('select', 'zona', 'Zona', $desczonas);
+    $mform->addRule('zona', 'Zona requerida', 'required', null, 'server');
+    //$mform->setDefault('zona');
+    
+    /**  ****************  FIN   La parte del estado, municipio y plaza   ***************************/
+    /* OCUPACION */
+    
+    //if($rol_actual_objeto->id != 8){ // Vhackero cuando es responsable estatal le quita la opcion de ocupaci�n
+        
+        
+        $ocupaciones = get_all_ocupaciones();
+        foreach($ocupaciones as $id=>$oocupacion){
+            $descocupacion[$id] = $oocupacion->cdesocupacion;
+        }
+        $default_sexo[''] = " Seleccionar ";
+        $sexo = array_merge($default_sexo, $descocupacion);
+        $mform->addElement('select', 'msn', 'cupacion', $descocupacion);
+        $mform->addRule('msn', 'La ocupación es requerida', 'required', null, 'server');
+        //$mform->addElement('select', 'msn', get_string('ocupacion','registro'), $descocupacion);
+        //$mform->addRule('msn', get_string('noocupacion','registro'), 'required', null, 'server');
+        if(isset($ocupacion))
+            $mform->setDefault('msn', $ocupacion);
+            /* **************************************  */
+    //} else
+    //    $mform->addElement('hidden', 'msn', '', 'size="20" id="msn"');
+    
+        
+    
+    /*
     $mform->addElement('text', 'city', get_string('city'), 'maxlength="120" size="21"');
     $mform->setType('city', PARAM_TEXT);
     if (!empty($CFG->defaultcity)) {
@@ -1094,7 +1223,7 @@ function addEvent(elemento,nomevento,funcion,captura)
         }
         $mform->addElement('select', 'theme', get_string('preferredtheme'), $choices);
     }
-    
+    */
     $mform->addElement('editor', 'description_editor', get_string('userdescription'), null, $editoroptions);
     $mform->setType('description_editor', PARAM_CLEANHTML);
     $mform->addHelpButton('description_editor', 'userdescription');
@@ -1121,7 +1250,7 @@ function addEvent(elemento,nomevento,funcion,captura)
     }
     
     // Display user name fields that are not currenlty enabled here if there are any.
-    $disabledusernamefields = useredit_get_disabled_name_fields($enabledusernamefields);
+    /*$disabledusernamefields = useredit_get_disabled_name_fields($enabledusernamefields);
     if (count($disabledusernamefields) > 0) {
         $mform->addElement('header', 'moodle_additional_names', get_string('additionalnames'));
         foreach ($disabledusernamefields as $allname) {
@@ -1142,30 +1271,30 @@ function addEvent(elemento,nomevento,funcion,captura)
     
     $mform->addElement('text', 'url', get_string('webpage'), 'maxlength="255" size="50"');
     $mform->setType('url', core_user::get_property_type('url'));
-    
+   */ 
     /*$mform->addElement('text', 'icq', get_string('icqnumber'), 'maxlength="15" size="25"');
-    $mform->setType('icq', core_user::get_property_type('icq'));
-    $mform->setForceLtr('icq');
-    
-    $mform->addElement('text', 'skype', get_string('skypeid'), 'maxlength="50" size="25"');
-    $mform->setType('skype', core_user::get_property_type('skype'));
-    $mform->setForceLtr('skype');
-    
-    $mform->addElement('text', 'aim', get_string('aimid'), 'maxlength="50" size="25"');
-    $mform->setType('aim', core_user::get_property_type('aim'));
-    $mform->setForceLtr('aim');
-    
-   /* $mform->addElement('text', 'yahoo', get_string('yahooid'), 'maxlength="50" size="25"');
-    $mform->setType('yahoo', core_user::get_property_type('yahoo'));
-    $mform->setForceLtr('yahoo');
-    */
-    $mform->addElement('text', 'msn', get_string('msnid'), 'maxlength="50" size="25"');
+     $mform->setType('icq', core_user::get_property_type('icq'));
+     $mform->setForceLtr('icq');
+     
+     $mform->addElement('text', 'skype', get_string('skypeid'), 'maxlength="50" size="25"');
+     $mform->setType('skype', core_user::get_property_type('skype'));
+     $mform->setForceLtr('skype');
+     
+     $mform->addElement('text', 'aim', get_string('aimid'), 'maxlength="50" size="25"');
+     $mform->setType('aim', core_user::get_property_type('aim'));
+     $mform->setForceLtr('aim');
+     
+     /* $mform->addElement('text', 'yahoo', get_string('yahooid'), 'maxlength="50" size="25"');
+     $mform->setType('yahoo', core_user::get_property_type('yahoo'));
+     $mform->setForceLtr('yahoo');
+     */
+    /*$mform->addElement('text', 'msn', get_string('msnid'), 'maxlength="50" size="25"');
     $mform->setType('msn', core_user::get_property_type('msn'));
     $mform->setForceLtr('msn');
-    
+    */
     //$mform->addElement('text', 'idnumber', get_string('idnumber'), 'maxlength="255" size="25"');
     //$mform->setType('idnumber', core_user::get_property_type('idnumber'));
-    
+    /*
     $mform->addElement('text', 'institution', get_string('institution'), 'maxlength="255" size="25"');
     $mform->setType('institution', core_user::get_property_type('institution'));
     
@@ -1181,7 +1310,7 @@ function addEvent(elemento,nomevento,funcion,captura)
     $mform->setForceLtr('phone2');
     
     $mform->addElement('text', 'address', get_string('address'), 'maxlength="255" size="25"');
-    $mform->setType('address', core_user::get_property_type('address'));
+    $mform->setType('address', core_user::get_property_type('address'));*/
 }
 
 /**
