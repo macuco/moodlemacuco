@@ -176,11 +176,29 @@ function inea_get_nombre_grupo($id) {
 }
 
 /**
+ * INEA - Obtiene el id del asesor segun el nombre del grupo
+ * @param int $id_grupo
+ * @return int
+ */
+function inea_get_asesor_grupo($id_grupo) {
+	global $CFG;
+	
+	$id_asesor = null;
+	if($nombre_grupo = inea_get_nombre_grupo($id_grupo)) {
+		$id_asesor = substr($nombre_grupo, strrpos($nombre_grupo, "_")+1);
+	}
+	
+	return $id_asesor;
+}
+
+/**
  * INEA - Funcion copiada del archivo admin/export_data/CreteCSV.class.php.
  * @param int $id_grupo
  * @return int
  */
-function inea_obtener_rfc_asesor_grupo($id_grupo) { //Vhackero Funcion para obtener el tutor/tutores de un grupo
+function inea_get_rfc_asesor_grupo($id_grupo) { //Vhackero Funcion para obtener el tutor/tutores de un grupo
+	global $CFG;
+	
     $nombre_grupo = inea_get_nombre_grupo($id_grupo);
     $id_asesor = substr($nombre_grupo, strrpos($nombre_grupo, "_")+1);
     

@@ -461,28 +461,39 @@ function course_delete_users_with_role($users, $courseid, $roleid, $type=1) {
  * @param Object $user - Un objeto con la informacion del usuario
  * @param int $courseid - El id del curso
  * @param int $roleid - El id del rol del usuario 
- * @param int $type - Codigo del tipo de eliminacion que se esta procesando. 
+ * @param int $code - Codigo del tipo de eliminacion que se esta procesando. 
  * @return Object $user - El usuario con los parametros necesarios en el historial
  * 
  */
-function set_historial_values_for_user($user, $courseid, $roleid, $type){
-	if(empty($user) || empty($courseid) || empty($roleid)) {
+function set_historial_values_for_user($user, $courseid, $roleid, $code){
+	global $CFG, $DB;
+	
+	if(empty($user) && !is_object($user)) {
 		return false;
 	}
 	
-	$s_rol = get_student_role(true); // Obtener el id del rol del estudiante
-	$primer_login = get_user_data_from_log($courseid, $user->id, "Acceso al curso");
-	$mis_grupos = user_group($courseid, $user->id);
-	$mi_grupo = (count($mis_grupos)>0)? array_shift($mis_grupos) : 0;
-	$id_grupo = (isset($mi_grupo->id))? $mi_grupo->id : 0;
+	if(empty($courseid) || empty($roleid)) {
+		return false;
+	}
+	
+	$course = $DB->get_record('course', array('id' => $courseid), '*', MUST_EXIST);
+	if(!$context = context_course::instance($course->id)) {
+		return false;
+	}
+	
+	if(!$groupid = grupoInscrito($user->id, $course->id)) {
+		return false;
+	}
+	
+	$primer_login = inea_get_log(array('action'=>"viewed", 'target'=>"course", 'userid'=>$user->id, 'courseid'=>$course->id));
 	//echo "<br>Id Grupo: ".$id_grupo;
-	$id_asesor = obtener_asesor_grupo($id_grupo);
+	$id_asesor = inea_get_asesor_grupo($groupid);
 	//echo "<br>Id Asesor: ".$id_asesor."<br>";
 	
 	$usuario = new object();
 	$usuario->id = null;
 	$usuario->userid = $user->id;
-	$usuario->courseid = $courseid;
+	$usuario->courseid = $course->id;
 	$usuario->roleid = $roleid;
 	$usuario->firstaccess = (isset($user->firstaccess))? $user->firstaccess : 0;
 	$usuario->lastaccess = (isset($user->lastaccess))? $user->lastaccess : 0;
@@ -495,8 +506,8 @@ function set_historial_values_for_user($user, $courseid, $roleid, $type){
 	$usuario->age = (isset($user->age))? $user->age : 0;
 	$usuario->occupation = (isset($user->occupation))? $user->occupation : 0;	
 	$usuario->teacherid = $id_asesor;
-	$usuario->groupid = $id_grupo;
-	if($s_rol == $roleid) { // Registrar campos solo para educandos
+	$usuario->groupid = $groupid;
+	if($roleid == EDUCANDO) { // Registrar campos solo para educandos
 		$usuario->grade = (isset($user->grade))? $user->grade : 0;
 		$usuario->approvaldate = (isset($user->approvaldate))? $user->approvaldate : 0;
 		$usuario->completiondate = (isset($user->completiondate))? $user->completiondate : 0;
@@ -505,13 +516,13 @@ function set_historial_values_for_user($user, $courseid, $roleid, $type){
 	}
 	$usuario->sessionnumber = 0; // Numero en sesiones
 	$usuario->sessiontime = 0; // Tiempo en sesiones
-	if($s_rol == $roleid) { // Registrar campos solo para educandos
+	if($roleid == EDUCANDO) { // Registrar campos solo para educandos
 		$usuario->firstactivity = (isset($user->firstactivity))? $user->firstactivity : 0; // Primera actividad del educando
 		$usuario->lastactivity = (isset($user->lastactivity))? $user->lastactivity : 0; // Ultima actividad del educando
-		$usuario->answeredactivities = user_get_inea_answers($usuario->userid, $courseid); // Numero de actividades del educando
+		$usuario->answeredactivities = inea_get_respuestas_usuario($user->id, $course->id); // Numero de actividades del educando
 	}
 	$usuario->timemodified = time(); // Fecha en que se crea el registro en el historial
-	$usuario->type = $type;
+	$usuario->code = $code;
 	
 	return $usuario;
 }
@@ -523,7 +534,7 @@ function set_historial_values_for_user($user, $courseid, $roleid, $type){
  * @return array
  * 
  */
-function get_user_data_from_log($params) {
+function inea_get_log($params) {
 	global $CFG, $DB;
 	
 	if(empty($params) || !is_array($params)) {
@@ -531,6 +542,37 @@ function get_user_data_from_log($params) {
 	}
 	
 	return $DB->get_record_sql('SELECT * FROM {logstore_standard_log} WHERE action = ? AND target = ? AND userid = ? AND courseid = ? ORDER BY id LIMIT 1', $params);
+}
+
+/**
+ * INEA - Obtiene el numero de respuestas inea de un estudiante en un curso
+ *
+ * @param int $userid - El id del usuario.
+ * @param int $courseid - El id del curso.
+ * @return String : Una cadena de texto con el numero de actividades contestadas / total
+ * 
+ */
+function inea_get_respuestas_usuario($userid, $courseid) {
+	global $CFG, $DB;
+	
+	if(empty($userid) || empty($courseid)) {
+		return false;
+	}
+	
+	// Obtener las respuestas de un usuario en un curso
+	$respuestas = $DB->get_record_sql('SELECT COUNT(*) AS num_respuestas 
+		FROM {inea_ejercicios} ie, {inea_respuestas} ir 
+		WHERE ie.id = ir.ejercicios_id AND ie.courseid = ? AND ir.userid = ?', array($courseid, $userid));
+	
+	$total = get_record_sql("SELECT COUNT(*) AS num_respuestas 
+		FROM {inea_ejercicios} ie 
+		WHERE ie.courseid = ?", array($courseid));
+	//print_object($total);
+	//exit;
+	//$answers = is_array($answers)? count($answers) : 0;
+	//$total = is_array($total)? count($total) : 0;
+	
+	return $respuestas->num_respuestas." de ".$total->total_respuestas;
 }
  
 /**
