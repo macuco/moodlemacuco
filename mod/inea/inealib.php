@@ -872,15 +872,21 @@ function getOcupacionString($ocupacion_id){
     return isset($ocupacion->cdesocupacion)?$ocupacion->cdesocupacion:'';
 }
 
-
+/**
+ * INEA - Obtiene el ID del grupo si el usuario esta inscrito
+ * @param int $userid
+ * @param int $courseid
+ * @return Object
+ */
 function inea_get_user_group($courseid, $userid){
+	global $CFG, $DB;
+	
     $grupos = groups_get_all_groups($courseid, $userid);
     if(!empty($grupos)){
         return array_values($grupos)[0];
     }
     return [];
 }
-
 
 //RUDY: integre siguiente funcion partiendo de la anterior. 300712
 function inea_get_entidad_users($id_estado, $sort='u.lastaccess DESC', $exceptions='',

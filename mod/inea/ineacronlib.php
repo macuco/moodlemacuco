@@ -23,6 +23,9 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+ // INEA: Importar la libreria de inea
+require_once($CFG->dirroot . '/mod/inea/inealib.php');
+	
 /**
  * Execute cron tasks
  */
@@ -139,9 +142,6 @@ function cron_run() {
 function inea_clean_usuarios_inactivos() {
 	global $CFG;
 	
-	// INEA: Importar la libreria de inea
-	require_once($CFG->dirroot . '/mod/inea/inealib.php');
-	
 	//Execute backup's cron
 	//Perhaps a long time and memory could help in large sites
 	@set_time_limit(0);
@@ -161,11 +161,11 @@ function inea_clean_usuarios_inactivos() {
 	foreach($courses as $course) {
 		// Limpiar a los usuarios que han aprobado un curso
 		$aprobados = inea_get_usuarios_aprobados($course->id, ESTUDIANTE);
-		course_delete_users_with_role($aprobados, $course->id, ESTUDIANTE, 2);
+		inea_delete_course_users($aprobados, $course->id, ESTUDIANTE, 2);
 	
 		// Limpiar a los usuarios que han estado inactivos por mas de 30 dias
 		//$inactivity_students = get_inactivity_users($course->id, $s_rol, $lastaccess30);
-// DAVE se comentan las sig 2 lineas para que no borren a los asesores
+		// DAVE se comentan las sig 2 lineas para que no borren a los asesores
 		//$inactivity_students = get_inactivity_users($course->id, $s_rol, $lastaccess90);
 		//course_delete_users_with_role($inactivity_students, $course->id, $s_rol, 1);
 	
@@ -391,14 +391,14 @@ function inea_get_usuarios_cambio_modalidad($courseid, $roleid=5) {
 /**
  * INEA - Procedimiento para eliminar a los usuarios dentro de un curso.
  *
- * @param Object $user - Un objeto con la informacion del usuario
+ * @param array $users - Un arreglo con los usuarios
  * @param int $courseid - El id del curso
  * @param int $roleid - El id del rol del usuario 
- * @param boolean $message - Condicional para imprimir mensajes de error/advertencia 
- * @return boolean $success - Verdadero si ha terminado con exito, falso en caso contrario
+ * @param int $code - Codigo del tipo de eliminacion que se esta procesando.
+ * @return bool
  * 
  */
-function course_delete_users_with_role($users, $courseid, $roleid, $type=1) {
+function inea_delete_course_users($users, $courseid, $roleid, $code=1) {
 	global $CFG, $DB;
 	
 	// Verificar usuarios
@@ -418,12 +418,12 @@ function course_delete_users_with_role($users, $courseid, $roleid, $type=1) {
 	
 	//echo "<br><br>Usuarios: ".count($users)." Tipo: $type  Rol id: $roleid";
 	foreach($users as $user) {
-		$user = set_historial_values_for_user($user, $courseid, $roleid, $type);
-		if($roleid == $s_rol) { // Borrar las actividades de un estadiante
+		$historial = inea_get_valores_historial($user, $course->id, $roleid, $code);
+		if($roleid == ESTUDIANTE) { // Borrar las actividades de un estadiante
 			//echo "<br>Estudiante: $user->id_user";
 			//print_object($user);
-			delete_user_activities($user, $courseid, $roleid);
-		} else if($roleid == $t_rol) { // Borrar las actividades y todo su grupo del asesor
+			inea_delete_actividades_usuario($user->id, $course->id, $roleid);
+		} else if($roleid == ASESOR) { // Borrar las actividades y todo su grupo del asesor
 			$id_grupo = $user->group;
 			if(!empty($id_grupo) && $id_grupo>0) {
 				if($miembros = groups_get_members($id_grupo)) {
@@ -436,10 +436,10 @@ function course_delete_users_with_role($users, $courseid, $roleid, $type=1) {
 						$v_role = each($role);
 						$id_role = (isset($v_role[0]) && !empty($v_role[0]))? $v_role[0] : 0;
 						$type = ($id_role==$t_rol)? 1 : 3;
-						$miembro = set_historial_values_for_user($miembro, $courseid, $id_role, $type);
+						$miembro = inea_get_valores_historial($miembro, $course->id, $id_role, $code);
 						//echo "<br>Miembro del grupo :$id_grupo rol: ".$v_role[1];
 						//print_object($miembro);
-						delete_user_activities($miembro, $courseid, $id_role);
+						delete_user_activities($miembro, $course->id, $id_role);
 					}
 				}
 				// Eliminar el grupo que esta vacio
@@ -449,8 +449,16 @@ function course_delete_users_with_role($users, $courseid, $roleid, $type=1) {
 			} else { // Borrar solo las actividades del asesor
 				//echo "<br>Asesor: $user->id_user";
 				//print_object($user);
-				delete_user_activities($user, $courseid, $roleid);
+				delete_user_activities($user, $course->id, $roleid);
 			}
+		}
+		
+		// Agregar la informacion del usuario al historial
+		if(!$id = inea_add_historial($user)) {
+			if($message) {
+				notify("No se puede crear el historial para el usuario ".$user->id);
+			}
+			return false;
 		}
 	}	
 }
@@ -462,10 +470,10 @@ function course_delete_users_with_role($users, $courseid, $roleid, $type=1) {
  * @param int $courseid - El id del curso
  * @param int $roleid - El id del rol del usuario 
  * @param int $code - Codigo del tipo de eliminacion que se esta procesando. 
- * @return Object $user - El usuario con los parametros necesarios en el historial
+ * @return Object $historial - Un objeto historial con los datos del usuario
  * 
  */
-function set_historial_values_for_user($user, $courseid, $roleid, $code){
+function inea_get_valores_historial($user, $courseid, $roleid, $code){
 	global $CFG, $DB;
 	
 	if(empty($user) && !is_object($user)) {
@@ -481,50 +489,50 @@ function set_historial_values_for_user($user, $courseid, $roleid, $code){
 		return false;
 	}
 	
-	if(!$groupid = grupoInscrito($user->id, $course->id)) {
+	if(!$group = inea_get_user_group($course->id, $user->id)) {
 		return false;
 	}
 	
 	$primer_login = inea_get_log(array('action'=>"viewed", 'target'=>"course", 'userid'=>$user->id, 'courseid'=>$course->id));
 	//echo "<br>Id Grupo: ".$id_grupo;
-	$id_asesor = inea_get_asesor_grupo($groupid);
+	$id_asesor = inea_get_asesor_grupo($group->id);
 	//echo "<br>Id Asesor: ".$id_asesor."<br>";
 	
-	$usuario = new object();
-	$usuario->id = null;
-	$usuario->userid = $user->id;
-	$usuario->courseid = $course->id;
-	$usuario->roleid = $roleid;
-	$usuario->firstaccess = (isset($user->firstaccess))? $user->firstaccess : 0;
-	$usuario->lastaccess = (isset($user->lastaccess))? $user->lastaccess : 0;
-	$usuario->firstlogin = (isset($primer_login->time))? $primer_login->time : 0;
-	$usuario->clventidad = (isset($user->clventidad))? $user->clventidad : 0;
-	$usuario->clvplaza = (isset($user->clvplaza))? $user->clvplaza : 0;
-	$usuario->clvmunicipio = (isset($user->clvmunicipio))? $user->clvmunicipio : 0;
-	$usuario->clvzona = (isset($user->clvzona))? $user->clvzona : 0;
-	$usuario->gender = (isset($user->gender))? $user->gender : "";
-	$usuario->age = (isset($user->age))? $user->age : 0;
-	$usuario->occupation = (isset($user->occupation))? $user->occupation : 0;	
-	$usuario->teacherid = $id_asesor;
-	$usuario->groupid = $groupid;
+	$historial = new stdClass();
+	$historial->id = null;
+	$historial->userid = $user->id;
+	$historial->courseid = $course->id;
+	$historial->roleid = $roleid;
+	$historial->firstaccess = (isset($user->firstaccess))? $user->firstaccess : 0;
+	$historial->lastaccess = (isset($user->lastaccess))? $user->lastaccess : 0;
+	$historial->firstlogin = (isset($primer_login->timecreated))? $primer_login->timecreated : 0;
+	$historial->clventidad = (isset($user->clventidad))? $user->clventidad : 0;
+	$historial->clvplaza = (isset($user->clvplaza))? $user->clvplaza : 0;
+	$historial->clvmunicipio = (isset($user->clvmunicipio))? $user->clvmunicipio : 0;
+	$historial->clvzona = (isset($user->clvzona))? $user->clvzona : 0;
+	$historial->gender = (isset($user->gender))? $user->gender : "";
+	$historial->age = (isset($user->age))? $user->age : 0;
+	$historial->occupation = (isset($user->occupation))? $user->occupation : 0;	
+	$historial->teacherid = $id_asesor;
+	$historial->groupid = $group->id;
 	if($roleid == EDUCANDO) { // Registrar campos solo para educandos
-		$usuario->grade = (isset($user->grade))? $user->grade : 0;
-		$usuario->approvaldate = (isset($user->approvaldate))? $user->approvaldate : 0;
-		$usuario->completiondate = (isset($user->completiondate))? $user->completiondate : 0;
-		$usuario->applicationdate = (isset($user->applicationdate))? $user->applicationdate : 0;
-		$usuario->modalidad = (isset($user->modalidad))? $user->modalidad : 1;
+		$historial->grade = (isset($user->grade))? $user->grade : 0;
+		$historial->approvaldate = (isset($user->approvaldate))? $user->approvaldate : 0;
+		$historial->completiondate = (isset($user->completiondate))? $user->completiondate : 0;
+		$historial->applicationdate = (isset($user->applicationdate))? $user->applicationdate : 0;
+		$historial->modalidad = (isset($user->modalidad))? $user->modalidad : 1;
 	}
-	$usuario->sessionnumber = 0; // Numero en sesiones
-	$usuario->sessiontime = 0; // Tiempo en sesiones
+	$historial->sessionnumber = 0; // Numero en sesiones
+	$historial->sessiontime = 0; // Tiempo en sesiones
 	if($roleid == EDUCANDO) { // Registrar campos solo para educandos
-		$usuario->firstactivity = (isset($user->firstactivity))? $user->firstactivity : 0; // Primera actividad del educando
-		$usuario->lastactivity = (isset($user->lastactivity))? $user->lastactivity : 0; // Ultima actividad del educando
-		$usuario->answeredactivities = inea_get_respuestas_usuario($user->id, $course->id); // Numero de actividades del educando
+		$historial->firstactivity = (isset($user->firstactivity))? $user->firstactivity : 0; // Primera actividad del educando
+		$historial->lastactivity = (isset($user->lastactivity))? $user->lastactivity : 0; // Ultima actividad del educando
+		$historial->answeredactivities = inea_get_respuestas_usuario($user->id, $course->id); // Numero de actividades del educando
 	}
-	$usuario->timemodified = time(); // Fecha en que se crea el registro en el historial
-	$usuario->code = $code;
+	$historial->timemodified = time(); // Fecha en que se crea el registro en el historial
+	$historial->code = $code;
 	
-	return $usuario;
+	return $historial;
 }
 
 /**
@@ -564,7 +572,7 @@ function inea_get_respuestas_usuario($userid, $courseid) {
 		FROM {inea_ejercicios} ie, {inea_respuestas} ir 
 		WHERE ie.id = ir.ejercicios_id AND ie.courseid = ? AND ir.userid = ?', array($courseid, $userid));
 	
-	$total = get_record_sql("SELECT COUNT(*) AS num_respuestas 
+	$total = $DB->get_record_sql("SELECT COUNT(*) AS total_respuestas 
 		FROM {inea_ejercicios} ie 
 		WHERE ie.courseid = ?", array($courseid));
 	//print_object($total);
@@ -573,6 +581,105 @@ function inea_get_respuestas_usuario($userid, $courseid) {
 	//$total = is_array($total)? count($total) : 0;
 	
 	return $respuestas->num_respuestas." de ".$total->total_respuestas;
+}
+
+/**
+ * INEA - Borra las actividades (foros, chats, etc) de un usuario en un curso.
+ *
+ * @param Object $user - Un objeto con la informacion del usuario
+ * @param int $courseid - El id del curso
+ * @param int $roleid - El id del rol del usuario 
+ * @param bool $message - Condicional para imprimir mensajes de error/advertencia 
+ * @return bool
+ * 
+ */
+function inea_delete_actividades_usuario($user, $courseid, $roleid=0, $message=false) {
+	global $CFG, $DB;
+	
+	if(empty($courseid) || empty($user)) {
+		return false;
+	}
+	
+	$course = $DB->get_record('course', array('id' => $courseid), '*', MUST_EXIST);
+	if(!$context = context_course::instance($course->id)) {
+		if($message) {
+			notify("Error, no se encuentra el curso $courseid");
+		}
+		return false;
+	}
+	
+	if(empty($user->groupid) {
+		$group = inea_get_user_group($course->id, $user->id);
+	} else {
+		$group = groups_get_group_by_idnumber($course->id, $user->groupid);
+	}
+	
+	// Borrar las conversaciones de chat del usuario
+	if(!delete_user_chats($course->id, $user->userid, $group->id)) {
+		$success = false;
+		if($message) {
+			notify("No se ha podido borrar las sesiones de Chat del usuario $user->userid");
+		}
+	}
+	
+	// Borrar las conversaciones de los foros del usuario
+	if(!delete_user_forums($course->id, $user->userid)) {
+		$success = false;
+		if($message) {
+			notify("No se ha podido borrar las mensajes en foros del usuario $user->userid");
+		}
+	}
+	
+	// Borrar las respuestas del usuario en actividades dentro del curso (alumno)
+	if($roleid==$s_rol && !delete_user_answers($course->id, $user->userid)) {
+		$success = false;
+		if($message) {
+			notify("No se ha podido borrar las respuestas en las actividades del usuario $user->userid");
+		}
+	}
+	
+	// Ludwick: Proceder a desmatricular al usuario en un grupo
+	if($groupid>0) {
+		//echo "<br>Removiendo del grupo al usuario ....".$user->id_user;
+		if(!groups_remove_member($groupid, $user->userid)) {
+			$success = false;
+			if($message) {
+				notify("No se ha podido desmatricular al usuario $user->userid del grupo $groupid");
+			}
+		}
+	}
+	
+	//inea_unenrol_user($userid, $courseid)
+	// Ludwick: Proceder a desmatricular al usuario en un curso
+	if($roleid>0) {
+		//echo "<br>Removiendo del curso al usuario ....".$user->id_user;
+		if(!role_unassign($roleid, $user->userid, 0, $context->id)) {
+			$success = false;
+			if($message) {
+				notify("No se ha podido desmatricular al usuario $user->userid del grupo $groupid");
+			}
+		}
+	}
+	
+	return $success;
+}
+
+/**
+ * INEA - Crea el registro de un historial de usuario.
+ *
+ * @param Object $user - Un objeto con la informacion del usuario
+ * @return int 
+ * 
+ */
+function inea_add_historial($user) {
+	global $CFG, $DB;
+	
+	if(empty($user)) {
+		return false;	
+	}
+	
+	//print_object($user);
+	return $DB->insert_record('inea_historial', $user);
 }
  
 /**
