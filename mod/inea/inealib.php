@@ -940,12 +940,16 @@ function inea_useredit_shared_definition(&$mform, $editoroptions, $filemanagerop
     
     if ($user->id > 0) {
         useredit_load_preferences($user, false);
+        $modificando = (!empty($user)); //Me dice si estan modificando datos de un usuario o no :-)
     }
     
     
-    $id_estado_objeto = inea_get_user_entidad($USER->id); // vhackero para ontener el estado al que pertenece el usuario;
     
-    if($USER->id!=0) $id_estado = $id_estado_objeto->institution; // vhackero para ontener el estado al que pertenece el usuario;
+    $id_estado_objeto = inea_get_user_entidad($user->id); // vhackero para ontener el estado al que pertenece el usuario;
+    
+    if($user->id!=0) $id_estado = $id_estado_objeto->institution; // vhackero para ontener el estado al que pertenece el usuario;
+    
+    
     
     $strrequired = get_string('required');
     $stringman = get_string_manager();
@@ -1003,13 +1007,13 @@ function inea_useredit_shared_definition(&$mform, $editoroptions, $filemanagerop
     $mform->addElement('select', 'yahoo', get_string('sexo','inea'), $choices);
     $mform->addRule('yahoo', get_string('nosexo','inea'), 'required', null, 'server');
     
-    $url = "";
+    //$url = "";
     $element = &$mform->addElement('date_selector', 'aim', utf8_encode(get_string('fechanacimiento','inea')),array ('startyear'=> 1900,'stopyear'=> 2009,'zona horaria'=> 99,'applydst'=> true , 'opcional' => true), 'onchange="generaRFE(document.getElementById(\'id_lastname\').value, document.getElementById(\'id_icq\').value, document.getElementById(\'id_firstname\').value, this.form,\''.$url.'\');"');
     //$mform->addRule('aim', '', 'required', null, 'client');
     
-    $modificando = true;
+    
     //$user->aim = "02/12/2017";
-    $fecha = "02/12/2009";
+    $fecha = empty($user->aim)?"02/12/2009":date('d/m/o',$user->aim);
     if($modificando){
         $t = explode('/',$fecha);
         $script =  '<script type="text/javascript">
@@ -1088,31 +1092,46 @@ function addEvent(elemento,nomevento,funcion,captura)
     $mform->setDefault('maildisplay', core_user::get_property_default('maildisplay'));
     $mform->setType('maildisplay', PARAM_INT);
     
+    $MEXICO = 1;
     
     
-    
-    /**/$mform->addElement('hidden', 'institution', '', 'size="20" id="institution"');
+    /**/
+    $mform->addElement('hidden', 'institution', '', 'size="20" id="institution"');
     $mform->addRule('institution', 'Origen requerido', 'required', null, 'server');
+    $mform->setType('institution', PARAM_NOTAGS);
     //$mform->setDefault('institution');
     
     $mform->addElement('hidden', 'instituto', '', 'size="20" id="instituto"');
     //$mform->addRule('instituto', 'Origen requerido', 'required', null, 'server');
+    $mform->setType('instituto', PARAM_NOTAGS);
     if(!$modificando){
         $mform->setDefault('instituto',$id_estado);
     }
     
     $mform->addElement('hidden', 'country', '', 'size="20" id="country"');
-    $mform->setType('country', PARAM_TEXT);
-    $mform->setDefault('country', $MEXICO);
+    $mform->setType('country', PARAM_NOTAGS);
+    $mform->setDefault('country', 'MX');
     
     $mform->addElement('hidden', 'city', '', 'size="20" id="city"');// City es el municipio
+    $mform->setType('city', PARAM_NOTAGS);
+    
     //$mform->setDefault('city');
     $mform->addElement('hidden', 'skype', '', 'id="skype"');// skype es la plaza
+    $mform->setType('skype', PARAM_NOTAGS);
+    
     
     
     $entities = get_all_entities();
     $municipios = get_all_municipios();
     $plazas = get_all_plazas();
+    
+    if($modificando){
+        $tmp = isset($user->instituto) && $user->instituto  > 0 ?  $user->instituto: $tmp =$user->institution;
+        print_object($user);
+       
+        $zonas = get_all_zonas($tmp);//29/01/09
+        print_object($zonas);
+    }
     
     
     $select2[0]=" -- Seleccionar entidad -- ";
@@ -1142,7 +1161,6 @@ function addEvent(elemento,nomevento,funcion,captura)
     $sel->setOptions(array( $select2,$select3,$select4));
     $mform->addRule('location', 'Falta especificar el origen correctamente', 'required', null, 'client');
     
-    $modificando = false;
     
     if($modificando){
         $sel->setValue(array($user->institution,$user->city,$user->skype));
@@ -1151,7 +1169,7 @@ function addEvent(elemento,nomevento,funcion,captura)
     $zonas = get_all_zonas($id_estado);
 }
 
-//if(!$modificando)
+if(!$modificando)
     $desczonas[''] = " -- Seleccionar zona -- ";
     //print_object($zonas);
     if(!empty($zonas))
