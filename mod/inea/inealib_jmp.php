@@ -29,5 +29,5 @@ function get_all_plazas() {
 //MACUCO
 function get_all_zonas($id_instituto) {
     global $DB;
-    return $DB->get_records_select('inea_zona','icveie='.$id_instituto,array('icveie' => $id_instituto));
+    return $DB->get_records_select('inea_zona',empty($id_instituto)?'':'icveie='.$id_instituto,array('icveie' => $id_instituto));
 }
