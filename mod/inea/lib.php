@@ -208,8 +208,8 @@ function inea_get_coursemodule_info($coursemodule) {
 
     $context = context_module::instance($coursemodule->id);
 
-    if (!$resource = $DB->get_record('inea', array('id'=>$coursemodule->instance),
-            'id, name, display, displayoptions, tobemigrated, revision, intro, introformat')) {
+    if (!$resource = $DB->get_record('inea', array('id'=>$coursemodule->instance))) {
+            //'id, name, display, displayoptions, tobemigrated, revision, intro, introformat')) {
         return NULL;
     }
 
