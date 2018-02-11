@@ -970,7 +970,13 @@ function inea_useredit_shared_definition(&$mform, $editoroptions, $filemanagerop
     
     
     $id_estado_objeto = inea_get_user_entidad($user->id); // vhackero para ontener el estado al que pertenece el usuario;
+    if(empty($id_estado_objeto)){
+        $id_estado_objeto = inea_get_user_entidad($USER->id);
+    }
     
+    if(empty($id_estado_objeto)){
+        $id_estado_objeto = inea_get_user_entidad(29);
+    }
     if($user->id!=0) $id_estado = $id_estado_objeto->institution; // vhackero para ontener el estado al que pertenece el usuario;
     
     
@@ -1008,8 +1014,9 @@ function inea_useredit_shared_definition(&$mform, $editoroptions, $filemanagerop
     $mform->addRule('firstname',  get_string('nonombres','registro'), 'required', null, 'client');
     $mform->setType('firstname', PARAM_NOTAGS);
     */
+    
     $campo = 'firstname';
-    $mform->addElement('text', $campo,  get_string($campo),  'maxlength="100" size="30 onblur="generaRFE(document.getElementById(\'id_lastname\').value, document.getElementById(\'id_icq\').value, document.getElementById(\'id_firstname\').value, this.form,\''.$url.'\');"');
+    $mform->addElement('text', $campo,  get_string($campo),  'maxlength="100" size="30" onblur="generaRFE(document.getElementById(\'id_lastname\').value, document.getElementById(\'id_icq\').value, document.getElementById(\'id_firstname\').value, this.form,\''.$url.'\');"');
     $mform->addRule($campo, get_string($campo), 'required', null, 'client');
     $mform->setType($campo, PARAM_NOTAGS);
     
