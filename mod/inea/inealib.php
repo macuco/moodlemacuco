@@ -961,7 +961,7 @@ function obtener_avance_unidad($userid, $courseid, $unidadid){
  */
 function inea_useredit_shared_definition(&$mform, $editoroptions, $filemanageroptions, $user) {
     global $CFG, $USER, $DB;
-    
+    $modificando = false;
     if ($user->id > 0) {
         useredit_load_preferences($user, false);
         $modificando = (!empty($user)); //Me dice si estan modificando datos de un usuario o no :-)
