@@ -383,8 +383,8 @@ function inea_get_usuarios_cambio_modalidad($courseid, $roleid=5) {
 	
 	$query = $select.$from.$where.$orderby;        
 
-	echo " <br><br>Consulta: ".$query;
-    exit;
+	//echo " <br><br>Consulta: ".$query;
+    //exit;
 	return $DB->get_records_sql($query, $params);
 }
 
@@ -614,12 +614,26 @@ function inea_delete_actividades_usuario($user, $courseid, $roleid=0, $message=f
 		$group = groups_get_group_by_idnumber($course->id, $user->groupid);
 	}
 	
+	if($roleid == ESTUDIANTE) {
+		if(!inea_delete_inea_answers($course->id, $user->id)) {
+			notify("Advertencia, no se pueden borrar las respuestas de las actividades del usuario ".$user->id);
+		}
+	}
+	
+	// Se procede a desenrolamiento
+	if(!inea_unenrol_user($user->id, $course->id)) {
+		if($message) {
+			notify("Error, ha ocurrido un error al tratar de desenrolar al usuario ".$user->id);
+		}
+		return false;
+	}
+	
 	// Borrar las conversaciones de chat del usuario
 	if(!delete_user_chats($course->id, $user->userid, $group->id)) {
-		$success = false;
 		if($message) {
 			notify("No se ha podido borrar las sesiones de Chat del usuario $user->userid");
 		}
+		return false;
 	}
 	
 	// Borrar las conversaciones de los foros del usuario
@@ -630,38 +644,7 @@ function inea_delete_actividades_usuario($user, $courseid, $roleid=0, $message=f
 		}
 	}
 	
-	// Borrar las respuestas del usuario en actividades dentro del curso (alumno)
-	if($roleid==$s_rol && !delete_user_answers($course->id, $user->userid)) {
-		$success = false;
-		if($message) {
-			notify("No se ha podido borrar las respuestas en las actividades del usuario $user->userid");
-		}
-	}
-	
-	// Ludwick: Proceder a desmatricular al usuario en un grupo
-	if($groupid>0) {
-		//echo "<br>Removiendo del grupo al usuario ....".$user->id_user;
-		if(!groups_remove_member($groupid, $user->userid)) {
-			$success = false;
-			if($message) {
-				notify("No se ha podido desmatricular al usuario $user->userid del grupo $groupid");
-			}
-		}
-	}
-	
-	//inea_unenrol_user($userid, $courseid)
-	// Ludwick: Proceder a desmatricular al usuario en un curso
-	if($roleid>0) {
-		//echo "<br>Removiendo del curso al usuario ....".$user->id_user;
-		if(!role_unassign($roleid, $user->userid, 0, $context->id)) {
-			$success = false;
-			if($message) {
-				notify("No se ha podido desmatricular al usuario $user->userid del grupo $groupid");
-			}
-		}
-	}
-	
-	return $success;
+	return true;
 }
 
 /**

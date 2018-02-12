@@ -1450,6 +1450,38 @@ function inea_unenrol_user($userid, $courseid) {
 }
 
 /**
+ * INEA - Elimina los respuestas de las actividades de usuario en un curso.
+ *
+ * @param int $courseid - El id del curso.
+ * @param int $userid - El id del usuario. 
+ * @return bool
+ */
+function inea_delete_inea_answers($courseid, $userid) {
+	global $CFG, $DB;
+	
+	if(empty($courseid) || empty($userid)) {
+		return false;
+	}
+	
+	// obtener las respuestas de un usuario en un curso
+	$sql = "SELECT ir.* 
+		FROM {inea_ejercicios} ie, 
+		INNER JOIN {inea_respuestas} ir ON ie.id = ir.ejercicios_id
+		WHERE ie.courseid = ? AND ir.userid = ?";
+	$params = array($courseid, $userid);
+	
+	if(!$answers = $DB->get_records_sql($query, $params)){
+		return false;
+	}
+	
+	foreach($answers as $answer) {
+		$DB->delete_records("inea_respuestas", array("id"=>$answer->id));
+	}
+	
+	return true;
+}
+
+/**
  * Imprime datos en consola web
  *
  * @param String $data Cualquier cadena de datos
