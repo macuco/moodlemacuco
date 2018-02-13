@@ -443,8 +443,8 @@ function inea_delete_course_users($users, $courseid, $roleid, $code=1) {
 					}
 				}
 				// Eliminar el grupo que esta vacio
-				if(!groups_delete_group($id_grupo)){
-					notify("No se pudo borrar el grupo $id_grupo");
+				if(!groups_delete_group($id_grupo)) {
+					echo $OUTPUT->notification('No se pudo borrar el grupo '.$id_grupo, 'notifyproblem');
 				}
 			} else { // Borrar solo las actividades del asesor
 				//echo "<br>Asesor: $user->id_user";
@@ -456,7 +456,7 @@ function inea_delete_course_users($users, $courseid, $roleid, $code=1) {
 		// Agregar la informacion del usuario al historial
 		if(!$id = inea_add_historial($user)) {
 			if($message) {
-				notify("No se puede crear el historial para el usuario ".$user->id);
+				echo $OUTPUT->notification('No se puede crear el historial para el usuario '.$user->id, 'notifyproblem');
 			}
 			return false;
 		}
@@ -603,12 +603,12 @@ function inea_delete_actividades_usuario($user, $courseid, $roleid=0, $message=f
 	$course = $DB->get_record('course', array('id' => $courseid), '*', MUST_EXIST);
 	if(!$context = context_course::instance($course->id)) {
 		if($message) {
-			notify("Error, no se encuentra el curso $courseid");
+			echo $OUTPUT->notification('Error, no se encuentra el curso '.$courseid, 'notifyproblem');
 		}
 		return false;
 	}
 	
-	if(empty($user->groupid) {
+	if(empty($user->groupid)) {
 		$group = inea_get_user_group($course->id, $user->id);
 	} else {
 		$group = groups_get_group_by_idnumber($course->id, $user->groupid);
@@ -616,32 +616,16 @@ function inea_delete_actividades_usuario($user, $courseid, $roleid=0, $message=f
 	
 	if($roleid == ESTUDIANTE) {
 		if(!inea_delete_inea_answers($course->id, $user->id)) {
-			notify("Advertencia, no se pueden borrar las respuestas de las actividades del usuario ".$user->id);
+			echo $OUTPUT->notification('Advertencia, no se pueden borrar las respuestas de las actividades del usuario '.$user->id, 'notifymessage');
 		}
 	}
 	
 	// Se procede a desenrolamiento
 	if(!inea_unenrol_user($user->id, $course->id)) {
 		if($message) {
-			notify("Error, ha ocurrido un error al tratar de desenrolar al usuario ".$user->id);
+			echo $OUTPUT->notification('Error, ha ocurrido un error al tratar de desenrolar al usuario '.$user->id, 'notifyproblem');
 		}
 		return false;
-	}
-	
-	// Borrar las conversaciones de chat del usuario
-	if(!delete_user_chats($course->id, $user->userid, $group->id)) {
-		if($message) {
-			notify("No se ha podido borrar las sesiones de Chat del usuario $user->userid");
-		}
-		return false;
-	}
-	
-	// Borrar las conversaciones de los foros del usuario
-	if(!delete_user_forums($course->id, $user->userid)) {
-		$success = false;
-		if($message) {
-			notify("No se ha podido borrar las mensajes en foros del usuario $user->userid");
-		}
 	}
 	
 	return true;
@@ -948,7 +932,7 @@ function statistic_get_students_by_entity($estado) {
 	$statistic1 = array();
 	
 	// Buscamos a los alumnos que estan enrolados en un numero especificos de cursos
-	$n_courses = bd_get_students_enroled_by_course($estado);
+	$n_courses = inea_bd_get_students_enroled_by_course($estado);
 	//print_object($n_courses);
 	$enroled_c = array();
 	foreach($n_courses as $n_c=>$val) {
@@ -1061,7 +1045,7 @@ function statistic_print_students_by_entity_csv($xmlObject) {
 	$xmlPart = "";
 	
 	// Ludwick: Buscamos a los alumnos que estan enrolados en un numero especificos de cursos
-	$n_courses = bd_get_students_enroled_by_course();
+	$n_courses = inea_bd_get_students_enroled_by_course();
 	$enroled_c = array();
 	foreach($n_courses as $n_c) {
 		$enroled_c[] = $n_c->nums_in_c;
@@ -1110,75 +1094,71 @@ function statistic_print_students_by_entity_csv($xmlObject) {
 }
 
 /**
- * Ludwick: Estadistica No. 1 : Obtiene el numero de estudiantes por el numero curso en
- * el que esta inscrito, los agrupa por el numero de curso
+ * INEA - Estadistica No. 1 : Obtiene el numero de estudiantes por curso, los agrupa por curso
  *
- * @deprecated - Funcion personalizada.
  * @return Array $arr1 : Un arreglo con los educandos que cumplen con el criterio de busqueda
- * 
  */
-function bd_get_students_enroled_by_course($estado) {
+function inea_bd_get_students_enroled_by_course($estado=0) {
 	global $CFG, $DB;
 	
-	$s_rol = get_student_role(true);
-	$t_rol = get_teacher_role(true);
+	$params = array(ESTUDIANTE);
 	
-	$thisdate = time(); // El dia actual
-	if(empty($timerange)) { //Ludwick:130510 -> Rango de tiempo definido
-		$timerange = time()-(30 * 24 * 60 * 60); // Hace 30 dias con respecto de la fecha actual (Un mes)
+	if(!empty($estado)) {
+		$condicion = " AND u.institution = ? ";
+		array_push($params, $estado);
 	}
-	
-	if($estado != 0) $condicion = " AND u.institution = ".$estado." ";
 	
 	$sql1 = "SELECT  nums_in_c, COUNT(nums_in_c) AS usuarios
 			FROM (
 				SELECT u.id, u.institution as id_entidad, COUNT(u.id) AS nums_in_c
-    			
-				FROM {$CFG->prefix}user u
-				INNER JOIN {$CFG->prefix}groups_members gm ON (u.id = gm.userid)
-				INNER JOIN {$CFG->prefix}groups_courses_groups gc ON (gm.groupid = gc.groupid)
-				INNER JOIN {$CFG->prefix}role_assignments ra ON (u.id=ra.userid)
-    			INNER JOIN {$CFG->prefix}context cx ON (cx.instanceid = gc.courseid  AND cx.contextlevel = 50 AND cx.id = ra.contextid)
-				INNER JOIN {$CFG->prefix}user_lastaccess ul ON (ul.courseid=gc.courseid AND ul.userid=u.id)
+				FROM {user} u
+				INNER JOIN {groups_members} gm ON (u.id = gm.userid)
+				INNER JOIN {groups} g ON (gm.groupid = g.id)
+				INNER JOIN {role_assignments} ra ON (u.id = ra.userid)
+    			INNER JOIN {context} cx ON (cx.instanceid = g.courseid  AND cx.contextlevel = 50 AND cx.id = ra.contextid)
+				INNER JOIN {user_lastaccess} ul ON (ul.courseid = g.courseid AND ul.userid = u.id)
     			WHERE u.deleted = 0 
-					AND u.username != 'guest'
-					AND ra.roleid = ".$s_rol."
-					AND gc.courseid IS NOT NULL 
-					AND gm.concluido = 0
-    				AND gm.acreditado = 0
-					AND FROM_UNIXTIME(gm.timeadded) < DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
-					AND FROM_UNIXTIME(ul.timeaccess) BETWEEN DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY) AND CURRENT_DATE()
-					".$condicion."
-
-				  GROUP BY u.id ORDER BY u.institution) enroled 
-				  GROUP BY nums_in_c ORDER BY nums_in_c";
+				AND u.username != 'guest'
+				AND ra.roleid = ?
+				AND gc.courseid IS NOT NULL 
+				AND gm.concluido = 0
+    			AND gm.acreditado = 0
+				AND FROM_UNIXTIME(gm.timeadded) < DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
+				AND FROM_UNIXTIME(ul.timeaccess) BETWEEN DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY) AND CURRENT_DATE()
+				".$condicion."
+				GROUP BY u.id ORDER BY u.institution) enroled 
+				GROUP BY nums_in_c ORDER BY nums_in_c";
+	
 	
 	$sql2 = "SELECT  nums_in_c, COUNT(nums_in_c) AS usuarios
 			FROM (
 				SELECT u.id, u.institution as id_entidad, COUNT(u.id) AS nums_in_c
-    			
-				FROM {$CFG->prefix}user u
-			INNER JOIN {$CFG->prefix}groups_members gm ON (u.id = gm.userid)
-			INNER JOIN {$CFG->prefix}groups_courses_groups gc ON (gm.groupid = gc.groupid)
-			INNER JOIN {$CFG->prefix}role_assignments ra ON (u.id=ra.userid)
-    		INNER JOIN {$CFG->prefix}context cx ON (cx.instanceid = gc.courseid  AND cx.contextlevel = 50 AND cx.id = ra.contextid)
-			INNER JOIN {$CFG->prefix}user_lastaccess ul ON (ul.courseid=gc.courseid AND ul.userid=u.id)
-    		WHERE u.deleted = 0 
+				FROM {user} u
+				INNER JOIN {groups_members} gm ON (u.id = gm.userid)
+				INNER JOIN {groups} gc ON (gm.groupid = g.id)
+				INNER JOIN {role_assignments} ra ON (u.id = ra.userid)
+				INNER JOIN {context} cx ON (cx.instanceid = g.courseid  AND cx.contextlevel = 50 AND cx.id = ra.contextid)
+				INNER JOIN {user_lastaccess} ul ON (ul.courseid = g.courseid AND ul.userid = u.id)
+				WHERE u.deleted = 0 
 				AND u.username != 'guest'
-				AND ra.roleid = ".$s_rol."
+				AND ra.roleid = ?
 				AND gc.courseid IS NOT NULL 
 				AND FROM_UNIXTIME(gm.timeadded) >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
 				AND FROM_UNIXTIME(ul.timeaccess) <= CURRENT_DATE()
 				".$condicion."
-    			
     			GROUP BY u.id ORDER BY u.institution) incorporaciones 
 				GROUP BY nums_in_c ORDER BY nums_in_c";
 			
 	//echo "<br>".$sql1;
 	//echo "<br>".$sql2;
 	//exit;
-	$arr1 = get_records_sql($sql1);
-	$arr2 = get_records_sql($sql2);
+	if(!$arr1 = $DB->get_records_sql($sql1, $params)) {
+		return false;
+	}
+	
+	if(!$arr2 = $DB->get_records_sql($sql2, $párams)) {
+		return false;
+	}
 	//print_object($arr1);
 	//print_object($arr2);
 	foreach($arr2 as $key=>$val){

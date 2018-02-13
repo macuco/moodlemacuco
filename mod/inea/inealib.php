@@ -655,8 +655,7 @@ function inea_generate_rfe_teacher() {
                 SET RFE='".$teacher->RFE."'
                 WHERE CLAVEASESOR={$teacher->CLAVEASESOR}";
         if(!execute_sql($sql, false)) {
-            //notify("El asesor $teacher->NOMBRE $teacher->PATERNO no ha sido actualizado.");
-            \core\notification::info("El asesor $teacher->NOMBRE $teacher->PATERNO no ha sido actualizado.");
+			echo $OUTPUT->notification('El asesor '.$teacher->NOMBRE.' '.$teacher->PATERNO.' no ha sido actualizado.', 'notifymessage');
         }
     }
 }
