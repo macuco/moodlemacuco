@@ -928,11 +928,11 @@ function cron_bc_hack_plugin_functions($plugintype, $plugins) {
  * @return Object $statistic1: Un arreglo con la informacion de la estadistica 1
  * 
  */
-function statistic_get_students_by_entity($estado) {
+function inea_get_estadistica_1_personas_por_entidad($estado) {
 	$statistic1 = array();
 	
 	// Buscamos a los alumnos que estan enrolados en un numero especificos de cursos
-	$n_courses = inea_bd_get_students_enroled_by_course($estado);
+	$n_courses = inea_sql_get_students_enroled_by_course($estado);
 	//print_object($n_courses);
 	$enroled_c = array();
 	foreach($n_courses as $n_c=>$val) {
@@ -941,7 +941,7 @@ function statistic_get_students_by_entity($estado) {
 	//print_object($enroled_c);
 	
 	foreach($enroled_c as $num_in_c) {
-		$in_course = bd_get_students_enroled_by_entity($num_in_c,$estado);
+		$in_course = inea_sql_get_students_enroled_by_entity($num_in_c, $estado);
 		//print_object($in_course);
 		if(!empty($in_course)) {
 			foreach($in_course as $entity=>$in_c) {
@@ -956,18 +956,177 @@ function statistic_get_students_by_entity($estado) {
 }
 
 /**
- * Ludwick: Estadistica No. 1 : Imprimir en Web la tabla con la informacion de la estadistica
- *
- * @deprecated - Funcion personalizada.
- * @return String $st_table: Una cadena con los tags HTML para imprimir la estadistica
- * 
+ * INEA - Estadistica No. 1 : Obtiene el numero de estudiantes por curso, los agrupa por curso
+ * @param int $estado - El id de entidad federativa
+ * @return Array $arr1 : Un arreglo con los educandos que cumplen con el criterio de busqueda
  */
-function statistic_print_students_by_entity($estado) {
-	$est1 = statistic_get_students_by_entity($estado);
+function inea_sql_get_students_enroled_by_course($estado=0) {
+	global $CFG, $DB;
+	
+	$params = array(ESTUDIANTE);
+	$condicion = "";
+	
+	if(!empty($estado)) {
+		$condicion = " AND u.institution = ? ";
+		array_push($params, $estado);
+	}
+	
+	$sql1 = "SELECT  nums_in_c, COUNT(nums_in_c) AS usuarios
+			FROM (
+				SELECT u.id, u.institution as id_entidad, COUNT(u.id) AS nums_in_c
+				FROM {user} u
+				INNER JOIN {groups_members} gm ON (u.id = gm.userid)
+				INNER JOIN {groups} g ON (gm.groupid = g.id)
+				INNER JOIN {role_assignments} ra ON (u.id = ra.userid)
+    			INNER JOIN {context} cx ON (cx.instanceid = g.courseid  AND cx.contextlevel = 50 AND cx.id = ra.contextid)
+				INNER JOIN {user_lastaccess} ul ON (ul.courseid = g.courseid AND ul.userid = u.id)
+    			WHERE u.deleted = 0 
+				AND u.username != 'guest'
+				AND ra.roleid = ?
+				AND g.courseid IS NOT NULL 
+				AND gm.concluido = 0
+    			AND gm.acreditado = 0
+				AND FROM_UNIXTIME(gm.timeadded) < DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
+				AND FROM_UNIXTIME(ul.timeaccess) BETWEEN DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY) AND CURRENT_DATE()
+				".$condicion."
+				GROUP BY u.id ORDER BY u.institution) enroled 
+				GROUP BY nums_in_c ORDER BY nums_in_c";
+
+	$sql2 = "SELECT  nums_in_c, COUNT(nums_in_c) AS usuarios
+			FROM (
+				SELECT u.id, u.institution as id_entidad, COUNT(u.id) AS nums_in_c
+				FROM {user} u
+				INNER JOIN {groups_members} gm ON (u.id = gm.userid)
+				INNER JOIN {groups} gc ON (gm.groupid = g.id)
+				INNER JOIN {role_assignments} ra ON (u.id = ra.userid)
+				INNER JOIN {context} cx ON (cx.instanceid = g.courseid  AND cx.contextlevel = 50 AND cx.id = ra.contextid)
+				INNER JOIN {user_lastaccess} ul ON (ul.courseid = g.courseid AND ul.userid = u.id)
+				WHERE u.deleted = 0 
+				AND u.username != 'guest'
+				AND ra.roleid = ?
+				AND g.courseid IS NOT NULL 
+				AND FROM_UNIXTIME(gm.timeadded) >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
+				AND FROM_UNIXTIME(ul.timeaccess) <= CURRENT_DATE()
+				".$condicion."
+    			GROUP BY u.id ORDER BY u.institution) incorporaciones 
+				GROUP BY nums_in_c ORDER BY nums_in_c";
+			
+	//echo "<br>".$sql1;
+	//echo "<br>".$sql2;
+	//exit;
+	if(!$arr1 = $DB->get_records_sql($sql1, $params)) {
+		return false;
+	}
+	
+	if(!$arr2 = $DB->get_records_sql($sql2, $párams)) {
+		return false;
+	}
+	//print_object($arr1);
+	//print_object($arr2);
+	foreach($arr2 as $key=>$val){
+		$arr1[$key]->usuarios += $val->usuarios;
+	}
+	//print_object($arr1);
+	return $arr1;
+	//return get_records_sql($sql);
+}
+
+
+/**
+ * INEA - Estadistica No. 1 : Obtiene a los educandos activos (aquellos que tienen
+ * un grupo, asesor y han accesado a alguna actividad dentro de 30 dias) y los clasifica
+ * si pertenecen a un curso o a dos.
+ * @param int $incourse - Numero de usuarios en el curso
+ * @param int $estado - El id de entidad federativa
+ * @return Array $arr1 : Un arreglo con los educandos que cumplen con el criterio de busqueda
+ */
+function inea_sql_get_students_enroled_by_entity($incourse=0, $estado=0) {
+	global $CFG;
+
+	$params = array(ESTUDIANTE);
+	$condicion = "";
+	
+	if(!empty($estado)) {
+		$condicion = " AND u.institution = ? ";
+		array_push($params, $estado);
+	}
+	array_push($params, $incourse);
+	
+	$sql1 = "SELECT id_entidad, COUNT(nums_in_c) AS usuarios
+			FROM (
+				SELECT u.id, u.institution as id_entidad, COUNT(u.id) AS nums_in_c
+				FROM {user} u
+				INNER JOIN {groups_members] gm ON (u.id = gm.userid)
+				INNER JOIN {groups} g ON (gm.groupid = g.id)
+				INNER JOIN {role_assignments] ra ON (u.id = ra.userid)
+    			INNER JOIN {context} cx ON (cx.instanceid = g.courseid  AND cx.contextlevel = 50 AND cx.id = ra.contextid)
+				INNER JOIN {user_lastaccess} ul ON (ul.courseid = g.courseid AND ul.userid = u.id)
+    			WHERE u.deleted = 0 
+				AND u.username != 'guest'
+				AND ra.roleid = ?
+				AND g.courseid IS NOT NULL 
+				AND gm.concluido = 0
+    			AND gm.acreditado = 0
+				AND FROM_UNIXTIME(gm.timeadded) < DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
+				AND FROM_UNIXTIME(ul.timeaccess) BETWEEN DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY) AND CURRENT_DATE()
+				".$condicion."
+				GROUP BY u.id ORDER BY u.institution) enroled 
+			WHERE nums_in_c = ?  
+			GROUP BY id_entidad ORDER BY id_entidad, nums_in_c";
+	
+	$sql2 = "SELECT id_entidad, COUNT(nums_in_c) AS usuarios
+			FROM (
+				SELECT u.id, u.institution as id_entidad, COUNT(u.id) AS nums_in_c    			
+				FROM {user} u
+				INNER JOIN {groups_members} gm ON (u.id = gm.userid)
+				INNER JOIN {groups} g ON (gm.groupid = g.groupid)
+				INNER JOIN {role_assignments} ra ON (u.id = ra.userid)
+				INNER JOIN {context} cx ON (cx.instanceid = g.courseid  AND cx.contextlevel = 50 AND cx.id = ra.contextid)
+				INNER JOIN {user_lastaccess} ul ON (ul.courseid = g.courseid AND ul.userid = u.id)
+				WHERE u.deleted = 0 
+				AND u.username != 'guest'
+				AND ra.roleid = ?
+				AND g.courseid IS NOT NULL 
+				AND FROM_UNIXTIME(gm.timeadded) >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
+				AND FROM_UNIXTIME(ul.timeaccess) <= CURRENT_DATE()
+				".$condicion." 
+    			GROUP BY u.id ORDER BY u.institution) incorporaciones 
+			WHERE nums_in_c = ?  
+			GROUP BY id_entidad ORDER BY id_entidad, nums_in_c";
+		
+	//echo "<br>".$sql1;
+	//echo "<br>".$sql2;
+	if(!$arr1 = $DB->get_records_sql($sql1, $params)) {
+		return false;
+	}
+	
+	if(!$arr2 = $DB->get_records_sql($sql2, $párams)) {
+		return false;
+	}
+
+	//print_object($arr1);
+	//print_object($arr2);
+	foreach($arr2 as $key=>$val){
+		$arr1[$key]->usuarios += $val->usuarios;
+	}
+	//print_object($arr1);
+	return $arr1;
+	//return get_records_sql($sql);
+}
+
+/**
+ * INEA - Estadistica No. 1 : Imprimir en HTML la tabla con la informacion de la estadistica 
+ * @param int $estado - El id de entidad federativa
+ * @return String $st_table: Una cadena con los tags HTML para imprimir la estadistica
+ */
+function inea_print_html_estadistica_1($estado=0) {
+	global $CFG, $DB;
+	
+	$est1 = inea_get_estadistica_1_personas_por_entidad($estado);
 	$st_table = "";
 	
 	// Ludwick: Buscamos a los alumnos que estan enrolados en un numero especificos de cursos
-	$n_courses = bd_get_students_enroled_by_course($estado);
+	$n_courses = inea_sql_get_students_enroled_by_course($estado);
 	$enroled_c = array();
 	foreach($n_courses as $n_c=>$val) {
 		$enroled_c[] = $n_c;
@@ -984,16 +1143,20 @@ function statistic_print_students_by_entity($estado) {
     $st_table .= "<th class='header c0'>Total de cursos</th>";
     $st_table .= "</tr>";
 
-	if($estado != 0){
-		$estados = get_records_select("inea_entidad", "icvepais = 1 AND icveentfed = ".$estado);
-	}else{ 
-		$estados = get_records("inea_entidad", "icvepais", 1);
+	$table = 'inea_entidad';
+	$select = 'icvepais = 1';
+	if(!empty($estado)) {
+		$select = ' AND icveentfed = '.$estado;
+	}
+	
+	if(!$entidades = $DB->get_records_select($table, $select)) {
+		return false;
 	}
 	
 	$totales = 0;
 	$total_en_n_curso = array();
 	$total_en_cursos = array();
-	foreach($estados as $ident=>$estado) {
+	foreach($entidades as $ident=>$entidad) {
 		$total = isset($est1[$ident]->total)? $est1[$ident]->total : 0;
 		foreach($enroled_c as $e_c) {
 			$mvar = "in_".$e_c."_course";
@@ -1003,7 +1166,7 @@ function statistic_print_students_by_entity($estado) {
 		//$total_en_dos_cursos = isset($est1[$ident]->in_two_course)? $est1[$ident]->in_two_course:0;
 
 		$st_table .= "<tr class='r0'>
-        			<th class='header c0' align='left'>$estado->cdesentfed</th>
+        			<th class='header c0' align='left'>$entidad->cdesentfed</th>
         				<td align='center'>".$total."</td>";
 						$total_cursos = 0;
 						$i = 1;
@@ -1034,36 +1197,47 @@ function statistic_print_students_by_entity($estado) {
 }
 
 /**
- * Ludwick: Estadistica No. 1 : Imprimir en Web la tabla con la informacion de la estadistica (CSV)
- *
- * @deprecated - Funcion personalizada.
+ * INEA - Estadistica No. 1 : Imprimir en HTML la tabla con la informacion de la estadistica (CSV)
+ * @param int $estado - El id de entidad federativa
+ * @param xmlObject $xmlObject - Objeto xml donde se almacenan las cadenas de datos
  * @return String $st_table: Una cadena con los tags HTML para imprimir la estadistica
- * 
  */
-function statistic_print_students_by_entity_csv($xmlObject) {
-	$est1 = statistic_get_students_by_entity();
+function inea_print_csv_estadistica_1($xmlObject, $estado=0) {
+	global $CFG, $DB;
+	
+	$est1 = inea_get_estadistica_1_personas_por_entidad($estado);
 	$xmlPart = "";
 	
 	// Ludwick: Buscamos a los alumnos que estan enrolados en un numero especificos de cursos
-	$n_courses = inea_bd_get_students_enroled_by_course();
+	$n_courses = inea_sql_get_students_enroled_by_course($estado);
 	$enroled_c = array();
 	foreach($n_courses as $n_c) {
 		$enroled_c[] = $n_c->nums_in_c;
 	}
 	
 	$worksheetName = "Personas activas por Entidad";
-	$headerValues = "Entidad,Total";
+	$headerValues = "Entidad, Total";
 	foreach($enroled_c as $e_c) {
     	$headerValues .= ",En $e_c curso";
 	}
-	//echo $headerValues."<br>";
-	$xmlPart .= $xmlObject->AddWorkSheet($worksheetName,$headerValues,'s72');
 	
-	$estados = get_records("inea_entidad", "icvepais", 1);
+	$table = 'inea_entidad';
+	$select = 'icvepais = 1';
+	if(!empty($estado)) {
+		$select = ' AND icveentfed = '.$estado;
+	}
+	
+	if(!$entidades = $DB->get_records_select($table, $select)) {
+		return false;
+	}
+	
+	//echo $headerValues."<br>";
+	$xmlPart .= $xmlObject->AddWorkSheet($worksheetName, $headerValues, 's72');
+	
 	$totales = 0;
 	$total_en_n_curso = array();
 	$total_en_cursos = array();
-	foreach($estados as $ident=>$estado) {
+	foreach($entidades as $ident=>$entidad) {
 		$total = isset($est1[$ident]->total)? $est1[$ident]->total : 0;
 		foreach($enroled_c as $e_c) {
 			$mvar = "in_".$e_c."_course";
@@ -1072,18 +1246,18 @@ function statistic_print_students_by_entity_csv($xmlObject) {
 		}
 		//$total_en_dos_cursos = isset($est1[$ident]->in_two_course)? $est1[$ident]->in_two_course:0;
 
-		$DataValues = "$estado->cdesentfed,$total";
+		$DataValues = "$entidad->cdesentfed, $total";
         foreach($total_en_n_curso as $en_n_curso) {
-			$DataValues .= ",$en_n_curso";
+			$DataValues .= ", $en_n_curso";
 		}
 		//echo $DataValues."<br>";
 		$totales += $total;
 		$xmlPart .= $xmlObject->getColumnData($DataValues, 's42', true);
 	}
 
-	$DataValues = "TOTALES,$totales";
+	$DataValues = "TOTALES, $totales";
     foreach($total_en_cursos as $total_c) {
-		$DataValues .= ",$total_c";
+		$DataValues .= ", $total_c";
 	}
 	//echo $DataValues."<br>";
 	$xmlPart .= $xmlObject->getColumnData($DataValues, 's73');
@@ -1094,189 +1268,18 @@ function statistic_print_students_by_entity_csv($xmlObject) {
 }
 
 /**
- * INEA - Estadistica No. 1 : Obtiene el numero de estudiantes por curso, los agrupa por curso
+ * INEA - Estadistica No. 2 : Personas por Curso
  *
- * @return Array $arr1 : Un arreglo con los educandos que cumplen con el criterio de busqueda
- */
-function inea_bd_get_students_enroled_by_course($estado=0) {
-	global $CFG, $DB;
-	
-	$params = array(ESTUDIANTE);
-	
-	if(!empty($estado)) {
-		$condicion = " AND u.institution = ? ";
-		array_push($params, $estado);
-	}
-	
-	$sql1 = "SELECT  nums_in_c, COUNT(nums_in_c) AS usuarios
-			FROM (
-				SELECT u.id, u.institution as id_entidad, COUNT(u.id) AS nums_in_c
-				FROM {user} u
-				INNER JOIN {groups_members} gm ON (u.id = gm.userid)
-				INNER JOIN {groups} g ON (gm.groupid = g.id)
-				INNER JOIN {role_assignments} ra ON (u.id = ra.userid)
-    			INNER JOIN {context} cx ON (cx.instanceid = g.courseid  AND cx.contextlevel = 50 AND cx.id = ra.contextid)
-				INNER JOIN {user_lastaccess} ul ON (ul.courseid = g.courseid AND ul.userid = u.id)
-    			WHERE u.deleted = 0 
-				AND u.username != 'guest'
-				AND ra.roleid = ?
-				AND gc.courseid IS NOT NULL 
-				AND gm.concluido = 0
-    			AND gm.acreditado = 0
-				AND FROM_UNIXTIME(gm.timeadded) < DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
-				AND FROM_UNIXTIME(ul.timeaccess) BETWEEN DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY) AND CURRENT_DATE()
-				".$condicion."
-				GROUP BY u.id ORDER BY u.institution) enroled 
-				GROUP BY nums_in_c ORDER BY nums_in_c";
-	
-	
-	$sql2 = "SELECT  nums_in_c, COUNT(nums_in_c) AS usuarios
-			FROM (
-				SELECT u.id, u.institution as id_entidad, COUNT(u.id) AS nums_in_c
-				FROM {user} u
-				INNER JOIN {groups_members} gm ON (u.id = gm.userid)
-				INNER JOIN {groups} gc ON (gm.groupid = g.id)
-				INNER JOIN {role_assignments} ra ON (u.id = ra.userid)
-				INNER JOIN {context} cx ON (cx.instanceid = g.courseid  AND cx.contextlevel = 50 AND cx.id = ra.contextid)
-				INNER JOIN {user_lastaccess} ul ON (ul.courseid = g.courseid AND ul.userid = u.id)
-				WHERE u.deleted = 0 
-				AND u.username != 'guest'
-				AND ra.roleid = ?
-				AND gc.courseid IS NOT NULL 
-				AND FROM_UNIXTIME(gm.timeadded) >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
-				AND FROM_UNIXTIME(ul.timeaccess) <= CURRENT_DATE()
-				".$condicion."
-    			GROUP BY u.id ORDER BY u.institution) incorporaciones 
-				GROUP BY nums_in_c ORDER BY nums_in_c";
-			
-	//echo "<br>".$sql1;
-	//echo "<br>".$sql2;
-	//exit;
-	if(!$arr1 = $DB->get_records_sql($sql1, $params)) {
-		return false;
-	}
-	
-	if(!$arr2 = $DB->get_records_sql($sql2, $párams)) {
-		return false;
-	}
-	//print_object($arr1);
-	//print_object($arr2);
-	foreach($arr2 as $key=>$val){
-		$arr1[$key]->usuarios += $val->usuarios;
-	}
-	//print_object($arr1);
-	return $arr1;
-	//return get_records_sql($sql);
-}
-
-
-/**
- * Ludwick: Estadistica No. 1 : Obtiene a los educandos activos (aquellos que tienen
- * un grupo, asesor y han accesado a alguna actividad dentro de 30 dias) y los clasifica
- * si pertenecen a un curso o a dos
- *
- * @deprecated - Funcion personalizada.
- * @param int $inroled - indicar que tipo de calsificacion se requiere (1 = 1 curso, 2 = 2 o mas cursos).
- * @return Array $arr1 : Un arreglo con los educandos que cumplen con el criterio de busqueda
- * 
- */
-function bd_get_students_enroled_by_entity($incourse, $estado) {
-	global $CFG;
-
-	//@set_time_limit(0);	//RUDY (020713): agregue esta linea para que no tuviera limite de tiempo la ejecuacion del script. De otro modo la pantalla se queda en blanco.
-	
-	$s_rol = get_student_role(true);
-	$t_rol = get_teacher_role(true);
-
-	/*switch($inroled) {
-		case 1: $incourses = "= 1"; break;
-		case 2: $incourses = ">= 2"; break;
-		default : $incourses = "= 0";
-	}*/
-	
-	$thisdate = time(); // El dia actual
-	if(empty($timerange)) { //Ludwick:130510 -> Rango de tiempo definido
-		$timerange = time()-(30 * 24 * 60 * 60); // Hace 30 dias con respecto de la fecha actual (Un mes)
-	}
-
-	if($estado != 0) $condicion = " AND u.institution = ".$estado." ";	
-	
-	$sql1 = "SELECT id_entidad, COUNT(nums_in_c) AS usuarios
-			FROM (
-				SELECT u.id, u.institution as id_entidad, COUNT(u.id) AS nums_in_c
-    			
-				FROM {$CFG->prefix}user u
-				INNER JOIN {$CFG->prefix}groups_members gm ON (u.id = gm.userid)
-				INNER JOIN {$CFG->prefix}groups_courses_groups gc ON (gm.groupid = gc.groupid)
-				INNER JOIN {$CFG->prefix}role_assignments ra ON (u.id=ra.userid)
-    			INNER JOIN {$CFG->prefix}context cx ON (cx.instanceid = gc.courseid  AND cx.contextlevel = 50 AND cx.id = ra.contextid)
-				INNER JOIN {$CFG->prefix}user_lastaccess ul ON (ul.courseid=gc.courseid AND ul.userid=u.id)
-    			WHERE u.deleted = 0 
-					AND u.username != 'guest'
-					AND ra.roleid = ".$s_rol."
-					AND gc.courseid IS NOT NULL 
-					AND gm.concluido = 0
-    				AND gm.acreditado = 0
-					AND FROM_UNIXTIME(gm.timeadded) < DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
-					AND FROM_UNIXTIME(ul.timeaccess) BETWEEN DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY) AND CURRENT_DATE()
-					".$condicion."
- 
-				GROUP BY u.id ORDER BY u.institution) enroled 
-		WHERE nums_in_c = ".$incourse."  
-		GROUP BY id_entidad ORDER BY id_entidad, nums_in_c";
-	
-	$sql2 = "SELECT id_entidad, COUNT(nums_in_c) AS usuarios
-			FROM (
-				SELECT u.id, u.institution as id_entidad, COUNT(u.id) AS nums_in_c
-    			
-				FROM {$CFG->prefix}user u
-			INNER JOIN {$CFG->prefix}groups_members gm ON (u.id = gm.userid)
-			INNER JOIN {$CFG->prefix}groups_courses_groups gc ON (gm.groupid = gc.groupid)
-			INNER JOIN {$CFG->prefix}role_assignments ra ON (u.id=ra.userid)
-    		INNER JOIN {$CFG->prefix}context cx ON (cx.instanceid = gc.courseid  AND cx.contextlevel = 50 AND cx.id = ra.contextid)
-			INNER JOIN {$CFG->prefix}user_lastaccess ul ON (ul.courseid=gc.courseid AND ul.userid=u.id)
-    		WHERE u.deleted = 0 
-				AND u.username != 'guest'
-				AND ra.roleid = ".$s_rol."
-				AND gc.courseid IS NOT NULL 
-				AND FROM_UNIXTIME(gm.timeadded) >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
-				AND FROM_UNIXTIME(ul.timeaccess) <= CURRENT_DATE()
-				".$condicion." 
-    			
-    			GROUP BY u.id ORDER BY u.institution) incorporaciones 
-		WHERE nums_in_c = ".$incourse."  
-		GROUP BY id_entidad ORDER BY id_entidad, nums_in_c";
-		
-	//echo "<br>".$sql1;
-	//echo "<br>".$sql2;
-	$arr1 = get_records_sql($sql1);
-	$arr2 = get_records_sql($sql2);
-
-	//print_object($arr1);
-	//print_object($arr2);
-	foreach($arr2 as $key=>$val){
-		$arr1[$key]->usuarios += $val->usuarios;
-	}
-	//print_object($arr1);
-	return $arr1;
-	//return get_records_sql($sql);
-}
-
-/**
- * Ludwick: Estadistica No. 2 : Personas por Curso
- *
- * @deprecated - Funcion personalizada.
  * @return Object $statistic2: Un arreglo con la informacion de la estadistica 2
- * 
  */
-function statistic_get_status_users_by_course() {
+function inea_get_estadistica_2_personas_por_curso() {
 	$statistic2 = array();
 	
 	$_thisdate = time();
 	$_30daysbefore = time()-(30 * 24 * 60 * 60);
 	
-	// Ludwick: Buscamos a los usuarios que estan activos por curso
-	$active_users = bd_get_active_users_by_course();
+	// Ludwick: 1. Buscamos a los usuarios que estan activos por curso
+	$active_users = inea_sql_get_active_users_by_course();
 	//print_object($active_users);
 	if(!empty($active_users)) {
 		foreach($active_users as $id_course=>$active_user) {
@@ -1286,16 +1289,16 @@ function statistic_get_status_users_by_course() {
 		}
 	}
 	
-	// Ludwick: Buscamos a los usuarios que estan inactivos por curso
-	$inactive_users = bd_get_inactive_users_by_course();
+	// Ludwick: 2. Buscamos a los usuarios que estan inactivos por curso
+	$inactive_users = inea_sql_get_inactive_users_by_course();
 	if(!empty($inactive_users)) {
 		foreach($inactive_users as $id_course=>$inactive_user) {
 			$statistic2[$id_course]->inactives = $inactive_user->num_bajas;
 		}
 	}
 	
-	// Ludwick: Buscamos a los usuarios que han concluido el modulo del curso
-	$completed_users = bd_get_completed_users_by_course();
+	// Ludwick: 3. Buscamos a los usuarios que han concluido el modulo del curso
+	$completed_users = inea_sql_get_completed_users_by_course()
 	//print_object($completed_users);
 	if(!empty($completed_users)) {
 		foreach($completed_users as $id_course=>$completed_user) {
@@ -1303,7 +1306,8 @@ function statistic_get_status_users_by_course() {
 		}
 	}
 	
-	// Ludwick: Buscamos a los usuarios que han acreditado el curso
+	// ************************ AQUI ME QUEDE ......
+	// Ludwick: 4. Buscamos a los usuarios que han acreditado el curso
 	$accredited_users = bd_get_accredited_users_by_course();
 	if(!empty($accredited_users)) {
 		foreach($accredited_users as $id_course=>$accredited_user) {
@@ -1342,6 +1346,108 @@ function statistic_get_status_users_by_course() {
 	}
 	
 	return $statistic2;
+}
+
+/**
+ * INEA - Estadistica No. 2 : Obtiene a los educandos activos (aquellos que tienen
+ * un grupo y han accesado a alguna actividad dentro de 30 dias) y los agrupa por curso.
+ * @return Object : Un arreglo con los educandos que cumplen con el criterio de busqueda
+ */
+function inea_sql_get_active_users_by_course() {
+	global $CFG, $DB;
+	
+	$sql = "SELECT g.courseid, COUNT(u.id) as num_usuarios
+    		FROM {user} u
+			INNER JOIN {groups_members} gm ON (u.id = gm.userid)
+			INNER JOIN {groups} g ON (gm.groupid = g.id)
+			INNER JOIN {role_assignments} ra ON (u.id = ra.userid)
+    		INNER JOIN {context} cx ON (cx.instanceid = g.courseid  AND cx.contextlevel = 50 AND cx.id = ra.contextid)
+			INNER JOIN (SELECT ir.userid, ie.courseid, MIN(ir.timemodified) AS firstactivity, MAX(ir.timemodified) AS lastactivity 
+				FROM {inea_respuestas} ir
+				INNER JOIN {inea_ejercicios} ie ON ie.id = ir.ejercicios_id
+				GROUP BY ie.courseid, ir.userid) ia ON (ia.courseid = g.courseid AND ia.userid = u.id)
+    		WHERE u.deleted = 0 
+			AND u.username != 'guest'
+			AND ra.roleid = ?
+			AND g.courseid IS NOT NULL 
+			AND gm.concluido = 0
+    		AND gm.acreditado = 0
+    		AND ia.firstactivity < DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY) 
+			AND ia.lastactivity BETWEEN DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY) AND CURRENT_DATE() 
+    		GROUP BY g.courseid ORDER BY g.courseid";
+	//echo "<br>".$sql;
+	
+	return $DB->get_records_sql($sql, array(ESTUDIANTE));
+}
+
+/**
+ * INEA - Estadistica No. 2 : Obtiene a los educandos inactivos (aquellos que no han
+ * accesado a alguna actividad dentro de los ultimos 30 dias pero que si lo estuvieron dentro
+ * de los 30 - 60 dias anteriores), los agrupa por curso.
+ * @return Object : Un arreglo con los educandos que cumplen con el criterio de busqueda
+ */
+function inea_sql_get_inactive_users_by_course() {
+	global $CFG, $DB;
+	
+	$sql = "SELECT h.courseid, COUNT(h.userid) AS num_bajas
+			FROM {inea_historial} h
+			WHERE h.roleid = ? 
+			AND h.courseid IS NOT NULL
+			AND h.timemodified BETWEEN (UNIX_TIMESTAMP()-(30 * 24 * 60 * 60)) AND UNIX_TIMESTAMP()
+			GROUP BY h.courseid ORDER BY h.courseid";
+	//echo $sql; 
+	
+	return $DB->get_records_sql($sql, array(ESTUDIANTE));
+}
+
+/**
+ * INEA - Estadistica No. 2 : Obtiene a los educandos activos que han concluido 
+ * el modulo, los agrupa por curso
+ * @return Object : Un arreglo con los educandos que cumplen con el criterio de busqueda
+ */
+function inea_sql_get_completed_users_by_course() {
+	global $CFG, $DB;
+	
+	// Ludwick: Obtener a los educandos que han concluido
+	$sql1 = "SELECT g.courseid, COUNT(gm.concluido) as num_concluidos
+			FROM {user} u
+			INNER JOIN {groups_members gm ON (u.id = gm.userid)
+			INNER JOIN {groups} g ON (gm.groupid = g.id)
+			INNER JOIN {role_assignments} ra ON (u.id = ra.userid)
+    		INNER JOIN {context} cx ON (cx.instanceid = g.courseid  AND cx.contextlevel = 50 AND cx.id = ra.contextid)
+			WHERE u.deleted = 0 
+			AND u.username != 'guest'
+			AND ra.roleid = ?
+			AND g.courseid IS NOT NULL 
+			AND gm.concluido = 1
+			AND gm.fecha_concluido BETWEEN (UNIX_TIMESTAMP()-(30 * 24 * 60 * 60)) AND UNIX_TIMESTAMP()
+    		GROUP BY g.courseid ORDER BY g.courseid";
+	
+	$sql2 = "SELECT h.courseid, COUNT(h.userid) as num_concluidos
+			FROM {inea_historial} h
+			WHERE h.roleid = ? 
+			AND h.courseid IS NOT NULL
+			AND h.completiondate BETWEEN (UNIX_TIMESTAMP()-(30 * 24 * 60 * 60)) AND UNIX_TIMESTAMP()
+			GROUP BY h.courseid ORDER BY h.courseid";
+	
+	if(!$arr1 = $DB->get_records_sql($sql1, array(ESTUDIANTE))) {
+		return false;
+	}
+	
+	if(!$arr2 = $DB->get_records_sql($sql2, array(ESTUDIANTE))) {
+		return false;
+	}
+
+	/*print_object($arr1);
+	echo "<br>2:";
+	print_object($arr2);*/
+	
+	foreach($arr2 as $key=>$val){
+		$arr1[$key]->num_concluidos += $val->num_concluidos;
+	}
+	//print_object($arr1);
+	return $arr1;	
+	//return get_records_sql($sql);
 }
 
 /**
@@ -1698,103 +1804,6 @@ function statistic_print_status_users_by_course_csv($xmlObject) {
 
 /**
  * Ludwick:190510 Estadistica No. 2 : Obtiene a los educandos activos (aquellos que tienen
- * un grupo y han accesado a alguna actividad dentro de 30 dias) y los agrupa por curso
- *
- * @deprecated - Funcion personalizada.
- * @return Object : Un arreglo con los educandos que cumplen con el criterio de busqueda
- * 
- */
-function bd_get_active_users_by_course() {
-	global $CFG;
-	
-	$thisdate = time(); // El dia actual
-	if(empty($timerange)) { //Ludwick:130510 -> Rango de tiempo definido
-		$timerange = time()-(30 * 24 * 60 * 60); // Hace 30 dias con respecto de la fecha actual (Un mes)
-	}
-	$s_rol = get_student_role(true); // Id del rol del educando
-	$t_rol = get_teacher_role(true);
-	
-	$sql = "SELECT gc.courseid, COUNT(u.id) as num_usuarios
-    		FROM {$CFG->prefix}user u
-			INNER JOIN {$CFG->prefix}groups_members gm ON (u.id = gm.userid)
-			INNER JOIN {$CFG->prefix}groups_courses_groups gc ON (gm.groupid = gc.groupid)
-			INNER JOIN {$CFG->prefix}role_assignments ra ON (u.id=ra.userid)
-    		INNER JOIN {$CFG->prefix}context cx ON (cx.instanceid = gc.courseid  AND cx.contextlevel = 50 AND cx.id = ra.contextid)
-			INNER JOIN (SELECT ir.userid, ie.courseid, MIN(ir.timemodified) AS firstactivity, MAX(ir.timemodified) AS lastactivity 
-				FROM {$CFG->prefix}inea_respuestas ir
-				INNER JOIN {$CFG->prefix}inea_ejercicios ie ON ie.id=ir.ejercicios_id
-				GROUP BY ie.courseid,ir.userid) ia ON (ia.courseid=gc.courseid AND ia.userid=u.id)
-    		WHERE u.deleted = 0 
-				AND u.username != 'guest'
-				AND ra.roleid = ".$s_rol."
-				AND gc.courseid IS NOT NULL 
-				AND gm.concluido = 0
-    			AND gm.acreditado = 0
-    			AND ia.firstactivity < DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY) 
-				AND ia.lastactivity BETWEEN DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY) AND CURRENT_DATE() 
-    			GROUP BY gc.courseid ORDER BY gc.courseid";
-	//echo "<br>".$sql;
-	return get_records_sql($sql);
-}
-
-/**
- * Ludwick:190510 Estadistica No. 2 : Obtiene a los educandos activos que han concluido 
- * el modulo, los agrupa por curso
- *
- * @deprecated - Funcion personalizada.
- * @return Object : Un arreglo con los educandos que cumplen con el criterio de busqueda
- * 
- */
-function bd_get_completed_users_by_course() {
-	global $CFG;
-	
-	$thisdate = time(); // El dia actual
-	if(empty($timerange)) { //Ludwick:130510 -> Rango de tiempo definido
-		$timerange = time()-(30 * 24 * 60 * 60); // Hace 30 dias con respecto de la fecha actual (Un mes)
-	}
-	$s_rol = get_student_role(true); // Id del rol del educando
-	$t_rol = get_teacher_role(true);
-	
-	// Ludwick: Obtener a los educandos que han concluido
-	
-	$sql1 = "SELECT gc.courseid, COUNT(gm.concluido) as num_concluidos
-			FROM {$CFG->prefix}user u
-			INNER JOIN {$CFG->prefix}groups_members gm ON (u.id = gm.userid)
-			INNER JOIN {$CFG->prefix}groups_courses_groups gc ON (gm.groupid = gc.groupid)
-			INNER JOIN {$CFG->prefix}role_assignments ra ON (u.id=ra.userid)
-    		INNER JOIN {$CFG->prefix}context cx ON (cx.instanceid = gc.courseid  AND cx.contextlevel = 50 AND cx.id = ra.contextid)
-			WHERE u.deleted = 0 
-			AND u.username != 'guest'
-			AND ra.roleid = ".$s_rol."
-			AND gc.courseid IS NOT NULL 
-			AND gm.concluido = 1
-			AND gm.fecha_concluido BETWEEN (UNIX_TIMESTAMP()-(30 * 24 * 60 * 60)) AND UNIX_TIMESTAMP()
-    		GROUP BY gc.courseid ORDER BY gc.courseid";
-	
-	$sql2 = "SELECT h.courseid, COUNT(h.userid) as num_concluidos
-			FROM {$CFG->prefix}historial h
-			WHERE h.roleid = ".$s_rol." 
-			AND h.courseid IS NOT NULL
-			AND h.completiondate BETWEEN (UNIX_TIMESTAMP()-(30 * 24 * 60 * 60)) AND UNIX_TIMESTAMP()
-			GROUP BY h.courseid ORDER BY h.courseid";
-	
-	$arr1 = get_records_sql($sql1);
-	$arr2 = get_records_sql($sql2);
-	/*print_object($arr1);
-	echo "<br>2:";
-	print_object($arr2);*/
-	
-	foreach($arr2 as $key=>$val){
-		$arr1[$key]->num_concluidos += $val->num_concluidos;
-	}
-	//print_object($arr1);
-	return $arr1;
-	
-	//return get_records_sql($sql);
-}
-
-/**
- * Ludwick:190510 Estadistica No. 2 : Obtiene a los educandos activos (aquellos que tienen
  * un grupo, asesor y han accesado a alguna actividad dentro de 30 dias), que han concluido 
  * el modulo y lo han aprobado con una calificacion > 5, los agrupa por curso.
  *
@@ -1850,35 +1859,6 @@ function bd_get_accredited_users_by_course() {
 	
 	//echo "<br>".$sql;
 	//return get_records_sql($sql);
-}
-
-/**
- * Ludwick:190510 Estadistica No. 2 : Obtiene a los educandos inactivos (aquellos que no han
- * accesado a alguna actividad dentro de los ultimos 30 dias pero que si lo estuvieron dentro
- * de los 30 - 60 dias anteriores), los agrupa por curso.
- *
- * @deprecated - Funcion personalizada.
- * @return Object : Un arreglo con los educandos que cumplen con el criterio de busqueda
- * 
- */
-function bd_get_inactive_users_by_course() {
-	global $CFG;
-	
-	$thisdate = time(); // El dia actual
-	$timerange = time()-(30 * 24 * 60 * 60); // Hace 30 dias con respecto de la fecha actual (Un mes)
-	
-	$s_rol = get_student_role(true); // Id del rol del educando
-	//$t_rol = get_teacher_role(true);
-	
-	$sql = "SELECT h.courseid, COUNT(h.userid) AS num_bajas
-			FROM {$CFG->prefix}historial h
-			WHERE h.roleid = ".$s_rol." 
-			AND h.courseid IS NOT NULL
-			AND h.timemodified BETWEEN (UNIX_TIMESTAMP()-(30 * 24 * 60 * 60)) AND UNIX_TIMESTAMP()
-			GROUP BY h.courseid ORDER BY h.courseid";
-	//echo $sql; 
-	
-	return get_records_sql($sql);
 }
 
 /**
