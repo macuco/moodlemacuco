@@ -548,17 +548,33 @@ function inea_get_record_sasa($entidad="", $rfe="") {
  * @return array - un arreglo con el/los usuario(s)
  *
  */
-function inea_evidencia_sasa($id_user="", $id_curso="") {
+function inea_evidencia_sasa($userid, $courseid) {
+    global $CFG, $DB;
+	
+	// Verificar curso y usuario
+	if(empty($courseid) || empty($userid)) {
+		return false;
+	}
+	
+	// Verificar si existen el usuario y el curso
+	$course = $DB->get_record('course', array('id' => $courseid), '*', MUST_EXIST);
+	$user = $DB->get_record('user', array('id' => $userid), '*', MUST_EXIST);
+	
+    $sql = "SELECT u.instituto, u.zona, u.idnumber AS rfe, u.id_sasa, u.icvemodesume, gm.id, gm.fecha_concluido, gm.groupid, c.idnumber, c.idnumber_1014 
+		FROM {user} u 
+		INNER JOIN {groups_members} gm ON u.id = gm.userid 
+		INNER JOIN {groups} g ON gm.groupid = g.id 
+		INNER JOIN {course} c ON g.courseid = c.id 
+		WHERE u.id = ? AND g.courseid = ?";
     
-    $qry1 = "SELECT mu.instituto, mu.zona, mu.idnumber AS rfe, mu.id_sasa, mu.icvemodesume, mgm.fecha_concluido, mgm.id, mgm.groupid, mc.idnumber, mc.idnumber_1014 FROM mdl_user mu INNER JOIN mdl_groups_members mgm ON mu.id = mgm.userid INNER JOIN mdl_groups_courses_groups mgcg ON mgm.groupid = mgcg.groupid INNER JOIN mdl_course mc ON mgcg.courseid = mc.id WHERE mu.id = ".$id_user." AND mgcg.courseid = ".$id_curso;
-    //echo $qry1;
-    
-    $result_conn = mysql_query($qry1);
-    $row = mysql_fetch_array($result_conn);
-    
-    $id_sasa = $row['id_sasa'];
-    $rfe_e= $row['rfe'];
-    $entidad= $row['instituto'];
+	if(!$usuario = $DB->get_record_sql($sql, array($user->id, $course->id))){
+		return false;
+	}
+	
+	///********** AQUI ME QUEDE
+    $id_sasa = $usuario->id_sasa;
+    $rfe_e= $usuario->rfe;
+    $entidad= $usuario->instituto;
     $cz= $row['zona'];
     $icvemodulo= $row['icvemodesume'] == 10 ? $row['idnumber'] : $row['idnumber_1014'];	// RUDY: Si el modelo es 10 (MOL) entonces toma clave de MOL si no toma clave de 10-14
     $f_concluido = date('d/m/Y',$row['fecha_concluido']);
