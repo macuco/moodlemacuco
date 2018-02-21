@@ -26,7 +26,7 @@ for($i = 1; $i <= 32; $i++) { // Por cada id de entidad federativa
 		echo "EVIDENCIA PARA ENTIDAD ".$i.": <br><br>";
 		
 		foreach($concluidos as $concluido){
-			$evidencia = evidencia_sasa($concluido->userid, $concluido->courseid);
+			$evidencia = inea_evidencia_sasa($concluido->userid, $concluido->courseid);
 			print_object($evidencia);
 			// Ingresa resultados a tablas groups_members e inea_concluidos
 			$mensaje_sasa = '';

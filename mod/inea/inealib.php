@@ -537,16 +537,83 @@ function inea_get_record_sasa($entidad="", $rfe="") {
     return $registro;
 }
 
+/** ********* AQUI ME QUEDE
+ * INEA - Envia calificacion a SASA.
+ *
+ * @param int $userid - El id del usuario
+ * @param int $courseid - El id del curso
+ * @return array - un arreglo con los datos
+ */
+function inea_calificacion_sasa_cron($userid, $groupid) {
+	global $CFG, $DB;
+			
+	$qry1 = "SELECT mu.instituto, mu.zona, mu.idnumber AS rfe, mu.id_sasa, mu.icvemodesume, mgm.fecha_concluido, mgm.id, mgm.groupid, mc.idnumber, mc.idnumber_1014 FROM mdl_user mu INNER JOIN mdl_groups_members mgm ON mu.id = mgm.userid INNER JOIN mdl_groups_courses_groups mgcg ON mgm.groupid = mgcg.groupid INNER JOIN mdl_course mc ON mgcg.courseid = mc.id WHERE mu.id = ".$id_user." AND mgcg.groupid = ".$id_group;
+	
+	//echo $qry1;
+	$result_conn = mysql_query($qry1);
+
+    	$row=mysql_fetch_array($result_conn); 
+       
+		$id_sasa = $row['id_sasa'];
+       	//$rfe_e= $row['rfe'];  
+       	$entidad= $row['instituto'];
+       	//$cz= $row['zona'];
+       	$icvemodulo= $row['icvemodesume'] == 10 ? $row['idnumber'] : $row['idnumber_1014'];	// RUDY: Si el modelo es 10 (MOL) entonces toma clave de MOL si no toma clave de 10-14
+		//$f_concluido = date('d/m/Y',$row['fecha_concluido']);
+		$grupo = $row['groupid'];	
+		//$rfc_a = obtener_rfc_asesor_grupo($grupo); // funcion definida en lib/accesslib.php
+		$id_user_concluido = $row['id'];	
+	
+
+	$qry3 = "SELECT nombre, base, usuario, pass FROM mdl_inea_sasa_conn WHERE instituto = ".$entidad;
+
+	//echo "<br>".$qry3. "<---- consulta sql server  "; 
+
+	$result_conn = mysql_query($qry3);
+
+    	$row=mysql_fetch_array($result_conn); 
+       
+       	$nombre= $row['nombre'];  
+		$base = $row['base'];
+		$usuario= $row['usuario'];
+		$pass= $row['pass'];
+	
+    $conectID = mssql_connect("$nombre","$usuario","$pass");
+    mssql_select_db("$base");
+
+
+	$qry2 = "EXEC mv_getCalificacionEducandoModulo ".$id_sasa.",".$icvemodulo; //
+
+	 //echo "<br>".$qry2. "<---- consulta para SQL   "; 
+ 
+
+   	$result_usu = mssql_query($qry2);
+
+	$calificacion = mssql_fetch_array($result_usu);
+
+	//$estatus = $evidencia['ccveestado'];
+	//echo "<br> Estatus: ".$estatus;
+
+	 //echo "<br>".$evidencia . "<---- Evidencia   ";
+	 
+	
+	//RUDY: Adjuntar el campo id de mdl_groups_members a la matriz devuelta, ya q lo necesitamos en mod/quiz/view.php
+	$calificacion['id_user_concluido'] = $id_user_concluido;
+
+	 print_object($calificacion);
+
+	mssql_close($conectID);
+	
+	return $calificacion;
+
+}
+
 /**
  * INEA - Envia evidencia a SASA. // RUDY dic/2013
  *
- * @deprecated - Funcion personalizada.
- * @param String $table - El nombre de una tabla del catalogo
- * @param String $fields - Los campos a obtener de la tabla
- * @param String $condition - Una condicion para filtrar la consulta
- * @param boolean $all - Una condicion para obtener uno o todos los campos
- * @return array - un arreglo con el/los usuario(s)
- *
+ * @param int $userid - El id del usuario
+ * @param int $courseid - El id del curso
+ * @return array - un arreglo con los datos
  */
 function inea_evidencia_sasa($userid, $courseid) {
     global $CFG, $DB;
@@ -571,37 +638,31 @@ function inea_evidencia_sasa($userid, $courseid) {
 		return false;
 	}
 	
-	///********** AQUI ME QUEDE
     $id_sasa = $usuario->id_sasa;
-    $rfe_e= $usuario->rfe;
-    $entidad= $usuario->instituto;
-    $cz= $row['zona'];
-    $icvemodulo= $row['icvemodesume'] == 10 ? $row['idnumber'] : $row['idnumber_1014'];	// RUDY: Si el modelo es 10 (MOL) entonces toma clave de MOL si no toma clave de 10-14
-    $f_concluido = date('d/m/Y',$row['fecha_concluido']);
-    $grupo = $row['groupid'];
-    $rfc_a = obtener_rfc_asesor_grupo($grupo); ///!!!!!!
-    $id_user_concluido = $row['id'];
+    $rfe_e = $usuario->rfe;
+    $entidad = $usuario->instituto;
+    $cz = $usuario->zona;
+	if($usuario->icvemodesume == 10) {
+		$icvemodulo = $usuario->idnumber;
+	} else {
+		$icvemodulo = $usuario->idnumber_1014; // RUDY: Si el modelo es 10 (MOL) entonces toma clave de MOL si no toma clave de 10-14
+	}
+    $f_concluido = date('d/m/Y', $usuario->fecha_concluido);
+    $rfc_a = inea_get_rfc_asesor_grupo($usuario->groupid);
+    $id_user_concluido = $usuario->id;
     
-    $qry3 = "SELECT nombre, base, usuario, pass FROM mdl_inea_sasa_conn WHERE instituto = ".$entidad;
-    //echo "<br>".$qry3. "<---- consulta sql server  ";
+	if(!$acceso = $DB->get_record('inea_sasa_conn', array('instituto' => $entidad, "nombre, base, usuario, pass"){
+		return false;
+	}
     
-    $result_conn = mysql_query($qry3);
-    $row=mysql_fetch_array($result_conn);
+    $conectID = mssql_connect($acceso->nombre, $acceso->usuario, $acceso->pass);
+    mssql_select_db($acceso->base);
     
-    $nombre= $row['nombre'];
-    $base = $row['base'];
-    $usuario= $row['usuario'];
-    $pass= $row['pass'];
-    
-    $conectID = mssql_connect("$nombre","$usuario","$pass");
-    mssql_select_db("$base");
-    
-    $qry2 = "EXEC mv_SetEvidenciaEducandoModulo ".$id_sasa.",'".$rfe_e."',".$entidad.",".$cz.",".$icvemodulo.",'".$f_concluido."','".$rfc_a."'";
+    $consulta = "EXEC mv_SetEvidenciaEducandoModulo ".$id_sasa.",'".$rfe_e."',".$entidad.",".$cz.",".$icvemodulo.",'".$f_concluido."','".$rfc_a."'";
     //$qry2 = "EXEC mv_SetEvidenciaEducandoModulo 460418,'CAMJ980713ND5',8,1,64,'19/03/2014','AEAZ931110LC1'"; //
-    
     //echo "<br>".$qry2. "<---- consulta para SQL   ";
     
-    $result_usu = mssql_query($qry2);
+    $result_usu = mssql_query($consulta);
     $evidencia = mssql_fetch_array($result_usu);
     
     //$estatus = $evidencia['ccveestado'];
