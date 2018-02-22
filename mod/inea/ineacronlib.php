@@ -158,10 +158,13 @@ function inea_clean_usuarios_inactivos() {
 	$ultimoacceso_90 = time()-(90 * 24 * 60 * 60); // 90 dias
 	
 	// Buscar en cada curso a los usuarios
+	// ***** AQUI ME QUEDE
 	foreach($courses as $course) {
 		// Limpiar a los usuarios que han aprobado un curso
 		$aprobados = inea_get_usuarios_aprobados($course->id, ESTUDIANTE);
-		inea_delete_course_users($aprobados, $course->id, ESTUDIANTE, 2);
+		foreach($aprobados as $aprobado) {
+			inea_delete_usuario($aprobado, $course->id, ESTUDIANTE, 2);
+		}
 	
 		// Limpiar a los usuarios que han estado inactivos por mas de 30 dias
 		//$inactivity_students = get_inactivity_users($course->id, $s_rol, $lastaccess30);
@@ -391,18 +394,17 @@ function inea_get_usuarios_cambio_modalidad($courseid, $roleid=5) {
 /**
  * INEA - Procedimiento para eliminar a los usuarios dentro de un curso.
  *
- * @param array $users - Un arreglo con los usuarios
+ * @param array $user - El objeto con los datos del usuario a ser eliminado
  * @param int $courseid - El id del curso
  * @param int $roleid - El id del rol del usuario 
  * @param int $code - Codigo del tipo de eliminacion que se esta procesando.
- * @return bool
- * 
+ * @return int - El id del historial creado
  */
-function inea_delete_course_users($users, $courseid, $roleid, $code=1) {
+function inea_delete_usuario($user, $courseid, $roleid, $code=1) {
 	global $CFG, $DB;
 	
 	// Verificar usuarios
-	if(empty($users) || !is_array($users)) {
+	if(empty($user) || !is_object($user)) {
 		return false;
 	}
 	
@@ -416,51 +418,31 @@ function inea_delete_course_users($users, $courseid, $roleid, $code=1) {
 		return false;
 	}
 	
-	//echo "<br><br>Usuarios: ".count($users)." Tipo: $type  Rol id: $roleid";
-	foreach($users as $user) {
-		$historial = inea_get_valores_historial($user, $course->id, $roleid, $code);
-		if($roleid == ESTUDIANTE) { // Borrar las actividades de un estadiante
-			//echo "<br>Estudiante: $user->id_user";
-			//print_object($user);
-			inea_delete_actividades_usuario($user->id, $course->id, $roleid);
-		} else if($roleid == ASESOR) { // Borrar las actividades y todo su grupo del asesor
-			$id_grupo = $user->group;
-			if(!empty($id_grupo) && $id_grupo>0) {
-				if($miembros = groups_get_members($id_grupo)) {
-					// Desmatricular a todos los usuarios del grupo
-					foreach($miembros as $id_user) {
-						$miembro = new object();
-						$miembro->id = $id_user;
-	
-						$role = get_user_role_in_context($miembro->id, $context);
-						$v_role = each($role);
-						$id_role = (isset($v_role[0]) && !empty($v_role[0]))? $v_role[0] : 0;
-						$type = ($id_role==$t_rol)? 1 : 3;
-						$miembro = inea_get_valores_historial($miembro, $course->id, $id_role, $code);
-						//echo "<br>Miembro del grupo :$id_grupo rol: ".$v_role[1];
-						//print_object($miembro);
-						delete_user_activities($miembro, $course->id, $id_role);
-					}
-				}
-				// Eliminar el grupo que esta vacio
-				if(!groups_delete_group($id_grupo)) {
-					echo $OUTPUT->notification('No se pudo borrar el grupo '.$id_grupo, 'notifyproblem');
-				}
-			} else { // Borrar solo las actividades del asesor
-				//echo "<br>Asesor: $user->id_user";
-				//print_object($user);
-				delete_user_activities($user, $course->id, $roleid);
-			}
+	// Crear el objeto historial
+	if(!$historial = inea_get_valores_historial($user, $course->id, $roleid, $code)) {
+		return false;
+		if($message) {
+			echo $OUTPUT->notification('No se puede crear el objeto del historial para el usuario '.$user->id, 'notifyproblem');
 		}
+	}
 		
-		// Agregar la informacion del usuario al historial
-		if(!$id = inea_add_historial($user)) {
-			if($message) {
-				echo $OUTPUT->notification('No se puede crear el historial para el usuario '.$user->id, 'notifyproblem');
-			}
-			return false;
+	// Borrar las actividades del usuario (desenrolar)
+	if(!inea_delete_actividades_usuario($user->id, $course->id, $roleid)) {
+		return false;
+		if($message) {
+			echo $OUTPUT->notification('No se puede eliminar las actividades del usuario '.$user->id, 'notifyproblem');
 		}
-	}	
+	}
+		
+	// Agregar la informacion del usuario al historial
+	if(!$id = inea_add_historial($historial)) {
+		return false;
+		if($message) {
+			echo $OUTPUT->notification('No se puede crear el historial para el usuario '.$user->id, 'notifyproblem');
+		}
+	}
+	
+	return $id;
 }
 
 /**

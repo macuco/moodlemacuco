@@ -546,66 +546,64 @@ function inea_get_record_sasa($entidad="", $rfe="") {
  */
 function inea_calificacion_sasa_cron($userid, $groupid) {
 	global $CFG, $DB;
-			
-	$qry1 = "SELECT mu.instituto, mu.zona, mu.idnumber AS rfe, mu.id_sasa, mu.icvemodesume, mgm.fecha_concluido, mgm.id, mgm.groupid, mc.idnumber, mc.idnumber_1014 FROM mdl_user mu INNER JOIN mdl_groups_members mgm ON mu.id = mgm.userid INNER JOIN mdl_groups_courses_groups mgcg ON mgm.groupid = mgcg.groupid INNER JOIN mdl_course mc ON mgcg.courseid = mc.id WHERE mu.id = ".$id_user." AND mgcg.groupid = ".$id_group;
 	
-	//echo $qry1;
-	$result_conn = mysql_query($qry1);
-
-    	$row=mysql_fetch_array($result_conn); 
-       
-		$id_sasa = $row['id_sasa'];
-       	//$rfe_e= $row['rfe'];  
-       	$entidad= $row['instituto'];
-       	//$cz= $row['zona'];
-       	$icvemodulo= $row['icvemodesume'] == 10 ? $row['idnumber'] : $row['idnumber_1014'];	// RUDY: Si el modelo es 10 (MOL) entonces toma clave de MOL si no toma clave de 10-14
-		//$f_concluido = date('d/m/Y',$row['fecha_concluido']);
-		$grupo = $row['groupid'];	
-		//$rfc_a = obtener_rfc_asesor_grupo($grupo); // funcion definida en lib/accesslib.php
-		$id_user_concluido = $row['id'];	
+	// Verificar curso y usuario
+	if(empty($userid) || empty($groupid)) {
+		return false;
+	}
 	
-
-	$qry3 = "SELECT nombre, base, usuario, pass FROM mdl_inea_sasa_conn WHERE instituto = ".$entidad;
-
-	//echo "<br>".$qry3. "<---- consulta sql server  "; 
-
-	$result_conn = mysql_query($qry3);
-
-    	$row=mysql_fetch_array($result_conn); 
-       
-       	$nombre= $row['nombre'];  
-		$base = $row['base'];
-		$usuario= $row['usuario'];
-		$pass= $row['pass'];
+	// Verificar si existen el usuario y el grupo
+	$user = $DB->get_record('user', array('id' => $userid), '*', MUST_EXIST);
+	$group = $DB->get_record('group', array('id' => $groupid), '*', MUST_EXIST);
 	
-    $conectID = mssql_connect("$nombre","$usuario","$pass");
-    mssql_select_db("$base");
+	$sql = "SELECT u.instituto, u.zona, u.idnumber AS rfe, u.id_sasa, u.icvemodesume, gm.id, gm.groupid, gm.fecha_concluido, c.idnumber, c.idnumber_1014 
+		FROM {user} u 
+		INNER JOIN {groups_members} gm ON u.id = gm.userid 
+		INNER JOIN {groups} g ON gm.groupid = g.id 
+		INNER JOIN {course} c ON g.courseid = c.id 
+		WHERE u.id = ? AND g.id = ?";
+		
+	if(!$usuario = $DB->get_record_sql($sql, array($user->id, $group->id))){
+		return false;
+	}
+	
+	$id_sasa = $usuario->id_sasa;
+    //$rfe_e = $usuario->rfe;  
+    $entidad = $usuario->instituto;
+    //$cz = $usuario->zona;
+	if($usuario->icvemodesume == 10) {
+		$icvemodulo = $usuario->idnumber;
+	} else {
+		$icvemodulo = $usuario->idnumber_1014; // RUDY: Si el modelo es 10 (MOL) entonces toma clave de MOL si no toma clave de 10-14
+	}
+	//$f_concluido = date('d/m/Y', $usuario->fecha_concluido);
+	//$rfc_a = inea_get_rfc_asesor_grupo($group->id); // funcion definida en lib/accesslib.php
+	$id_user_concluido = $usuario->id;	
+	
+if(!$acceso = $DB->get_record('inea_sasa_conn', array('instituto' => $entidad), "nombre, base, usuario, pass"){
+		return false;
+	}
+    
+    $conectID = mssql_connect($acceso->nombre, $acceso->usuario, $acceso->pass);
+    mssql_select_db($acceso->base);
+	
+	$consulta = "EXEC mv_getCalificacionEducandoModulo ".$id_sasa.",".$icvemodulo;
+	//echo "<br>".$qry2. "<---- consulta para SQL   "; 
 
-
-	$qry2 = "EXEC mv_getCalificacionEducandoModulo ".$id_sasa.",".$icvemodulo; //
-
-	 //echo "<br>".$qry2. "<---- consulta para SQL   "; 
- 
-
-   	$result_usu = mssql_query($qry2);
-
+   	$result_usu = mssql_query($consulta);
 	$calificacion = mssql_fetch_array($result_usu);
 
 	//$estatus = $evidencia['ccveestado'];
 	//echo "<br> Estatus: ".$estatus;
-
 	 //echo "<br>".$evidencia . "<---- Evidencia   ";
-	 
 	
 	//RUDY: Adjuntar el campo id de mdl_groups_members a la matriz devuelta, ya q lo necesitamos en mod/quiz/view.php
 	$calificacion['id_user_concluido'] = $id_user_concluido;
-
-	 print_object($calificacion);
+	print_object($calificacion);
 
 	mssql_close($conectID);
 	
 	return $calificacion;
-
 }
 
 /**
@@ -651,7 +649,7 @@ function inea_evidencia_sasa($userid, $courseid) {
     $rfc_a = inea_get_rfc_asesor_grupo($usuario->groupid);
     $id_user_concluido = $usuario->id;
     
-	if(!$acceso = $DB->get_record('inea_sasa_conn', array('instituto' => $entidad, "nombre, base, usuario, pass"){
+	if(!$acceso = $DB->get_record('inea_sasa_conn', array('instituto' => $entidad), "nombre, base, usuario, pass"){
 		return false;
 	}
     
