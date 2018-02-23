@@ -158,33 +158,36 @@ function inea_clean_usuarios_inactivos() {
 	$ultimoacceso_90 = time()-(90 * 24 * 60 * 60); // 90 dias
 	
 	// Buscar en cada curso a los usuarios
-	// ***** AQUI ME QUEDE
 	foreach($courses as $course) {
 		// Limpiar a los usuarios que han aprobado un curso
-		$aprobados = inea_get_usuarios_aprobados($course->id, ESTUDIANTE);
-		foreach($aprobados as $aprobado) {
+		$estudiantes_aprobados = inea_get_usuarios_aprobados($course->id, ESTUDIANTE);
+		foreach($estudiantes_aprobados as $aprobado) {
 			inea_delete_usuario($aprobado, $course->id, ESTUDIANTE, 2);
 		}
 	
 		// Limpiar a los usuarios que han estado inactivos por mas de 30 dias
-		//$inactivity_students = get_inactivity_users($course->id, $s_rol, $lastaccess30);
-		// DAVE se comentan las sig 2 lineas para que no borren a los asesores
-		//$inactivity_students = get_inactivity_users($course->id, $s_rol, $lastaccess90);
-		//course_delete_users_with_role($inactivity_students, $course->id, $s_rol, 1);
+		$estudiantes_inactivos = inea_get_usuarios_inactivos($course->id, ESTUDIANTE, $ultimoacceso_30);
+		/*foreach($estudiantes_inactivos as $inactivo) {
+			inea_delete_usuario($inactivo, $course->id, ESTUDIANTE, 1);
+		}*/
 	
 		// Limpiar a los asesores que han estado inactivos por mas de 30 dias
-		//$inactivity_teachers = get_inactivity_users($course->id, $t_rol, $lastaccess30);
-// DAVE se comentan las sig 2 lineas para que no borren a los asesores
-		//$inactivity_teachers = get_inactivity_users($course->id, $t_rol, $lastaccess90);
-		//course_delete_users_with_role($inactivity_teachers, $course->id, $t_rol, 1);
+		$asesores_inactivos = inea_get_usuarios_inactivos($course->id, ASESOR, $ultimoacceso_30);
+		/*foreach($asesores_inactivos as $inactivo) {
+			inea_delete_usuario($inactivo, $course->id, ASESOR, 1);
+		}*/
 	
 		// Limpiar a los aducandos que han cambiado de modalidad
-		$cambiomodalidad = inea_get_usuarios_cambio_modalidad($course->id, ESTUDIANTE);
-		course_delete_users_with_role($mode_change_students, $course->id, $s_rol, 4);
+		$cambio_modalidad = inea_get_usuarios_cambio_modalidad($course->id, ESTUDIANTE);
+		foreach($cambio_modalidad as $cambio) {
+			inea_delete_usuario($cambio, $course->id, ESTUDIANTE, 4);
+		}
 	
 		// Notificar a los tutores, reponsables y admin de la inactividad de un asesor por mas de 20 dias
-		//$inactivity_teachers_20days = get_inactivity_users($course->id, $t_rol, $lastaccess20);
-		//notify_teachers_inactivity($inactivity_teachers_30days, $course->id);
+		$asesores_inactivos = inea_get_usuarios_inactivos($course->id, ASESOR, $ultimoacceso_20);
+		/*foreach($asesores_inactivos as $asesor) {
+			inea_notify_inactividad($asesor, $course->id);
+		}*/
 	}
 	
 	//Ludwick:140610 -> Limpiar los grupos vacios
@@ -420,26 +423,26 @@ function inea_delete_usuario($user, $courseid, $roleid, $code=1) {
 	
 	// Crear el objeto historial
 	if(!$historial = inea_get_valores_historial($user, $course->id, $roleid, $code)) {
-		return false;
 		if($message) {
 			echo $OUTPUT->notification('No se puede crear el objeto del historial para el usuario '.$user->id, 'notifyproblem');
 		}
+		return false;
 	}
 		
 	// Borrar las actividades del usuario (desenrolar)
 	if(!inea_delete_actividades_usuario($user->id, $course->id, $roleid)) {
-		return false;
 		if($message) {
 			echo $OUTPUT->notification('No se puede eliminar las actividades del usuario '.$user->id, 'notifyproblem');
 		}
+		return false;
 	}
 		
 	// Agregar la informacion del usuario al historial
 	if(!$id = inea_add_historial($historial)) {
-		return false;
 		if($message) {
 			echo $OUTPUT->notification('No se puede crear el historial para el usuario '.$user->id, 'notifyproblem');
 		}
+		return false;
 	}
 	
 	return $id;
@@ -618,7 +621,6 @@ function inea_delete_actividades_usuario($user, $courseid, $roleid=0, $message=f
  *
  * @param Object $user - Un objeto con la informacion del usuario
  * @return int 
- * 
  */
 function inea_add_historial($user) {
 	global $CFG, $DB;
@@ -629,6 +631,125 @@ function inea_add_historial($user) {
 	
 	//print_object($user);
 	return $DB->insert_record('inea_historial', $user);
+}
+
+/**
+ * INEA - Procedimiento para mandar una notificacion por correo electronico al 
+ * administrador por la inactividad de un asesor.
+ *
+ * @deprecated - Funcion personalizada.
+ * @param Object $asesor - Un objeto que contiene los datos del asesor
+ * @param int $courseid - El id del curso.
+ * @return bool
+ */
+function inea_notify_inactividad($asesor, $courseid) {
+	global $CFG;
+	
+	if(empty($asesor) || !is_object($asesor)) {
+		return false;
+	}
+	
+	if(empty($courseid)) {
+		return false;
+	}
+	
+	// Verificar si el curso existe
+	$course = $DB->get_record('course', array('id' => $courseid), '*', MUST_EXIST);
+	
+	$asesor->coursename = $course->fullname; // Nombre del curso del asesor
+	$asesor->daysleft = round(30 - ((time() - $asesor->lastaccess) / (24 * 60 * 60)));
+	
+	if($asesor->daysleft < 0) {
+		$asesor->daysleft = 0;
+	}
+	//echo "<br><br>Tutores y Responsables para el asesor ".$asesor->id;
+	//print_object($tutores);
+	//print_object($responsables);
+		
+	// Ludwick:090210 -> Preparar el mensaje de correo para el asesor
+	if(!send_inactivity_notify_message($asesor, $asesor, true)) {
+		return false;
+	}
+		
+	// Ludwick:090210 -> Preparar el mensaje de correo para los tutores asociados al asesor
+	if($tutores = get_tutor_by_zone($asesor->id, $course->id, true)) {
+		foreach($tutoress as $tutor) {
+			send_inactivity_notify_message($tutor, $asesor);
+		}
+	}
+	
+	// Ludwick:090210 -> Preparar el mensaje de correo para los responsables estatales asociados al asesor
+	if($responsables = get_responsable_estatal_by_zone($asesor->id, $course->id, true)){
+		foreach($responsables as $responsable) {
+			send_inactivity_notify_message($responsable, $asesor);
+		}
+	}
+		
+	// Ludwick:090210 -> Preparar el mensaje de correo para el administrador
+	$admin = get_admin();
+	$admin->emailstop = null;
+	send_inactivity_notify_message($admin, $asesor);
+	
+	return true;
+}
+
+/**
+ * INEA - Elimina los grupos vacios en un curso
+ *
+ * @param int $courseid : El id del curso
+ * @return int : El numero de grupos vacios que fueron eliminados en el curso
+ */
+function inea_delete_grupos_vacios($courseid) {
+	global $CFG;
+	
+	if(empty($courseid)) {
+		return false;
+	}
+	
+	$egroups = db_get_empty_groups($courseid);
+	//print_object($egroup);
+	$gdeletes = 0;
+	
+	foreach($egroups as $egroup) {
+		if(isset($egroup->id) && !empty($egroup->id)) {
+			// Ludwick:140610 -> Emepzando la depuracion de grupos vacios con funciones vacias
+			if(groups_delete_group($egroup->id)) {
+				$gdeletes += 1;
+			}
+		}
+	}
+	
+	return $gdeletes;
+}
+
+/**
+ * INEA - Obtiene los grupos vacios (que no tengan enrolado a ningun usuario) en un curso
+ *
+ * @param int $courseid : El id del curso
+ * @return Object: un objeto con el resultado de la consulta
+ */
+function inea_get_grupos_vacios($courseid) {
+	global $CFG;
+	
+	if(empty($courseid)) {
+		return false;
+	}
+	
+	// ********* AQUI ME QUEDE
+	$sql = ""
+	
+	
+	$select = "SELECT g.id, g.name, gc.courseid, gm.groupid ";
+	$from = "FROM {$CFG->prefix}groups g
+		INNER JOIN {$CFG->prefix}groups_courses_groups gc ON (g.id = gc.groupid)
+		LEFT OUTER JOIN {$CFG->prefix}groups_members gm ON (g.id = gm.groupid) ";
+	$where = "WHERE gm.groupid IS NULL ";
+	if(!empty($courseid)) {
+		$where .= "AND gc.courseid = ".$courseid;
+	}
+	$extra = " ORDER BY gc.courseid, g.id";
+	
+	return get_records_sql($select.$from.$where.$extra);
 }
  
 /**
