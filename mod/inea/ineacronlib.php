@@ -191,7 +191,7 @@ function inea_clean_usuarios_inactivos() {
 	}
 	
 	//Ludwick:140610 -> Limpiar los grupos vacios
-	$groups_deleted = groups_delete_empty_groups();
+	$groups_deleted = inea_delete_grupos_vacios();
  }
  
  /**
@@ -633,7 +633,7 @@ function inea_add_historial($user) {
 	return $DB->insert_record('inea_historial', $user);
 }
 
-/**
+/** ME QUEDE AQUI
  * INEA - Procedimiento para mandar una notificacion por correo electronico al 
  * administrador por la inactividad de un asesor.
  *
@@ -699,27 +699,22 @@ function inea_notify_inactividad($asesor, $courseid) {
  * @param int $courseid : El id del curso
  * @return int : El numero de grupos vacios que fueron eliminados en el curso
  */
-function inea_delete_grupos_vacios($courseid) {
+function inea_delete_grupos_vacios($courseid = 0) {
 	global $CFG;
 	
-	if(empty($courseid)) {
+	$eliminados = 0;
+	
+	if(!$groups = inea_get_grupos_vacios($courseid)) {
 		return false;
 	}
 	
-	$egroups = db_get_empty_groups($courseid);
-	//print_object($egroup);
-	$gdeletes = 0;
-	
-	foreach($egroups as $egroup) {
-		if(isset($egroup->id) && !empty($egroup->id)) {
-			// Ludwick:140610 -> Emepzando la depuracion de grupos vacios con funciones vacias
-			if(groups_delete_group($egroup->id)) {
-				$gdeletes += 1;
-			}
+	foreach($groups as $group) {
+		if(groups_delete_group($group->id)) {
+			$eliminados += 1;
 		}
 	}
 	
-	return $gdeletes;
+	return $eliminados;
 }
 
 /**
@@ -728,28 +723,24 @@ function inea_delete_grupos_vacios($courseid) {
  * @param int $courseid : El id del curso
  * @return Object: un objeto con el resultado de la consulta
  */
-function inea_get_grupos_vacios($courseid) {
-	global $CFG;
+function inea_get_grupos_vacios($courseid = 0) {
+	global $CFG, $DB;
 	
-	if(empty($courseid)) {
-		return false;
-	}
+	$params = array();
 	
-	// ********* AQUI ME QUEDE
-	$sql = ""
-	
-	
-	$select = "SELECT g.id, g.name, gc.courseid, gm.groupid ";
-	$from = "FROM {$CFG->prefix}groups g
-		INNER JOIN {$CFG->prefix}groups_courses_groups gc ON (g.id = gc.groupid)
-		LEFT OUTER JOIN {$CFG->prefix}groups_members gm ON (g.id = gm.groupid) ";
+	$select = "SELECT DISTINCT g.id, g.name, g.courseid, gm.groupid ";
+	$from = "FROM {groups} g
+		LEFT OUTER JOIN {groups_members} gm ON (gm.groupid = g.id) ";
 	$where = "WHERE gm.groupid IS NULL ";
 	if(!empty($courseid)) {
-		$where .= "AND gc.courseid = ".$courseid;
+		$where .= "AND g.courseid = ?";
+		$params = array($courseid);
 	}
-	$extra = " ORDER BY gc.courseid, g.id";
+	$order = " ORDER BY g.courseid, g.id";
 	
-	return get_records_sql($select.$from.$where.$extra);
+	$sql = $select.$from.$where.$order;
+	
+	return $DB->get_records_sql($sql, $params);
 }
  
 /**

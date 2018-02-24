@@ -580,7 +580,7 @@ function inea_calificacion_sasa_cron($userid, $groupid) {
 	//$rfc_a = inea_get_rfc_asesor_grupo($group->id); // funcion definida en lib/accesslib.php
 	$id_user_concluido = $usuario->id;	
 	
-if(!$acceso = $DB->get_record('inea_sasa_conn', array('instituto' => $entidad), "nombre, base, usuario, pass"){
+	if(!$acceso = $DB->get_record('inea_sasa_conn', array('instituto' => $entidad), "nombre, base, usuario, pass")){
 		return false;
 	}
     
@@ -649,7 +649,7 @@ function inea_evidencia_sasa($userid, $courseid) {
     $rfc_a = inea_get_rfc_asesor_grupo($usuario->groupid);
     $id_user_concluido = $usuario->id;
     
-	if(!$acceso = $DB->get_record('inea_sasa_conn', array('instituto' => $entidad), "nombre, base, usuario, pass"){
+	if(!$acceso = $DB->get_record('inea_sasa_conn', array('instituto' => $entidad), "nombre, base, usuario, pass")){
 		return false;
 	}
     
