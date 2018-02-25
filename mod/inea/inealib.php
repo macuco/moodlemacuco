@@ -34,6 +34,11 @@ define('EDUCANDO', 5);
  * @var unknown
  */
 define('ASESOR', 4);
+/**
+ * Id rol para responsable
+ * @var unknown
+ */
+define('RESPONSABLE', 9);
 
 
 /**
@@ -537,7 +542,7 @@ function inea_get_record_sasa($entidad="", $rfe="") {
     return $registro;
 }
 
-/** ********* AQUI ME QUEDE
+/**
  * INEA - Envia calificacion a SASA.
  *
  * @param int $userid - El id del usuario
@@ -1553,6 +1558,54 @@ function inea_delete_inea_answers($courseid, $userid) {
 	}
 	
 	return true;
+}
+
+/**
+ * INEA - Obtiene al reponsable estatal asociado a una zona
+ *
+ * @param int $userid - El id del asesor.
+ * @param int $courseid - El id del curso.
+ * @return Array  - Un arreglo con los responsables asociados
+ */
+function inea_get_responsable_estatal_por_zona($userid, $courseid) {
+	global $CFG, $DB;
+	
+	if(empty($userid) || empty($courseid)) {
+		return false;
+	}
+	
+	$user = $DB->get_record('user', array('id' => $userid), '*', MUST_EXIST);
+	$course = $DB->get_record('course', array('id' => $courseid), '*', MUST_EXIST);
+	
+	if(!$context = context_course::instance($course->id)) {
+		return false;
+	}
+	
+	if(empty($user->institution)) {
+		return false;
+	}
+	
+	// we are looking for all users with this role assigned in this context or higher
+    if ($usercontexts = $context->get_parent_context_ids(true)) {
+        $listofcontexts = '('.implode(',', $usercontexts).')';
+    } else {
+        $listofcontexts = '('.$context->id.')'; // must be site
+    }
+	
+	$select = "SELECT u.* "; // Obtener todos los usuarios
+	$from   = "FROM {user} u
+	INNER JOIN {role_assignments} r ON (r.userid = u.id) 
+	INNER JOIN {user_lastaccess} ul ON ((ul.userid = r.userid) AND (ul.courseid = ? OR ul.courseid IS NULL)) ";
+	
+	$where  = "WHERE (r.contextid = ? OR r.contextid IN $listofcontexts)
+   		AND u.deleted = 0
+        AND u.username != 'guest'
+        AND u.institution = ?
+        AND r.roleid = ?";
+
+	$sql = $select.$from.$where;
+	
+	return $DB->get_records_sql($sql, array($course->id, $context->id, $user->institution, RESPONSABLE));
 }
 
 /**

@@ -174,6 +174,22 @@ function inea_clean_usuarios_inactivos() {
 		// Limpiar a los asesores que han estado inactivos por mas de 30 dias
 		$asesores_inactivos = inea_get_usuarios_inactivos($course->id, ASESOR, $ultimoacceso_30);
 		/*foreach($asesores_inactivos as $inactivo) {
+			if($groupid = $inactivo->group) {
+				$miembros = groups_get_members($groupid);
+				foreach($miembros as $miembro) {
+					$integrante = new stdClass();
+					$integrante->id = $miembro->userid;
+						AQUI ME QUEDE;
+						$role = get_user_role_in_context($miembro->id, $context);
+						$v_role = each($role);
+						$id_role = (isset($v_role[0]) && !empty($v_role[0]))? $v_role[0] : 0;
+						$type = ($id_role==$t_rol)? 1 : 3;
+						$miembro = set_historial_values_for_user($miembro, $courseid, $id_role, $type);
+						//echo "<br>Miembro del grupo :$id_grupo rol: ".$v_role[1];
+						//print_object($miembro);
+						delete_user_activities($miembro, $courseid, $id_role);
+					}
+			}
 			inea_delete_usuario($inactivo, $course->id, ASESOR, 1);
 		}*/
 	
@@ -633,7 +649,7 @@ function inea_add_historial($user) {
 	return $DB->insert_record('inea_historial', $user);
 }
 
-/** ME QUEDE AQUI
+/**
  * INEA - Procedimiento para mandar una notificacion por correo electronico al 
  * administrador por la inactividad de un asesor.
  *
@@ -667,30 +683,76 @@ function inea_notify_inactividad($asesor, $courseid) {
 	//print_object($responsables);
 		
 	// Ludwick:090210 -> Preparar el mensaje de correo para el asesor
-	if(!send_inactivity_notify_message($asesor, $asesor, true)) {
+	if(!inea_send_correo_notificacion($asesor, $asesor, true)) {
 		return false;
 	}
 		
 	// Ludwick:090210 -> Preparar el mensaje de correo para los tutores asociados al asesor
-	if($tutores = get_tutor_by_zone($asesor->id, $course->id, true)) {
+	// Ya no existe el tutor
+	/*if($tutores = get_tutor_by_zone($asesor->id, $course->id, true)) {
 		foreach($tutoress as $tutor) {
-			send_inactivity_notify_message($tutor, $asesor);
+			inea_send_correo_notificacion($tutor, $asesor);
 		}
-	}
+	}*/
 	
 	// Ludwick:090210 -> Preparar el mensaje de correo para los responsables estatales asociados al asesor
-	if($responsables = get_responsable_estatal_by_zone($asesor->id, $course->id, true)){
+	if($responsables = inea_get_responsable_estatal_por_zona($asesor->id, $course->id, true)){
 		foreach($responsables as $responsable) {
-			send_inactivity_notify_message($responsable, $asesor);
+			inea_send_correo_notificacion($responsable, $asesor);
 		}
 	}
 		
 	// Ludwick:090210 -> Preparar el mensaje de correo para el administrador
 	$admin = get_admin();
 	$admin->emailstop = null;
-	send_inactivity_notify_message($admin, $asesor);
+	inea_send_correo_notificacion($admin, $asesor);
 	
 	return true;
+}
+
+/** AQUI: AGREGAR LANG DE MENSAJES DE CORREO
+ * INEA - Manda un mensaje de notificacion de la inactividad de un asesor a un usuario
+ *
+ * @param Object $mainUser - El id del asesor.
+ * @param Object $userAbout - El id del curso.
+ * @return bool 
+ */
+function inea_send_correo_notificacion($mainUser, $userAbout, $own = false) {
+	global $CFG;
+	
+	if(empty($mainUser) || empty($mainUser->email) || empty($userAbout)) {
+		return false;
+	}
+
+	//Añadimos los campos necesarios para calcular el nombre del usuario principal
+	$mainUser->lastnamephonetic = '';
+	$mainUser->firstnamephonetic = '';
+	$mainUser->middlename = '';
+	$mainUser->alternatename = '';
+	
+	//Añadimos los campos necesarios para calcular el nombre del usuario en cuestion
+	$userAbout->lastnamephonetic = '';
+	$userAbout->firstnamephonetic = '';
+	$userAbout->middlename = '';
+	$userAbout->alternatename = '';
+	
+	$data = new stdClass();	
+    $data->username = fullname($mainUser);
+    $data->useraboutname = fullname($userAbout);
+    $data->coursename = $userAbout->coursename;
+	$data->daysleft = $userAbout->daysleft;
+	
+    $subject = get_string('emailinactivitynotifysubject', '', $data->useraboutname);
+    if($own) {
+    	$message	= get_string('emailinactivitynotify', '', $data);
+    } else {
+    	$message	= get_string('emailinactivityteachernotify', '', $data);
+    }
+    $messagehtml = text_to_html($message, false, false, true);
+    
+    $user->mailformat = 1;  // Always send HTML version as well
+	
+    return email_to_user($mainUser, $from, $subject, $message, $messagehtml);
 }
 
 /**
