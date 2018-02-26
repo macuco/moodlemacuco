@@ -160,43 +160,37 @@ function inea_clean_usuarios_inactivos() {
 	// Buscar en cada curso a los usuarios
 	foreach($courses as $course) {
 		// Limpiar a los usuarios que han aprobado un curso
-		$estudiantes_aprobados = inea_get_usuarios_aprobados($course->id, ESTUDIANTE);
+		$estudiantes_aprobados = inea_get_usuarios_aprobados($course->id, EDUCANDO);
 		foreach($estudiantes_aprobados as $aprobado) {
-			inea_delete_usuario($aprobado, $course->id, ESTUDIANTE, 2);
+			inea_delete_usuario($aprobado, $course->id, EDUCANDO, 2);
 		}
 	
 		// Limpiar a los usuarios que han estado inactivos por mas de 30 dias
-		$estudiantes_inactivos = inea_get_usuarios_inactivos($course->id, ESTUDIANTE, $ultimoacceso_30);
+		$estudiantes_inactivos = inea_get_usuarios_inactivos($course->id, EDUCANDO, $ultimoacceso_30);
 		/*foreach($estudiantes_inactivos as $inactivo) {
-			inea_delete_usuario($inactivo, $course->id, ESTUDIANTE, 1);
+			inea_delete_usuario($inactivo, $course->id, EDUCANDO, 1);
 		}*/
 	
 		// Limpiar a los asesores que han estado inactivos por mas de 30 dias
 		$asesores_inactivos = inea_get_usuarios_inactivos($course->id, ASESOR, $ultimoacceso_30);
 		/*foreach($asesores_inactivos as $inactivo) {
-			if($groupid = $inactivo->group) {
-				$miembros = groups_get_members($groupid);
+			if($group = inea_get_user_group($course->id, $inactivo->id)) {
+				$miembros = groups_get_members($group->id);
 				foreach($miembros as $miembro) {
-					$integrante = new stdClass();
-					$integrante->id = $miembro->userid;
-						AQUI ME QUEDE;
-						$role = get_user_role_in_context($miembro->id, $context);
-						$v_role = each($role);
-						$id_role = (isset($v_role[0]) && !empty($v_role[0]))? $v_role[0] : 0;
-						$type = ($id_role==$t_rol)? 1 : 3;
-						$miembro = set_historial_values_for_user($miembro, $courseid, $id_role, $type);
-						//echo "<br>Miembro del grupo :$id_grupo rol: ".$v_role[1];
-						//print_object($miembro);
-						delete_user_activities($miembro, $courseid, $id_role);
+					$roles = inea_get_roles_usuario($miembro->id, $course->id);
+					if(isset($roles[EDUCANDO])) {
+						$integrante = inea_get_datos_usuario($miembro->id, $course->id, EDUCANDO);
+						inea_delete_usuario($integrante, $course->id, EDUCANDO, 1);
 					}
+				}	
 			}
 			inea_delete_usuario($inactivo, $course->id, ASESOR, 1);
 		}*/
 	
 		// Limpiar a los aducandos que han cambiado de modalidad
-		$cambio_modalidad = inea_get_usuarios_cambio_modalidad($course->id, ESTUDIANTE);
+		$cambio_modalidad = inea_get_usuarios_cambio_modalidad($course->id, EDUCANDO);
 		foreach($cambio_modalidad as $cambio) {
-			inea_delete_usuario($cambio, $course->id, ESTUDIANTE, 4);
+			inea_delete_usuario($cambio, $course->id, EDUCANDO, 4);
 		}
 	
 		// Notificar a los tutores, reponsables y admin de la inactividad de un asesor por mas de 20 dias
@@ -224,7 +218,7 @@ function inea_clean_usuarios_inactivos() {
 	//echo "<br>Mes hoy: ".$monthtoday." Mes mañ: ".$monthtomorrow." Añ".$yeartoday;
 	$directorio = $CFG->dataroot."/estadisticas";
 	if($monthtomorrow != $monthtoday) { // Hay un cambio de mes
-		for($i=0; $i<=8; $i++) {
+		/*for($i=0; $i<=8; $i++) {
 			$st_names[$i] = "$directorio/estadistica_0".($i+1)."_$monthtoday"."_$yeartoday.xls";
 		}
 
@@ -240,7 +234,7 @@ function inea_clean_usuarios_inactivos() {
 		// Salvar las estadisticas en un archivo xls
 		foreach($estadisticas as $id_st=>$estadistica) {
 			file_put_contents($st_names[$id_st], $estadistica);
-		}
+		}*/
 	}
  }
 
@@ -283,21 +277,24 @@ function inea_get_usuarios_aprobados($courseid, $roleid=0, $grade=5, $lastaccess
    		AND u.deleted = 0
         AND u.username != 'guest'";
 	
+	$params = array($courseid);
+	
 	if($roleid > 0) {
         $where .= " AND r.roleid = ? ";
+		array_push($params, $roleid);
 	}
 
 	if(is_int($grade) && $grade>0) {
     	$where .= " AND gm.calificacion > ? ";
+		array_push($params, $grade);
 	}
 	
 	if($lastaccess > 0) {
 		$where .= " AND gm.fecha_acreditado <= (UNIX_TIMESTAMP()-(? * 24 * 60 * 60)) ";
+		array_push($params, $lastaccess);
 	}
 	
 	$orderby = " ORDER BY lastaccess DESC";
-	
-	$params = array($courseid, $roleid, $grade, $lastaccess);
 	
 	$query = $select.$from.$where.$orderby;        
 
@@ -344,15 +341,18 @@ function inea_get_usuarios_inactivos($courseid, $roleid=0, $lastaccess=0) {
 				AND u.deleted = 0
 				AND u.username != 'guest' ";
 	
+	$params = array($courseid);
+	
 	if($roleid > 0) {
         $where .= " AND r.roleid = ? ";
+		array_push($params, $roleid);
 	}
 
 	$where .= " AND (ia.lastactivity <= DATE_SUB(CURRENT_DATE(), INTERVAL ? DAY) OR ul.timeaccess <= (UNIX_TIMESTAMP()-(? * 24 * 60 * 60))) ";
 	
 	$orderby = " ORDER BY lastaccess DESC";
 	
-	$params = array($courseid, $roleid, $lastaccess, $lastaccess);
+	array_push($params, $lastaccess, $lastaccess);
 	
 	$query = $select.$from.$where.$orderby;        
 
@@ -393,20 +393,70 @@ function inea_get_usuarios_cambio_modalidad($courseid, $roleid=5) {
    		AND u.deleted = 0
         AND u.username != 'guest'";
 	
+	$params = array($courseid);
+	
 	if($roleid > 0) {
         $where .= " AND r.roleid = ? ";
+		array_push($params, $roleid);
 	}
 	
 	$where .= " AND (gm.modalidad IS NOT NULL AND gm.modalidad <> 1) ";
 	
 	$orderby = " ORDER BY lastaccess DESC";
 	
-	$params = array($courseid, $roleid);
-	
 	$query = $select.$from.$where.$orderby;        
 
 	//echo " <br><br>Consulta: ".$query;
     //exit;
+	return $DB->get_records_sql($query, $params);
+}
+
+/**
+ * INEA - Obtiene los datos de un usuario durante la depuracion
+ *
+ * @param int $userid - El id del usuario
+ * @param int $courseid - El id del curso
+ * @param int $roleid - El id del rol
+ * @return array $users - un arreglo con los usuarios inactivos
+ */
+function inea_get_datos_usuario($userid, $courseid, $roleid=0) {
+	global $CFG, $DB;
+	
+	if(empty($userid) || empty($courseid)) {
+		return false;
+	}
+	
+	$course = $DB->get_record('course', array('id' => $courseid), '*', MUST_EXIST);
+	if(!$context = context_course::instance($course->id)) {
+		return false;
+	}
+	
+	$select = "SELECT u.id, u.firstname, u.lastname, u.email, ul.timeaccess AS lastaccess, u.institution AS clventidad, u.city AS clvmunicipio, u.zona AS clvzona, u.skype AS clvplaza, u.yahoo AS gender, (YEAR(CURRENT_DATE) - YEAR(str_to_date(u.aim, '%d/%m/%Y'))) - (RIGHT(CURRENT_DATE,5) < RIGHT(str_to_date(u.aim, '%d/%m/%Y'),5)) AS age, u.msn AS occupation, ia.firstactivity, ia.lastactivity ";
+	
+	$from   = "FROM {user} u 
+		INNER JOIN {role_assignments} r ON r.userid = u.id
+		INNER JOIN {user_lastaccess} ul ON ul.userid = u.id		
+		INNER JOIN {context} cx ON (cx.instanceid = ? AND cx.contextlevel = 50 AND cx.id = r.contextid) ";
+	
+	$from   .= "LEFT OUTER JOIN (
+					SELECT ir.userid, ie.courseid, MIN(ir.timemodified) AS firstactivity, MAX(ir.timemodified) AS lastactivity 
+					FROM {inea_respuestas} ir
+					INNER JOIN {inea_ejercicios} ie ON ie.id=ir.ejercicios_id
+					GROUP BY ie.courseid,ir.userid) ia ON (ia.courseid = ul.courseid AND ia.userid = u.id) ";
+	
+	$where  = "WHERE u.id = ?
+				AND u.deleted = 0
+				AND u.username != 'guest' ";
+	
+	$params = array($course->id, $userid);
+	
+	if($roleid > 0) {
+        $where .= " AND r.roleid = ? ";
+		array_push($params, $roleid);
+	}
+	
+	$query = $select.$from.$where;        
+	//echo $query;
 	return $DB->get_records_sql($query, $params);
 }
 
@@ -615,7 +665,7 @@ function inea_delete_actividades_usuario($user, $courseid, $roleid=0, $message=f
 		$group = groups_get_group_by_idnumber($course->id, $user->groupid);
 	}
 	
-	if($roleid == ESTUDIANTE) {
+	if($roleid == EDUCANDO) {
 		if(!inea_delete_inea_answers($course->id, $user->id)) {
 			echo $OUTPUT->notification('Advertencia, no se pueden borrar las respuestas de las actividades del usuario '.$user->id, 'notifymessage');
 		}
@@ -659,7 +709,7 @@ function inea_add_historial($user) {
  * @return bool
  */
 function inea_notify_inactividad($asesor, $courseid) {
-	global $CFG;
+	global $CFG, $DB;
 	
 	if(empty($asesor) || !is_object($asesor)) {
 		return false;

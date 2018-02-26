@@ -42,7 +42,7 @@ function inea_get_estadistica_1_personas_por_entidad($estado) {
 function inea_sql_get_students_enroled_by_course($estado=0) {
 	global $CFG, $DB;
 	
-	$params = array(ESTUDIANTE);
+	$params = array(EDUCANDO);
 	$condicion = "";
 	
 	if(!empty($estado)) {
@@ -122,7 +122,7 @@ function inea_sql_get_students_enroled_by_course($estado=0) {
 function inea_sql_get_students_enroled_by_entity($incourse=0, $estado=0) {
 	global $CFG;
 
-	$params = array(ESTUDIANTE);
+	$params = array(EDUCANDO);
 	$condicion = "";
 	
 	if(!empty($estado)) {
@@ -456,7 +456,7 @@ function inea_sql_get_active_users_by_course() {
     		GROUP BY g.courseid ORDER BY g.courseid";
 	//echo "<br>".$sql;
 	
-	return $DB->get_records_sql($sql, array(ESTUDIANTE));
+	return $DB->get_records_sql($sql, array(EDUCANDO));
 }
 
 /**
@@ -476,7 +476,7 @@ function inea_sql_get_inactive_users_by_course() {
 			GROUP BY h.courseid ORDER BY h.courseid";
 	//echo $sql; 
 	
-	return $DB->get_records_sql($sql, array(ESTUDIANTE));
+	return $DB->get_records_sql($sql, array(EDUCANDO));
 }
 
 /**
@@ -509,11 +509,11 @@ function inea_sql_get_completed_users_by_course() {
 			AND h.completiondate BETWEEN (UNIX_TIMESTAMP()-(30 * 24 * 60 * 60)) AND UNIX_TIMESTAMP()
 			GROUP BY h.courseid ORDER BY h.courseid";
 	
-	if(!$arr1 = $DB->get_records_sql($sql1, array(ESTUDIANTE))) {
+	if(!$arr1 = $DB->get_records_sql($sql1, array(EDUCANDO))) {
 		return false;
 	}
 	
-	if(!$arr2 = $DB->get_records_sql($sql2, array(ESTUDIANTE))) {
+	if(!$arr2 = $DB->get_records_sql($sql2, array(EDUCANDO))) {
 		return false;
 	}
 

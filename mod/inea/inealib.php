@@ -955,7 +955,7 @@ function getOcupacionString($ocupacion_id){
 }
 
 /**
- * INEA - Obtiene el ID del grupo si el usuario esta inscrito
+ * INEA - Obtiene los datos del grupo del usuario
  * @param int $userid
  * @param int $courseid
  * @return Object
@@ -1607,6 +1607,39 @@ function inea_get_responsable_estatal_por_zona($userid, $courseid) {
 	
 	return $DB->get_records_sql($sql, array($course->id, $context->id, $user->institution, RESPONSABLE));
 }
+
+/**
+ * INEA - Obtiene una lista de roles de un usuario en un curso
+ *
+ * @param int $userid - El id del asesor.
+ * @param int $courseid - El id del curso.
+ * @return Array  - Un arreglo con los id de roles asociados
+ */
+function inea_get_roles_usuario($userid, $courseid) {
+	global $CFG, $DB;
+	
+	if(empty($userid) || empty($courseid)) {
+		return false;
+	}
+	
+	$user = $DB->get_record('user', array('id' => $userid), '*', MUST_EXIST);
+	$course = $DB->get_record('course', array('id' => $courseid), '*', MUST_EXIST);
+	
+	$select = "SELECT r.* "; // Obtener todos los usuarios
+	$from   = "FROM {user} u
+	INNER JOIN {role_assignments} ra ON (ra.userid = u.id) 
+	INNER JOIN {role} r ON (r.id = ra.roleid) 
+	INNER JOIN {context} cx ON (cx.instanceid = ? AND cx.contextlevel = 50 AND cx.id = ra.contextid) ";
+	
+	$where  = "WHERE u.id = ?
+   		AND u.deleted = 0
+        AND u.username != 'guest'";
+
+	$sql = $select.$from.$where;
+	
+	return $DB->get_records_sql($sql, array($course->id, $user->id));
+}
+
 
 /**
  * Imprime datos en consola web
