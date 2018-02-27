@@ -490,7 +490,8 @@ $matchcount = $DB->count_records_sql("SELECT COUNT(u.id) $from $where", $params)
 
 $table->initialbars(true);
 $table->pagesize($perpage, $matchcount);
-
+echo "$select $from $where $sort";
+print_object($params);
 // List of users at the current visible page - paging makes it relatively short.
 $userlist = $DB->get_recordset_sql("$select $from $where $sort", $params, $table->get_page_start(), $table->get_page_size());
 
