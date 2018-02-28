@@ -123,13 +123,24 @@ function inea_get_ocupaciones() {
 }
 
 /**
- * INEA - Obtiene el catalogo de entidades.
- * @return object
+ * INEA - Obtiene el catalogo de entidades de acuerdo al codigo de pais
+ *
+ * @param int $icvepais - El codigo de pais
+ * @param int $icveentfed - El codigo de entidad
+ * @return Array
  */
-function inea_get_entidades() {
-    global $DB;
-    
-    return $DB->get_records('inea_entidad', null, '', 'id, icvepais, icveentfed, cdesentfed');
+function inea_get_entidades($icvepais = 1, $icveentfed = 0) {
+    global $CFG, $DB;
+
+	$params = array('icvepais' => $icvepais);
+	
+	if($icveentfed > 0) {
+		$params = array('icvepais' => $icvepais, 'icveentfed' => $icveentfed);
+	} else {
+		$params = array('icvepais' => $icvepais);
+	}
+	
+	return $DB->get_records('inea_entidad', $params);
 }
 
 /**

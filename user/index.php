@@ -42,6 +42,8 @@ $search       = optional_param('search', '', PARAM_RAW); // Make sure it is proc
 $roleid       = optional_param('roleid', 0, PARAM_INT); // Optional roleid, 0 means all enrolled users (or all on the frontpage).
 $contextid    = optional_param('contextid', 0, PARAM_INT); // One of this or.
 $courseid     = optional_param('id', 0, PARAM_INT); // This are required.
+$icvepais     = optional_param('icvepais', 1, PARAM_INT); // This are required.
+$icveentfed   = optional_param('icveentfed', 0, PARAM_INT); // This are required.
 $selectall    = optional_param('selectall', false, PARAM_BOOL); // When rendering checkboxes against users mark them all checked.
 
 $PAGE->set_url('/user/index.php', array(
@@ -443,7 +445,7 @@ $joins[] = $ccjoin;
 if ($roleid) {
     // We want to query both the current context and parent contexts.
     list($relatedctxsql, $relatedctxparams) = $DB->get_in_or_equal($context->get_parent_context_ids(true), SQL_PARAMS_NAMED, 'relatedctx');
-
+	
     $wheres[] = "u.id IN (SELECT userid FROM {role_assignments} WHERE roleid = :roleid AND contextid $relatedctxsql)";
     $params = array_merge($params, array('roleid' => $roleid), $relatedctxparams);
 }
@@ -474,11 +476,28 @@ if ($twhere) {
 }
 
 $from = implode("\n", $joins);
+
 if ($wheres) {
     $where = "WHERE " . implode(" AND ", $wheres);
 } else {
     $where = "";
 }
+
+// INEA - Filtrar por entidad federativa
+if ($icveentfed) {
+    $wheres[] = "u.institution = :institution ";
+    $params = array_merge($params, array('institution' => $icveentfed));
+}
+
+$from = implode("\n", $joins);
+if ($wheres) {
+    $where = "WHERE " . implode(" AND ", $wheres);
+} else {
+    $where = "";
+}
+
+$totalcount = $DB->count_records_sql("SELECT COUNT(u.id) $from $where", $params);
+
 
 if ($table->get_sql_sort()) {
     $sort = ' ORDER BY '.$table->get_sql_sort();
