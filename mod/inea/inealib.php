@@ -277,15 +277,16 @@ function inea_get_plaza_from_municipio() {
  * @return Array $lista un arreglo con el nombre - descripcion de cada estado.
  */
 function inea_list_entidades($id_pais) {
-	global $DB;
+	global $CFG;
 	
-	$entidades = $DB->get_records('inea_entidad', array('icvepais'=>$id_pais), '', 'id, icvepais, icveentfed, cdesentfed');
 	$list = array();
-	
-	foreach ($entidades as $entitidad) {
+	if($entidades = inea_get_entidades($id_pais)) {
+		foreach ($entidades as $entitidad) {
 			//$list[$entityid->icveentfed] = $entityid->cdesentfed;
 			$list[$entitidad->icveentfed] = $entitidad->cdesentfed;
+		}
 	}
+	
 	//print_object($list);
 	return $list;
 }

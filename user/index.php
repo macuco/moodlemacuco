@@ -24,6 +24,7 @@
 
 require_once('../config.php');
 require_once($CFG->dirroot.'/user/lib.php');
+require_once($CFG->dirroot.'/mod/inea/inealib.php'); // Importar libreria inea
 require_once($CFG->libdir.'/tablelib.php');
 require_once($CFG->libdir.'/filelib.php');
 
@@ -85,9 +86,11 @@ if ($isfrontpage) {
     require_capability('moodle/course:viewparticipants', $context);
 }
 
-$rolenamesurl = new moodle_url("$CFG->wwwroot/user/index.php?contextid=$context->id&sifirst=&silast=");
+// INEA - URL base para redireccionar segun filtros
+$url = $CFG->wwwroot.'/user/index.php?contextid='.$context->id.'&sifirst=&silast=';
 
 $rolenames = role_fix_names(get_profile_roles($context), $context, ROLENAME_ALIAS, true);
+
 if ($isfrontpage) {
     $rolenames[0] = get_string('allsiteusers', 'role');
 } else {
@@ -107,6 +110,11 @@ if (empty($rolenames) && !$isfrontpage) {
     } else {
         print_error('noparticipants');
     }
+}
+
+// INEA - Obtener el listado de entidades por país
+if($listaentidades = inea_list_entidades(1)) {
+	$listaentidades[0] = get_string('selectestado', 'inea');
 }
 
 // Trigger events.
@@ -509,24 +517,42 @@ $matchcount = $DB->count_records_sql("SELECT COUNT(u.id) $from $where", $params)
 
 $table->initialbars(true);
 $table->pagesize($perpage, $matchcount);
-echo "$select $from $where $sort";
-print_object($params);
+//echo "$select $from $where $sort";
+//print_object($params);
 // List of users at the current visible page - paging makes it relatively short.
 $userlist = $DB->get_recordset_sql("$select $from $where $sort", $params, $table->get_page_start(), $table->get_page_size());
 
 // If there are multiple Roles in the course, then show a drop down menu for switching.
+/*** AQUI ME QUEDE
 if (count($rolenames) > 1) {
+	// INEA - Filtrar por entidad si ya habia sido activado el filtro
+	if($icveentfed) {
+		$url = $url . '&icveentfed='.$icveentfed;
+	}
+	$rolenamesurl = new moodle_url($url);
     echo '<div class="rolesform">';
     echo $OUTPUT->single_select($rolenamesurl, 'roleid', $rolenames, $roleid, null,
         'rolesform', array('label' => get_string('currentrole', 'role')));
     echo '</div>';
-
 } else if (count($rolenames) == 1) {
     // When all users with the same role - print its name.
     echo '<div class="rolesform">';
     echo get_string('role').get_string('labelsep', 'langconfig');
     $rolename = reset($rolenames);
     echo $rolename;
+    echo '</div>';
+}
+
+// INEA - Mostrar una lista desplegable con las entidades federativas
+if(count($listaentidades) > 1) {
+	// INEA - Filtrar por rol si ya habia sido activado el filtro
+	if($roleid) {
+		$url = $url . '&roleid='.$roleid;
+	}
+	$entidadnamesurl = new moodle_url($url);
+	echo '<div class="entidadesform">';
+    echo $OUTPUT->single_select($entidadnamesurl, 'icveentfed', $listaentidades, $icveentfed, null,
+        'entidadesform', array('label' => get_string('entidad', 'inea')));
     echo '</div>';
 }
 
