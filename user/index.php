@@ -112,6 +112,23 @@ if (empty($rolenames) && !$isfrontpage) {
     }
 }
 
+// INEA - Mostrar opcion de filtrado por entidad si es responsable estatal
+$ismanager = false;
+if($myroles = inea_get_course_role($course->id)) {
+	foreach($myroles as $id_rol=>$nombre_rol) {
+		// Es responasable estatal ?
+		if($id_rol == RESPONSABLE) {
+			$ismanager = true;
+		}
+	}
+}
+
+// INEA - Mostrar opcion de filtrado por entidad si es administrador
+$admin = get_admin();
+if($USER->id == $admin->id) {
+	$ismanager = true;
+}
+
 // INEA - Obtener el listado de entidades por país
 if($listaentidades = inea_list_entidades(1)) {
 	$listaentidades[0] = get_string('selectestado', 'inea');
@@ -185,7 +202,8 @@ $baseurl = new moodle_url('/user/index.php', array(
         'id' => $course->id,
         'perpage' => $perpage,
         'accesssince' => $accesssince,
-        'search' => s($search)));
+        'search' => s($search),
+		'icveentfed' => $icveentfed));
 
 // Setting up tags.
 if ($course->id == SITEID) {
@@ -492,7 +510,7 @@ if ($wheres) {
 }
 
 // INEA - Filtrar por entidad federativa
-if ($icveentfed) {
+if ($icveentfed && $ismanager) {
     $wheres[] = "u.institution = :institution ";
     $params = array_merge($params, array('institution' => $icveentfed));
 }
@@ -525,7 +543,7 @@ $userlist = $DB->get_recordset_sql("$select $from $where $sort", $params, $table
 // If there are multiple Roles in the course, then show a drop down menu for switching.
 if (count($rolenames) > 1) {
 	// INEA - Filtrar por entidad si ya habia sido activado el filtro
-	if($icveentfed) {
+	if($icveentfed && $ismanager) {
 		$nueva_url = $url . '&icveentfed='.$icveentfed;
 	} else {
 		$nueva_url = $url;
@@ -544,7 +562,7 @@ if (count($rolenames) > 1) {
     echo '</div>';
 }
 // INEA - Mostrar una lista desplegable con las entidades federativas
-if(count($listaentidades) > 1) {
+if((count($listaentidades) > 1) && $ismanager) {
 	// INEA - Filtrar por rol si ya habia sido activado el filtro
 	if($roleid) {
 		$nueva_url = $url . '&roleid='.$roleid;
@@ -605,7 +623,7 @@ if ($roleid > 0) {
 }
 
 // INEA - Mostrar una leyenda para resaltar la entidad de los usuarios
-if($icveentfed > 0) {
+if(($icveentfed > 0) && $ismanager) {
 	//get_string('perteneceentidad', 'inea', $entidades[$icveentfed])
 	$entidad = $listaentidades[$icveentfed];
 	$heading = format_string(get_string('perteneceentidad', 'inea', $entidad));

@@ -23,7 +23,6 @@ if(file_exists($CFG->dirroot . '/mod/inea/inealib_jmp.php')){
     require_once($CFG->dirroot . '/mod/inea/inealib_jmp.php');
 }
 
-
 /**
  * Id rol para educando
  * @var unknown
@@ -483,9 +482,6 @@ function inea_get_course_role($courseid, $userid=0, $allcontexts=false) {
 	$myroles = array();
 	foreach($contexts as $context) {
 		if($roles = get_user_roles($context, $userid, true)){
-			echo "User ID : ".$userid;
-			print_object($context);
-			print_object($roles);
 			foreach($roles as $rol) {
 				$myroles[$rol->roleid] = $rol->name;
 			}
