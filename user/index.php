@@ -523,13 +523,14 @@ $table->pagesize($perpage, $matchcount);
 $userlist = $DB->get_recordset_sql("$select $from $where $sort", $params, $table->get_page_start(), $table->get_page_size());
 
 // If there are multiple Roles in the course, then show a drop down menu for switching.
-/*** AQUI ME QUEDE
 if (count($rolenames) > 1) {
 	// INEA - Filtrar por entidad si ya habia sido activado el filtro
 	if($icveentfed) {
-		$url = $url . '&icveentfed='.$icveentfed;
+		$nueva_url = $url . '&icveentfed='.$icveentfed;
+	} else {
+		$nueva_url = $url;
 	}
-	$rolenamesurl = new moodle_url($url);
+	$rolenamesurl = new moodle_url($nueva_url);
     echo '<div class="rolesform">';
     echo $OUTPUT->single_select($rolenamesurl, 'roleid', $rolenames, $roleid, null,
         'rolesform', array('label' => get_string('currentrole', 'role')));
@@ -542,14 +543,15 @@ if (count($rolenames) > 1) {
     echo $rolename;
     echo '</div>';
 }
-
 // INEA - Mostrar una lista desplegable con las entidades federativas
 if(count($listaentidades) > 1) {
 	// INEA - Filtrar por rol si ya habia sido activado el filtro
 	if($roleid) {
-		$url = $url . '&roleid='.$roleid;
+		$nueva_url = $url . '&roleid='.$roleid;
+	} else {
+		$nueva_url = $url;
 	}
-	$entidadnamesurl = new moodle_url($url);
+	$entidadnamesurl = new moodle_url($nueva_url);
 	echo '<div class="entidadesform">';
     echo $OUTPUT->single_select($entidadnamesurl, 'icveentfed', $listaentidades, $icveentfed, null,
         'entidadesform', array('label' => get_string('entidad', 'inea')));
@@ -602,6 +604,13 @@ if ($roleid > 0) {
     }
 }
 
+// INEA - Mostrar una leyenda para resaltar la entidad de los usuarios
+if($icveentfed > 0) {
+	//get_string('perteneceentidad', 'inea', $entidades[$icveentfed])
+	$entidad = $listaentidades[$icveentfed];
+	$heading = format_string(get_string('perteneceentidad', 'inea', $entidad));
+	echo $OUTPUT->heading($heading, 3);
+}
 
 if ($bulkoperations) {
     echo '<form action="action_redir.php" method="post" id="participantsform">';

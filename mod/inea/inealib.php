@@ -450,6 +450,50 @@ function inea_get_courses_page($categoryid="all", $sort="c.sortorder ASC", $fiel
     $rs->close();
     return $visiblecourses;
 }
+
+/**
+ * INEA - Obtiene los roles del usuario en un curso
+ *
+ * @param int $courseid - El id del curso
+ * @param int $userid - El id del usuario
+ * @return Array
+ */
+function inea_get_course_role($courseid, $userid=0, $allcontexts=false) {
+	global $CFG, $DB, $USER;
+	
+	if(empty($courseid)) {
+		return false;
+	}
+	
+	if(empty($userid)) {
+		$userid = $USER->id;
+	}
+	
+	$course = $DB->get_record('course', array('id' => $courseid), '*', MUST_EXIST);
+	if(!$context = context_course::instance($course->id)) {
+		return false;
+	}
+	
+	if($allcontexts) {
+		$contexts = $context->get_parent_contexts(true);
+	} else {
+		$contexts = array($context);
+	}
+	
+	$myroles = array();
+	foreach($contexts as $context) {
+		if($roles = get_user_roles($context, $userid, true)){
+			echo "User ID : ".$userid;
+			print_object($context);
+			print_object($roles);
+			foreach($roles as $rol) {
+				$myroles[$rol->roleid] = $rol->name;
+			}
+		}
+	}
+	
+	return $myroles;
+}
 //--------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------
 
