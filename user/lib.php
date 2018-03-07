@@ -254,12 +254,91 @@ function user_update_user($user, $updatepassword = true, $triggerevent = true) {
 
     // Validate user data object.
     $uservalidation = core_user::validate($user);
+	//print_object($uservalidation);
     if ($uservalidation !== true) {
         foreach ($uservalidation as $field => $message) {
             debugging("The property '$field' has invalid data and has been cleaned.", DEBUG_DEVELOPER);
             $user->$field = core_user::clean_field($user->$field, $field);
         }
     }
+
+    $DB->update_record('user', $user);
+
+    if ($updatepassword) {
+        // Get full user record.
+        $updateduser = $DB->get_record('user', array('id' => $user->id));
+
+        // If password was set, then update its hash.
+        if (isset($passwd)) {
+            $authplugin = get_auth_plugin($updateduser->auth);
+            if ($authplugin->can_change_password()) {
+                $authplugin->user_update_password($updateduser, $passwd);
+            }
+        }
+    }
+    // Trigger event if required.
+    if ($triggerevent) {
+        \core\event\user_updated::create_from_userid($user->id)->trigger();
+    }
+}
+
+/**
+ * INEA - Actualiza un usuario con los datos de un objeto usuario (compara con el ID)
+ *
+ * @throws moodle_exception
+ * @param stdClass $user el usuario a actualizar
+ * @param bool $updatepassword si true, el plugin de autenticacion actualiza el password.
+ * @param bool $triggerevent poner a false si el evento user_updated no deberia ser guardado.
+ *             Esto no afectara al evento user_password_updated.
+ */
+function inea_user_update_user($user, $updatepassword = true, $triggerevent = true) {
+    global $DB;
+
+    // Set the timecreate field to the current time.
+    if (!is_object($user)) {
+        $user = (object) $user;
+    }
+
+    // Check username.
+    if (isset($user->username)) {
+        if ($user->username !== core_text::strtolower($user->username)) {
+            throw new moodle_exception('usernamelowercase');
+        } /*else {
+            if ($user->username !== core_user::clean_field($user->username, 'username')) {
+                throw new moodle_exception('invalidusername');
+            }
+        }*/
+    }
+
+    // Unset password here, for updating later, if password update is required.
+    if ($updatepassword && isset($user->password)) {
+
+        // Check password toward the password policy.
+        if (!check_password_policy($user->password, $errmsg)) {
+            throw new moodle_exception($errmsg);
+        }
+
+        $passwd = $user->password;
+        unset($user->password);
+    }
+
+    // Make sure calendartype, if set, is valid.
+    if (empty($user->calendartype)) {
+        // Unset this variable, must be an empty string, which we do not want to update the calendartype to.
+        unset($user->calendartype);
+    }
+
+    $user->timemodified = time();
+
+    // Validate user data object.
+    $uservalidation = core_user::validate($user);
+	//print_object($uservalidation);
+    /*if ($uservalidation !== true) {
+        foreach ($uservalidation as $field => $message) {
+            debugging("The property '$field' has invalid data and has been cleaned.", DEBUG_DEVELOPER);
+            $user->$field = core_user::clean_field($user->$field, $field);
+        }
+    }*/
 
     $DB->update_record('user', $user);
 

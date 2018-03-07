@@ -207,7 +207,9 @@ if ($usernew = $userform->get_data()) {
             // Auth update failed.
             print_error('cannotupdateuseronexauth', '', '', $user->auth);
         }
-        user_update_user($usernew, false, false);
+		
+		// INEA - Actualizar usuario
+        inea_user_update_user($usernew, false, false);
 
         // Set new password if specified.
         if (!empty($usernew->newpassword)) {

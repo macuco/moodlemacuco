@@ -1173,9 +1173,15 @@ function inea_useredit_shared_definition(&$mform, $editoroptions, $filemanagerop
     $element = &$mform->addElement('date_selector', 'aim', utf8_encode(get_string('fechanacimiento','inea')),array ('startyear'=> 1900,'stopyear'=> 2009,'zona horaria'=> 99,'applydst'=> true , 'opcional' => true), 'onchange="generaRFE(document.getElementById(\'id_lastname\').value, document.getElementById(\'id_icq\').value, document.getElementById(\'id_firstname\').value, this.form,\''.$url.'\');"');
     //$mform->addRule('aim', '', 'required', null, 'client');
     
-    
     //$user->aim = "02/12/2017";
-    $fecha = empty($user->aim)?"02/12/2009":date('d/m/o',$user->aim);
+	$fecha = "02/12/2009";
+	if(!empty($user->aim)) {
+		$timestamp = ((string) (int) $user->aim);
+		if( $timestamp === $user->aim) {
+			$fecha = date('d/m/y', $user->aim);
+		}
+	}
+	
     if($modificando){
         $t = explode('/',$fecha);
         $script =  '<script type="text/javascript">
@@ -1281,18 +1287,16 @@ function addEvent(elemento,nomevento,funcion,captura)
     $mform->addElement('hidden', 'skype', '', 'id="skype"');// skype es la plaza
     $mform->setType('skype', PARAM_NOTAGS);
     
-    
-    
     $entities = get_all_entities();
     $municipios = get_all_municipios();
     $plazas = get_all_plazas();
     
     if($modificando){
         $tmp = isset($user->instituto) && $user->instituto  > 0 ?  $user->instituto: $tmp =$user->institution;
-        print_object($user);
+        //print_object($user);
        
         $zonas = get_all_zonas($tmp);//29/01/09
-        print_object($zonas);
+        //print_object($zonas);
     }
     
     
