@@ -24,6 +24,7 @@
  */
 require_once('../config.php');
 require_once('lib.php');
+require_once($CFG->dirroot.'/mod/inea/inealib.php'); // Importar libreria inea
 
 $courseid = required_param('id', PARAM_INT);
 $groupid  = optional_param('group', false, PARAM_INT);
@@ -138,6 +139,23 @@ switch ($action) {
         break;
 }
 
+// INEA - Verificar si el usuario es responsable estatal
+$ismanager = false;
+if($myroles = inea_get_course_role($course->id)) {
+	foreach($myroles as $id_rol=>$nombre_rol) {
+		// Es responasable estatal ?
+		if($id_rol == RESPONSABLE) {
+			$ismanager = true;
+		}
+	}
+}
+
+// INEA - Verificar si es administrador
+$admin = get_admin();
+if($USER->id == $admin->id) {
+	$ismanager = true;
+}
+
 // Print the page and form
 $strgroups = get_string('groups');
 $strparticipants = get_string('participants');
@@ -204,6 +222,8 @@ if ($groups) {
 echo '</select>'."\n";
 echo '<p><input class="btn btn-secondary" type="submit" name="act_updatemembers" id="updatemembers" value="'
         . get_string('showmembersforgroup', 'group') . '" /></p>'."\n";
+// INEA - Si el usuario es responsable estatal deshabilitar botones de grupo
+if(!$ismanager) { // AQUI ME QUEDE
 echo '<p><input class="btn btn-secondary" type="submit" '. $showeditgroupsettingsform_disabled .
         ' name="act_showgroupsettingsform" id="showeditgroupsettingsform" value="'
         . get_string('editgroupsettings', 'group') . '" /></p>'."\n";
@@ -219,7 +239,7 @@ echo '<p><input class="btn btn-secondary" type="submit" name="act_showautocreate
 
 echo '<p><input class="btn btn-secondary" type="submit" name="act_showimportgroups" id="showimportgroups" value="'
         . get_string('importgroups', 'core_group') . '" /></p>'."\n";
-
+}
 echo html_writer::end_tag('div');
 echo html_writer::start_tag('div', array('class' => 'members'));
 
