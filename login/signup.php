@@ -148,6 +148,13 @@ $PAGE->set_pagelayout('embedded');
 $PAGE->set_title($title);
 $PAGE->set_heading($SITE->fullname);
 
+// INEA - Agregar estilos al registro de usuarios
+// AQUI ME QUEDE
+if (file_exists('pamona.css')) {
+	$PAGE->requires->css('/login/pamona.css');
+}
+
 echo $OUTPUT->header();
+echo ' <div id="headerindx"></div> ';
 $mform_signup->display();
 echo $OUTPUT->footer();
