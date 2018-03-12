@@ -55,7 +55,8 @@ $PAGE->set_url('/user/index.php', array(
         'search' => $search,
         'roleid' => $roleid,
         'contextid' => $contextid,
-        'id' => $courseid));
+        'id' => $courseid,
+		'icveentfed' => $icveentfed)); // INEA - Agregar filtro por entidad al url
 
 if ($contextid) {
     $context = context::instance_by_id($contextid, MUST_EXIST);
@@ -112,21 +113,30 @@ if (empty($rolenames) && !$isfrontpage) {
     }
 }
 
-// INEA - Mostrar opcion de filtrado por entidad si es responsable estatal
-$ismanager = false;
-if($myroles = inea_get_course_role($course->id)) {
+// INEA - Verificar si el usuario actual es responsable estatal
+$isresponsable = false;
+$isadmin = false;
+$entidadresponsable = 0;
+$currentuser = $DB->get_record('user', array('id' => $USER->id), '*', MUST_EXIST);
+if($myroles = inea_get_course_role($course->id, $currentuser->id)) {
 	foreach($myroles as $id_rol=>$nombre_rol) {
 		// Es responasable estatal ?
 		if($id_rol == RESPONSABLE) {
-			$ismanager = true;
+			$isresponsable = true;
+			$entidadresponsable = isset($currentuser->institution)? $currentuser->institution : 0;
 		}
 	}
 }
 
+// INEA - Si es responsable estatal filtrar usuarios por entidad
+if($entidadresponsable) {
+	$icveentfed = $entidadresponsable;
+} 
+
 // INEA - Mostrar opcion de filtrado por entidad si es administrador
 $admin = get_admin();
 if($USER->id == $admin->id) {
-	$ismanager = true;
+	$isadmin = true;
 }
 
 // INEA - Obtener el listado de entidades por país
@@ -510,7 +520,7 @@ if ($wheres) {
 }
 
 // INEA - Filtrar por entidad federativa
-if ($icveentfed && $ismanager) {
+if ($icveentfed && ($isresponsable || $isadmin)) {
     $wheres[] = "u.institution = :institution ";
     $params = array_merge($params, array('institution' => $icveentfed));
 }
@@ -543,7 +553,7 @@ $userlist = $DB->get_recordset_sql("$select $from $where $sort", $params, $table
 // If there are multiple Roles in the course, then show a drop down menu for switching.
 if (count($rolenames) > 1) {
 	// INEA - Filtrar por entidad si ya habia sido activado el filtro
-	if($icveentfed && $ismanager) {
+	if($icveentfed && ($isresponsable || $isadmin)) {
 		$nueva_url = $url . '&icveentfed='.$icveentfed;
 	} else {
 		$nueva_url = $url;
@@ -562,7 +572,7 @@ if (count($rolenames) > 1) {
     echo '</div>';
 }
 // INEA - Mostrar una lista desplegable con las entidades federativas
-if((count($listaentidades) > 1) && $ismanager) {
+if((count($listaentidades) > 1) && $isadmin) {
 	// INEA - Filtrar por rol si ya habia sido activado el filtro
 	if($roleid) {
 		$nueva_url = $url . '&roleid='.$roleid;
@@ -623,7 +633,7 @@ if ($roleid > 0) {
 }
 
 // INEA - Mostrar una leyenda para resaltar la entidad de los usuarios
-if(($icveentfed > 0) && $ismanager) {
+if(($icveentfed > 0) && ($isresponsable || $isadmin)) {
 	//get_string('perteneceentidad', 'inea', $entidades[$icveentfed])
 	$entidad = $listaentidades[$icveentfed];
 	$heading = format_string(get_string('perteneceentidad', 'inea', $entidad));
