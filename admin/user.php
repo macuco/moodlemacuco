@@ -5,6 +5,13 @@
     require_once($CFG->libdir.'/authlib.php');
     require_once($CFG->dirroot.'/user/filters/lib.php');
     require_once($CFG->dirroot.'/user/lib.php');
+    
+    if(file_exists($CFG->dirroot . '/mod/inea/inealib_jmp.php')){
+        require_once($CFG->dirroot . '/mod/inea/inealib_jmp.php');
+    }
+    if(file_exists($CFG->dirroot . '/mod/inea/inealib.php')){
+        require_once($CFG->dirroot . '/mod/inea/inealib.php');
+    }
 
     $delete       = optional_param('delete', 0, PARAM_INT);
     $confirm      = optional_param('confirm', '', PARAM_ALPHANUM);   //md5 confirmation hash
@@ -159,18 +166,26 @@
         }
         redirect($returnurl);
     }
-
+    
     // create the user filter form
-    $ufiltering = new user_filtering();
+    $ufiltering = new user_filtering(array('realname' => 0, 'lastname' => 1, 'firstname' => 1, 'username' => 1, 'email' => 1, 'city' => 1, 'skype' => 0, 'idnumber'=>1));
     echo $OUTPUT->header();
-
+    
     // Carry on with the user listing
     $context = context_system::instance();
-    $extracolumns = get_extra_user_fields($context);
+    $extracolumns = get_extra_user_fields($context, array('idnumber'));
     // Get all user name fields as an array.
+    //$extracolumns = array();
+    $extracolumns[] = 'idnumber';
+    $extracolumns[] = 'institution';
+    $extracolumns[] = 'city';
+    $extracolumns[] = 'skype';
     $allusernamefields = get_all_user_name_fields(false, null, null, null, true);
-    $columns = array_merge($allusernamefields, $extracolumns, array('city', 'country', 'lastaccess'));
+    //print_object($extracolumns);
+    $columns = array_merge($allusernamefields, $extracolumns, array('institution', 'city', 'skype', 'lastaccess'));
 
+    //print_object($columns);
+    
     foreach ($columns as $column) {
         $string[$column] = get_user_field_name($column);
         if ($sort != $column) {
@@ -193,7 +208,7 @@
         }
         $$column = "<a href=\"user.php?sort=$column&amp;dir=$columndir\">".$string[$column]."</a>$columnicon";
     }
-
+    
     // We need to check that alternativefullnameformat is not set to '' or language.
     // We don't need to check the fullnamedisplay setting here as the fullname function call further down has
     // the override parameter set to true.
@@ -222,10 +237,14 @@
         // Use the first item in the array.
         $sort = reset($usernames);
     }
-
+   
     list($extrasql, $params) = $ufiltering->get_sql_filter();
+   
     $users = get_users_listing($sort, $dir, $page*$perpage, $perpage, '', '', '',
             $extrasql, $params, $context);
+    
+    //print_object($users);
+    
     $usercount = get_users(false);
     $usersearchcount = get_users(false, '', false, null, "", '', '', '', '', '*', $extrasql, $params);
 
@@ -242,7 +261,7 @@
     echo $OUTPUT->paging_bar($usercount, $page, $perpage, $baseurl);
 
     flush();
-
+    
 
     if (!$users) {
         $match = array();
@@ -278,11 +297,15 @@
         $table->colclasses = array();
         $table->head[] = $fullnamedisplay;
         $table->attributes['class'] = 'admintable generaltable';
+        //print_object($extracolumns);
         foreach ($extracolumns as $field) {
+            //print_object($field);
+            //print_object(${$field});
             $table->head[] = ${$field};
         }
-        $table->head[] = $city;
-        $table->head[] = $country;
+        //print_object($table->head);
+        //$table->head[] = $city;
+        //$table->head[] = $country;
         $table->head[] = $lastaccess;
         $table->head[] = get_string('edit');
         $table->colclasses[] = 'centeralign';
@@ -367,14 +390,38 @@
                 $strlastaccess = get_string('never');
             }
             $fullname = fullname($user, true);
-
+            
+            //$usertemp = $DB->get_record('user', array('id'=>$user->id));
+            
+            if(!empty($user->institution) && !empty($user->city)){
+                $omunicipio = get_municipio($user->institution,$user->city);
+                $user->city = isset($omunicipio->cdesmunicipio)?$omunicipio->cdesmunicipio:'';//$user->city;
+            }
+            
+            if(!empty($user->institution)){
+                $entidad = inea_get_entidad(1,$user->institution);
+                //print_object($entidad);
+                $user->institution = isset($entidad->cdesentfed)?$entidad->cdesentfed:'';//$user->city;
+            }
+            
+            if(!empty($user->skype)){
+                $plaza = inea_get_plaza($user->skype);
+                $user->skype = isset($plaza->cnomplaza)?$plaza->cnomplaza:'';//$user->city;
+            }
+            
+            
+            //get_municipio
+            
+            
             $row = array ();
             $row[] = "<a href=\"../user/view.php?id=$user->id&amp;course=$site->id\">$fullname</a>";
+            //print_object($extracolumns);
+            //print_object($user);
             foreach ($extracolumns as $field) {
                 $row[] = $user->{$field};
-            }
-            $row[] = $user->city;
-            $row[] = $user->country;
+            }       
+            //$row[] = $omunicipio;
+            //$row[] = $user->country;
             $row[] = $strlastaccess;
             if ($user->suspended) {
                 foreach ($row as $k=>$v) {
@@ -386,11 +433,11 @@
             $table->data[] = $row;
         }
     }
-
+    
     // add filters
     $ufiltering->display_add();
     $ufiltering->display_active();
-
+    
     if (!empty($table)) {
         echo html_writer::start_tag('div', array('class'=>'no-overflow'));
         echo html_writer::table($table);

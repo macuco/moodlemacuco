@@ -199,7 +199,6 @@ class user_filtering {
      */
     public function get_sql_filter($extra='', array $params=null) {
         global $SESSION;
-
         $sqls = array();
         if ($extra != '') {
             $sqls[] = $extra;

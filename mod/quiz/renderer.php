@@ -785,6 +785,16 @@ class mod_quiz_renderer extends plugin_renderer_base {
         //print_object($viewobj); exit();
         return $output;
     }
+    
+    public function inea_view_page($course, $quiz, $cm, $context, $viewobj) {
+        $output = '';
+        $output .= $this->view_information($quiz, $cm, $context, $viewobj->infomessages);
+        $output .= $this->view_table($quiz, $context, $viewobj);
+        $output .= $this->view_result_info($quiz, $context, $cm, $viewobj);
+        $output .= $this->box($this->view_page_buttons($viewobj), 'quizattempt');
+        //print_object($viewobj); exit();
+        return $output;
+    }
 
     /**
      * Work out, and render, whatever buttons, and surrounding info, should appear

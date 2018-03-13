@@ -260,9 +260,9 @@ function user_update_user($user, $updatepassword = true, $triggerevent = true) {
             $user->$field = core_user::clean_field($user->$field, $field);
         }
     }
-
+    
     $DB->update_record('user', $user);
-
+    
     if ($updatepassword) {
         // Get full user record.
         $updateduser = $DB->get_record('user', array('id' => $user->id));

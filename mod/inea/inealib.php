@@ -1156,12 +1156,13 @@ function addEvent(elemento,nomevento,funcion,captura)
     $municipios = get_all_municipios();
     $plazas = get_all_plazas();
     
+    
     if($modificando){
         $tmp = isset($user->instituto) && $user->instituto  > 0 ?  $user->instituto: $tmp =$user->institution;
-        print_object($user);
+        //print_object($user);
        
         $zonas = get_all_zonas($tmp);//29/01/09
-        print_object($zonas);
+        //print_object($zonas);
     }
     
     
@@ -1209,8 +1210,8 @@ if(!$modificando)
     }
     //$default_sexo[''] = " Seleccionar ";
     //$zons = array_merge($default_sexo, $desczonas);
-    $mform->addElement('select', 'zona', 'Zona', $desczonas);
-    $mform->addRule('zona', 'Zona requerida', 'required', null, 'server');
+    $mform->addElement('select', 'alternatename', 'Zona', $desczonas);
+    $mform->addRule('alternatename', 'Zona requerida', 'required', null, 'server');
     //$mform->setDefault('zona');
     
     /**  ****************  FIN   La parte del estado, municipio y plaza   ***************************/
@@ -1218,14 +1219,21 @@ if(!$modificando)
     
     //if($rol_actual_objeto->id != 8){ // Vhackero cuando es responsable estatal le quita la opcion de ocupaci�n
         
-        
+    
+    //$mform->addElement('select', 'zona', 'Zona Ocupaci&oacuten', $desczonas);
+    //$mform->addRule('zona', 'La ZONA ocupación es requerida', 'required', null, 'server');
+    //$mform->addElement('select', 'msn', get_string('ocupacion','registro'), $descocupacion);
+    //$mform->addRule('msn', get_string('noocupacion','registro'), 'required', null, 'server');
+    //if(isset($ocupacion))
+    //    $mform->setDefault('zona', $ocupacion);
+    
         $ocupaciones = get_all_ocupaciones();
         foreach($ocupaciones as $id=>$oocupacion){
             $descocupacion[$id] = $oocupacion->cdesocupacion;
         }
         $default_sexo[''] = " Seleccionar ";
         $sexo = array_merge($default_sexo, $descocupacion);
-        $mform->addElement('select', 'msn', 'cupacion', $descocupacion);
+        $mform->addElement('select', 'msn', 'Ocupaci&oacuten', $sexo);
         $mform->addRule('msn', 'La ocupación es requerida', 'required', null, 'server');
         //$mform->addElement('select', 'msn', get_string('ocupacion','registro'), $descocupacion);
         //$mform->addRule('msn', get_string('noocupacion','registro'), 'required', null, 'server');

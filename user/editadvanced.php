@@ -153,6 +153,7 @@ file_prepare_draft_area($draftitemid, $filemanagercontext->id, 'user', 'newicon'
 $user->imagefile = $draftitemid;
 //print_object($user);
 // Create form.
+
 $userform = new user_editadvanced_form(new moodle_url($PAGE->url, array('returnto' => $returnto)), array(
     'editoroptions' => $editoroptions,
     'filemanageroptions' => $filemanageroptions,
@@ -161,6 +162,7 @@ $userform = new user_editadvanced_form(new moodle_url($PAGE->url, array('returnt
 
 
 if ($usernew = $userform->get_data()) {
+    
     $usercreated = false;
 
     if (empty($usernew->auth)) {
@@ -170,7 +172,9 @@ if ($usernew = $userform->get_data()) {
     } else {
         $authplugin = get_auth_plugin($usernew->auth);
     }
-
+    //print_object( $authplugin);exit;
+    //auth_plugin_manual h;
+    //print_object($usernew);exit;
     $usernew->timemodified = time();
     $createpassword = false;
 
@@ -203,6 +207,7 @@ if ($usernew = $userform->get_data()) {
     } else {
         $usernew = file_postupdate_standard_editor($usernew, 'description', $editoroptions, $usercontext, 'user', 'profile', 0);
         // Pass a true old $user here.
+        
         if (!$authplugin->user_update($user, $usernew)) {
             // Auth update failed.
             print_error('cannotupdateuseronexauth', '', '', $user->auth);

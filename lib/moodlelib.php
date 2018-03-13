@@ -3671,7 +3671,7 @@ function get_user_field_name($field) {
             return get_string('icqnumber');
         }
         case 'skype' : {
-            return get_string('skypeid');
+            return get_string('plaza','inea');
         }
         case 'aim' : {
             return get_string('aimid');
@@ -3681,6 +3681,12 @@ function get_user_field_name($field) {
         }
         case 'msn' : {
             return get_string('msnid');
+        }
+        case 'institution' : {
+            return get_string('estado','inea');
+        }
+        case 'idnumber' : {
+            return get_string('rfe','inea');
         }
     }
     // Otherwise just use the same lang string.

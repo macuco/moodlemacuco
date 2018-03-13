@@ -232,6 +232,7 @@ $string['noplaza'] = 'Falta la plaza';
 $string['zona'] = 'Zona';
 $string['nozona'] = 'Falta la zona';
 $string['instituto'] = 'Instituto';
+$string['institution'] = 'Estado';
 $string['noinstituto'] = 'Falta el instituto';
 $string['modelo'] = 'Modelo';
 $string['nomodelo'] = 'Falta el modelo';

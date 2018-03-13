@@ -232,6 +232,8 @@ $viewobj->showbacktocourse = ($viewobj->buttontext === '' &&
         course_get_format($course)->has_view_page());
 
 echo $OUTPUT->header();
+//mod_quiz_renderer - 784
+
 
 if (isguestuser()) {
     // Guests can't do a quiz, so offer them a choice of logging in or going back.
@@ -241,7 +243,13 @@ if (isguestuser()) {
     // If they are not enrolled in this course in a good enough role, tell them to enrol.
     echo $output->view_page_notenrolled($course, $quiz, $cm, $context, $viewobj->infomessages);
 } else { 
-    echo $output->view_page($course, $quiz, $cm, $context, $viewobj);
+    echo $output->inea_view_page($course, $quiz, $cm, $context, $viewobj);
 }
+
+require_once '../../mod/inea/inealib_jmp.php';
+
+$tmp = get_calificaciones(2, 3,null);
+print_object($tmp);
+
 
 echo $OUTPUT->footer();
