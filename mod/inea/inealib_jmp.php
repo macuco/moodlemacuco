@@ -1,6 +1,7 @@
 <?php
 
-require_once '../../grade/report/user/externallib.php';
+require_once $CFG->dirroot .'/grade/report/user/externallib.php';
+//require_once($CFG->dirroot . '/mod/inea/inealib_jmp.php');
 
 //MACUCO
 function get_all_ocupaciones() {
