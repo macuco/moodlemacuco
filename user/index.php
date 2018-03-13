@@ -24,6 +24,7 @@
 
 require_once('../config.php');
 require_once($CFG->dirroot.'/user/lib.php');
+require_once($CFG->dirroot.'/mod/inea/inealib.php'); // Importar libreria inea
 require_once($CFG->libdir.'/tablelib.php');
 require_once($CFG->libdir.'/filelib.php');
 
@@ -42,6 +43,8 @@ $search       = optional_param('search', '', PARAM_RAW); // Make sure it is proc
 $roleid       = optional_param('roleid', 0, PARAM_INT); // Optional roleid, 0 means all enrolled users (or all on the frontpage).
 $contextid    = optional_param('contextid', 0, PARAM_INT); // One of this or.
 $courseid     = optional_param('id', 0, PARAM_INT); // This are required.
+$icvepais     = optional_param('icvepais', 1, PARAM_INT); // This are required.
+$icveentfed   = optional_param('icveentfed', 0, PARAM_INT); // This are required.
 $selectall    = optional_param('selectall', false, PARAM_BOOL); // When rendering checkboxes against users mark them all checked.
 
 $PAGE->set_url('/user/index.php', array(
@@ -52,7 +55,8 @@ $PAGE->set_url('/user/index.php', array(
         'search' => $search,
         'roleid' => $roleid,
         'contextid' => $contextid,
-        'id' => $courseid));
+        'id' => $courseid,
+		'icveentfed' => $icveentfed)); // INEA - Agregar filtro por entidad al url
 
 if ($contextid) {
     $context = context::instance_by_id($contextid, MUST_EXIST);
@@ -83,9 +87,11 @@ if ($isfrontpage) {
     require_capability('moodle/course:viewparticipants', $context);
 }
 
-$rolenamesurl = new moodle_url("$CFG->wwwroot/user/index.php?contextid=$context->id&sifirst=&silast=");
+// INEA - URL base para redireccionar segun filtros
+$url = $CFG->wwwroot.'/user/index.php?contextid='.$context->id.'&sifirst=&silast=';
 
 $rolenames = role_fix_names(get_profile_roles($context), $context, ROLENAME_ALIAS, true);
+
 if ($isfrontpage) {
     $rolenames[0] = get_string('allsiteusers', 'role');
 } else {
@@ -105,6 +111,37 @@ if (empty($rolenames) && !$isfrontpage) {
     } else {
         print_error('noparticipants');
     }
+}
+
+// INEA - Verificar si el usuario actual es responsable estatal
+$isresponsable = false;
+$isadmin = false;
+$entidadresponsable = 0;
+$currentuser = $DB->get_record('user', array('id' => $USER->id), '*', MUST_EXIST);
+if($myroles = inea_get_course_role($course->id, $currentuser->id)) {
+	foreach($myroles as $id_rol=>$nombre_rol) {
+		// Es responasable estatal ?
+		if($id_rol == RESPONSABLE) {
+			$isresponsable = true;
+			$entidadresponsable = isset($currentuser->institution)? $currentuser->institution : 0;
+		}
+	}
+}
+
+// INEA - Si es responsable estatal filtrar usuarios por entidad
+if($entidadresponsable) {
+	$icveentfed = $entidadresponsable;
+} 
+
+// INEA - Mostrar opcion de filtrado por entidad si es administrador
+$admin = get_admin();
+if($USER->id == $admin->id) {
+	$isadmin = true;
+}
+
+// INEA - Obtener el listado de entidades por país
+if($listaentidades = inea_list_entidades(1)) {
+	$listaentidades[0] = get_string('selectestado', 'inea');
 }
 
 // Trigger events.
@@ -175,7 +212,8 @@ $baseurl = new moodle_url('/user/index.php', array(
         'id' => $course->id,
         'perpage' => $perpage,
         'accesssince' => $accesssince,
-        'search' => s($search)));
+        'search' => s($search),
+		'icveentfed' => $icveentfed));
 
 // Setting up tags.
 if ($course->id == SITEID) {
@@ -443,7 +481,7 @@ $joins[] = $ccjoin;
 if ($roleid) {
     // We want to query both the current context and parent contexts.
     list($relatedctxsql, $relatedctxparams) = $DB->get_in_or_equal($context->get_parent_context_ids(true), SQL_PARAMS_NAMED, 'relatedctx');
-
+	
     $wheres[] = "u.id IN (SELECT userid FROM {role_assignments} WHERE roleid = :roleid AND contextid $relatedctxsql)";
     $params = array_merge($params, array('roleid' => $roleid), $relatedctxparams);
 }
@@ -474,11 +512,28 @@ if ($twhere) {
 }
 
 $from = implode("\n", $joins);
+
 if ($wheres) {
     $where = "WHERE " . implode(" AND ", $wheres);
 } else {
     $where = "";
 }
+
+// INEA - Filtrar por entidad federativa
+if ($icveentfed && ($isresponsable || $isadmin)) {
+    $wheres[] = "u.institution = :institution ";
+    $params = array_merge($params, array('institution' => $icveentfed));
+}
+
+$from = implode("\n", $joins);
+if ($wheres) {
+    $where = "WHERE " . implode(" AND ", $wheres);
+} else {
+    $where = "";
+}
+
+$totalcount = $DB->count_records_sql("SELECT COUNT(u.id) $from $where", $params);
+
 
 if ($table->get_sql_sort()) {
     $sort = ' ORDER BY '.$table->get_sql_sort();
@@ -490,23 +545,44 @@ $matchcount = $DB->count_records_sql("SELECT COUNT(u.id) $from $where", $params)
 
 $table->initialbars(true);
 $table->pagesize($perpage, $matchcount);
-
+//echo "$select $from $where $sort";
+//print_object($params);
 // List of users at the current visible page - paging makes it relatively short.
 $userlist = $DB->get_recordset_sql("$select $from $where $sort", $params, $table->get_page_start(), $table->get_page_size());
 
 // If there are multiple Roles in the course, then show a drop down menu for switching.
 if (count($rolenames) > 1) {
+	// INEA - Filtrar por entidad si ya habia sido activado el filtro
+	if($icveentfed && ($isresponsable || $isadmin)) {
+		$nueva_url = $url . '&icveentfed='.$icveentfed;
+	} else {
+		$nueva_url = $url;
+	}
+	$rolenamesurl = new moodle_url($nueva_url);
     echo '<div class="rolesform">';
     echo $OUTPUT->single_select($rolenamesurl, 'roleid', $rolenames, $roleid, null,
         'rolesform', array('label' => get_string('currentrole', 'role')));
     echo '</div>';
-
 } else if (count($rolenames) == 1) {
     // When all users with the same role - print its name.
     echo '<div class="rolesform">';
     echo get_string('role').get_string('labelsep', 'langconfig');
     $rolename = reset($rolenames);
     echo $rolename;
+    echo '</div>';
+}
+// INEA - Mostrar una lista desplegable con las entidades federativas
+if((count($listaentidades) > 1) && $isadmin) {
+	// INEA - Filtrar por rol si ya habia sido activado el filtro
+	if($roleid) {
+		$nueva_url = $url . '&roleid='.$roleid;
+	} else {
+		$nueva_url = $url;
+	}
+	$entidadnamesurl = new moodle_url($nueva_url);
+	echo '<div class="entidadesform">';
+    echo $OUTPUT->single_select($entidadnamesurl, 'icveentfed', $listaentidades, $icveentfed, null,
+        'entidadesform', array('label' => get_string('entidad', 'inea')));
     echo '</div>';
 }
 
@@ -556,6 +632,13 @@ if ($roleid > 0) {
     }
 }
 
+// INEA - Mostrar una leyenda para resaltar la entidad de los usuarios
+if(($icveentfed > 0) && ($isresponsable || $isadmin)) {
+	//get_string('perteneceentidad', 'inea', $entidades[$icveentfed])
+	$entidad = $listaentidades[$icveentfed];
+	$heading = format_string(get_string('perteneceentidad', 'inea', $entidad));
+	echo $OUTPUT->heading($heading, 3);
+}
 
 if ($bulkoperations) {
     echo '<form action="action_redir.php" method="post" id="participantsform">';

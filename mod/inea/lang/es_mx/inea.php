@@ -242,6 +242,7 @@ $string['ircursos'] = 'Ir a los cursos';
 $string['faltaorigen'] = 'Falta especificar el origen correctamente';
 $string['usuarioyaregistrado'] = 'Un usuario con el mismo RFE ya está registrado en el sistema.';
 $string['usersreg'] = 'Usuarios registrados';
+$string['perteneceentidad'] = 'Perteneciente(s) a : {$a}';
 
 //***************************************** PAÍS
 $string['mx'] = 'México';
@@ -282,3 +283,21 @@ $string['BT'] = 'Zacatecas';
 
 //***************************************** ENROLAMIENTO
 $string['eventenrolamientoinea'] = 'Enrolamiento de usuarios en el MEVyt';
+
+//***************************************** COMUNICACION SASA
+$string['messagesasa10'] = 'ERROR: No puede actualizar porque no existe por lo menos un educando registrado';
+$string['messagesasa11'] = 'ERROR: No existe el educando en PEEducando';
+$string['messagesasa12'] = 'ERROR:(es UCN)';
+$string['messagesasa13'] = 'ERROR: No existe el educando en PEEducando con la misma zona';
+$string['messagesasa14'] = 'ERROR: No existe formativa para este modulo';
+$string['messagesasa15'] = 'ERROR: El M&oacute;dulo fue acreditado anteriormente. Solicita apoyo para que te desvinculen el curso';
+$string['messagesasa16'] = 'ERROR: No existe la clave del examen';
+$string['messagesasa17'] = 'ERROR: El modelo del examen no corresponde con el del educando';
+$string['messagesasa18'] = 'ERROR: La fecha de registro del educando es posterior';
+$string['messagesasa19'] = 'Evidencia acreditada, ya se subi&oacute; anteriormente tu evidencia probablemente en otra modalidad';
+$string['messagesasa20'] = 'ERROR: El examen ya existe con una fecha posterior';
+$string['messagesasa21'] = 'ERROR: La evidencia intent&oacute; subirse sin exito a SASA en varias ocasiones, probablemente no coincide el asesor en SASA o no esta vinculado,favor de comunicarse con el responsable estatal del MEVyT en linea';
+$string['messagesasa22'] = 'ERROR: No existe criterio de calificaci󮠰ara la Formativa';
+$string['messagesasa23'] = 'ERROR: El Asesor no coincide con el que esta vinculado en SASA, por lo tanto no ha subido tu evidencia, pregunta a tu asesor o al apoyo t&eacute;cnico c&oacute;mo solucionar esto';
+$string['messagesasa99'] = 'Evidencia registrada, se ha subido tu evidencia a SASA. FELICIDADES, YA PUEDES SOLICITAR PRESENTAR EL EXAMEN DE ESTE CURSO';
+$string['messagesasadefault'] = 'ERROR: Desconocido';

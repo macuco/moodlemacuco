@@ -24,6 +24,7 @@
  */
 require_once('../config.php');
 require_once('lib.php');
+require_once($CFG->dirroot.'/mod/inea/inealib.php'); // Importar libreria inea
 
 $courseid = required_param('id', PARAM_INT);
 $groupid  = optional_param('group', false, PARAM_INT);
@@ -138,6 +139,23 @@ switch ($action) {
         break;
 }
 
+// INEA - Verificar si el usuario es responsable estatal
+$isresponsable = false;
+if($myroles = inea_get_course_role($course->id)) {
+	foreach($myroles as $id_rol=>$nombre_rol) {
+		// Es responasable estatal ?
+		if($id_rol == RESPONSABLE) {
+			$isresponsable = true;
+		}
+	}
+}
+
+// INEA - Si es resposanble estatal agregar estilo css para esconder botones de accion
+ $etiquetaocultar = '';
+if($isresponsable) {
+	$etiquetaocultar = 'style="display : none;"';
+}
+
 // Print the page and form
 $strgroups = get_string('groups');
 $strparticipants = get_string('participants');
@@ -202,23 +220,24 @@ if ($groups) {
 }
 
 echo '</select>'."\n";
+// INEA - Si el usuario es responsable estatal deshabilitar botones de grupo con la etiqueta $etiquetaocultar
 echo '<p><input class="btn btn-secondary" type="submit" name="act_updatemembers" id="updatemembers" value="'
-        . get_string('showmembersforgroup', 'group') . '" /></p>'."\n";
+        . get_string('showmembersforgroup', 'group') . '" '. $etiquetaocultar .'/></p>'."\n";
 echo '<p><input class="btn btn-secondary" type="submit" '. $showeditgroupsettingsform_disabled .
         ' name="act_showgroupsettingsform" id="showeditgroupsettingsform" value="'
-        . get_string('editgroupsettings', 'group') . '" /></p>'."\n";
+        . get_string('editgroupsettings', 'group') . '" '. $etiquetaocultar .'/></p>'."\n";
 echo '<p><input class="btn btn-secondary" type="submit" '. $deletegroup_disabled .
         ' name="act_deletegroup" id="deletegroup" value="'
-        . get_string('deleteselectedgroup', 'group') . '" /></p>'."\n";
+        . get_string('deleteselectedgroup', 'group') . '" '. $etiquetaocultar .'/></p>'."\n";
 
 echo '<p><input class="btn btn-secondary" type="submit" name="act_showcreateorphangroupform" id="showcreateorphangroupform" value="'
-        . get_string('creategroup', 'group') . '" /></p>'."\n";
+        . get_string('creategroup', 'group') . '" '. $etiquetaocultar .'/></p>'."\n";
 
 echo '<p><input class="btn btn-secondary" type="submit" name="act_showautocreategroupsform" id="showautocreategroupsform" value="'
-        . get_string('autocreategroups', 'group') . '" /></p>'."\n";
+        . get_string('autocreategroups', 'group') . '" '. $etiquetaocultar .'/></p>'."\n";
 
 echo '<p><input class="btn btn-secondary" type="submit" name="act_showimportgroups" id="showimportgroups" value="'
-        . get_string('importgroups', 'core_group') . '" /></p>'."\n";
+        . get_string('importgroups', 'core_group') . '" '. $etiquetaocultar .'/></p>'."\n";
 
 echo html_writer::end_tag('div');
 echo html_writer::start_tag('div', array('class' => 'members'));

@@ -23,7 +23,6 @@ if(file_exists($CFG->dirroot . '/mod/inea/inealib_jmp.php')){
     require_once($CFG->dirroot . '/mod/inea/inealib_jmp.php');
 }
 
-
 /**
  * Id rol para educando
  * @var unknown
@@ -34,6 +33,11 @@ define('EDUCANDO', 5);
  * @var unknown
  */
 define('ASESOR', 4);
+/**
+ * Id rol para responsable
+ * @var unknown
+ */
+define('RESPONSABLE', 9);
 
 
 /**
@@ -118,13 +122,24 @@ function inea_get_ocupaciones() {
 }
 
 /**
- * INEA - Obtiene el catalogo de entidades.
- * @return object
+ * INEA - Obtiene el catalogo de entidades de acuerdo al codigo de pais
+ *
+ * @param int $icvepais - El codigo de pais
+ * @param int $icveentfed - El codigo de entidad
+ * @return Array
  */
-function inea_get_entidades() {
-    global $DB;
-    
-    return $DB->get_records('inea_entidad', null, '', 'id, icvepais, icveentfed, cdesentfed');
+function inea_get_entidades($icvepais = 1, $icveentfed = 0) {
+    global $CFG, $DB;
+
+	$params = array('icvepais' => $icvepais);
+	
+	if($icveentfed > 0) {
+		$params = array('icvepais' => $icvepais, 'icveentfed' => $icveentfed);
+	} else {
+		$params = array('icvepais' => $icvepais);
+	}
+	
+	return $DB->get_records('inea_entidad', $params);
 }
 
 /**
@@ -261,15 +276,16 @@ function inea_get_plaza_from_municipio() {
  * @return Array $lista un arreglo con el nombre - descripcion de cada estado.
  */
 function inea_list_entidades($id_pais) {
-	global $DB;
+	global $CFG;
 	
-	$entidades = $DB->get_records('inea_entidad', array('icvepais'=>$id_pais), '', 'id, icvepais, icveentfed, cdesentfed');
 	$list = array();
-	
-	foreach ($entidades as $entitidad) {
+	if($entidades = inea_get_entidades($id_pais)) {
+		foreach ($entidades as $entitidad) {
 			//$list[$entityid->icveentfed] = $entityid->cdesentfed;
 			$list[$entitidad->icveentfed] = $entitidad->cdesentfed;
+		}
 	}
+	
 	//print_object($list);
 	return $list;
 }
@@ -433,6 +449,47 @@ function inea_get_courses_page($categoryid="all", $sort="c.sortorder ASC", $fiel
     $rs->close();
     return $visiblecourses;
 }
+
+/**
+ * INEA - Obtiene los roles del usuario en un curso
+ *
+ * @param int $courseid - El id del curso
+ * @param int $userid - El id del usuario
+ * @return Array
+ */
+function inea_get_course_role($courseid, $userid=0, $allcontexts=false) {
+	global $CFG, $DB, $USER;
+	
+	if(empty($courseid)) {
+		return false;
+	}
+	
+	if(empty($userid)) {
+		$userid = $USER->id;
+	}
+	
+	$course = $DB->get_record('course', array('id' => $courseid), '*', MUST_EXIST);
+	if(!$context = context_course::instance($course->id)) {
+		return false;
+	}
+	
+	if($allcontexts) {
+		$contexts = $context->get_parent_contexts(true);
+	} else {
+		$contexts = array($context);
+	}
+	
+	$myroles = array();
+	foreach($contexts as $context) {
+		if($roles = get_user_roles($context, $userid, true)){
+			foreach($roles as $rol) {
+				$myroles[$rol->roleid] = $rol->name;
+			}
+		}
+	}
+	
+	return $myroles;
+}
 //--------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------
 
@@ -538,54 +595,129 @@ function inea_get_record_sasa($entidad="", $rfe="") {
 }
 
 /**
+ * INEA - Envia calificacion a SASA.
+ *
+ * @param int $userid - El id del usuario
+ * @param int $courseid - El id del curso
+ * @return array - un arreglo con los datos
+ */
+function inea_calificacion_sasa_cron($userid, $groupid) {
+	global $CFG, $DB;
+	
+	// Verificar curso y usuario
+	if(empty($userid) || empty($groupid)) {
+		return false;
+	}
+	
+	// Verificar si existen el usuario y el grupo
+	$user = $DB->get_record('user', array('id' => $userid), '*', MUST_EXIST);
+	$group = $DB->get_record('group', array('id' => $groupid), '*', MUST_EXIST);
+	
+	$sql = "SELECT u.instituto, u.zona, u.idnumber AS rfe, u.id_sasa, u.icvemodesume, gm.id, gm.groupid, gm.fecha_concluido, c.idnumber, c.idnumber_1014 
+		FROM {user} u 
+		INNER JOIN {groups_members} gm ON u.id = gm.userid 
+		INNER JOIN {groups} g ON gm.groupid = g.id 
+		INNER JOIN {course} c ON g.courseid = c.id 
+		WHERE u.id = ? AND g.id = ?";
+		
+	if(!$usuario = $DB->get_record_sql($sql, array($user->id, $group->id))){
+		return false;
+	}
+	
+	$id_sasa = $usuario->id_sasa;
+    //$rfe_e = $usuario->rfe;  
+    $entidad = $usuario->instituto;
+    //$cz = $usuario->zona;
+	if($usuario->icvemodesume == 10) {
+		$icvemodulo = $usuario->idnumber;
+	} else {
+		$icvemodulo = $usuario->idnumber_1014; // RUDY: Si el modelo es 10 (MOL) entonces toma clave de MOL si no toma clave de 10-14
+	}
+	//$f_concluido = date('d/m/Y', $usuario->fecha_concluido);
+	//$rfc_a = inea_get_rfc_asesor_grupo($group->id); // funcion definida en lib/accesslib.php
+	$id_user_concluido = $usuario->id;	
+	
+	if(!$acceso = $DB->get_record('inea_sasa_conn', array('instituto' => $entidad), "nombre, base, usuario, pass")){
+		return false;
+	}
+    
+    $conectID = mssql_connect($acceso->nombre, $acceso->usuario, $acceso->pass);
+    mssql_select_db($acceso->base);
+	
+	$consulta = "EXEC mv_getCalificacionEducandoModulo ".$id_sasa.",".$icvemodulo;
+	//echo "<br>".$qry2. "<---- consulta para SQL   "; 
+
+   	$result_usu = mssql_query($consulta);
+	$calificacion = mssql_fetch_array($result_usu);
+
+	//$estatus = $evidencia['ccveestado'];
+	//echo "<br> Estatus: ".$estatus;
+	 //echo "<br>".$evidencia . "<---- Evidencia   ";
+	
+	//RUDY: Adjuntar el campo id de mdl_groups_members a la matriz devuelta, ya q lo necesitamos en mod/quiz/view.php
+	$calificacion['id_user_concluido'] = $id_user_concluido;
+	print_object($calificacion);
+
+	mssql_close($conectID);
+	
+	return $calificacion;
+}
+
+/**
  * INEA - Envia evidencia a SASA. // RUDY dic/2013
  *
- * @deprecated - Funcion personalizada.
- * @param String $table - El nombre de una tabla del catalogo
- * @param String $fields - Los campos a obtener de la tabla
- * @param String $condition - Una condicion para filtrar la consulta
- * @param boolean $all - Una condicion para obtener uno o todos los campos
- * @return array - un arreglo con el/los usuario(s)
- *
+ * @param int $userid - El id del usuario
+ * @param int $courseid - El id del curso
+ * @return array - un arreglo con los datos
  */
-function inea_evidencia_sasa($id_user="", $id_curso="") {
+function inea_evidencia_sasa($userid, $courseid) {
+    global $CFG, $DB;
+	
+	// Verificar curso y usuario
+	if(empty($courseid) || empty($userid)) {
+		return false;
+	}
+	
+	// Verificar si existen el usuario y el curso
+	$course = $DB->get_record('course', array('id' => $courseid), '*', MUST_EXIST);
+	$user = $DB->get_record('user', array('id' => $userid), '*', MUST_EXIST);
+	
+    $sql = "SELECT u.instituto, u.zona, u.idnumber AS rfe, u.id_sasa, u.icvemodesume, gm.id, gm.fecha_concluido, gm.groupid, c.idnumber, c.idnumber_1014 
+		FROM {user} u 
+		INNER JOIN {groups_members} gm ON u.id = gm.userid 
+		INNER JOIN {groups} g ON gm.groupid = g.id 
+		INNER JOIN {course} c ON g.courseid = c.id 
+		WHERE u.id = ? AND g.courseid = ?";
     
-    $qry1 = "SELECT mu.instituto, mu.zona, mu.idnumber AS rfe, mu.id_sasa, mu.icvemodesume, mgm.fecha_concluido, mgm.id, mgm.groupid, mc.idnumber, mc.idnumber_1014 FROM mdl_user mu INNER JOIN mdl_groups_members mgm ON mu.id = mgm.userid INNER JOIN mdl_groups_courses_groups mgcg ON mgm.groupid = mgcg.groupid INNER JOIN mdl_course mc ON mgcg.courseid = mc.id WHERE mu.id = ".$id_user." AND mgcg.courseid = ".$id_curso;
-    //echo $qry1;
+	if(!$usuario = $DB->get_record_sql($sql, array($user->id, $course->id))){
+		return false;
+	}
+	
+    $id_sasa = $usuario->id_sasa;
+    $rfe_e = $usuario->rfe;
+    $entidad = $usuario->instituto;
+    $cz = $usuario->zona;
+	if($usuario->icvemodesume == 10) {
+		$icvemodulo = $usuario->idnumber;
+	} else {
+		$icvemodulo = $usuario->idnumber_1014; // RUDY: Si el modelo es 10 (MOL) entonces toma clave de MOL si no toma clave de 10-14
+	}
+    $f_concluido = date('d/m/Y', $usuario->fecha_concluido);
+    $rfc_a = inea_get_rfc_asesor_grupo($usuario->groupid);
+    $id_user_concluido = $usuario->id;
     
-    $result_conn = mysql_query($qry1);
-    $row = mysql_fetch_array($result_conn);
+	if(!$acceso = $DB->get_record('inea_sasa_conn', array('instituto' => $entidad), "nombre, base, usuario, pass")){
+		return false;
+	}
     
-    $id_sasa = $row['id_sasa'];
-    $rfe_e= $row['rfe'];
-    $entidad= $row['instituto'];
-    $cz= $row['zona'];
-    $icvemodulo= $row['icvemodesume'] == 10 ? $row['idnumber'] : $row['idnumber_1014'];	// RUDY: Si el modelo es 10 (MOL) entonces toma clave de MOL si no toma clave de 10-14
-    $f_concluido = date('d/m/Y',$row['fecha_concluido']);
-    $grupo = $row['groupid'];
-    $rfc_a = obtener_rfc_asesor_grupo($grupo); ///!!!!!!
-    $id_user_concluido = $row['id'];
+    $conectID = mssql_connect($acceso->nombre, $acceso->usuario, $acceso->pass);
+    mssql_select_db($acceso->base);
     
-    $qry3 = "SELECT nombre, base, usuario, pass FROM mdl_inea_sasa_conn WHERE instituto = ".$entidad;
-    //echo "<br>".$qry3. "<---- consulta sql server  ";
-    
-    $result_conn = mysql_query($qry3);
-    $row=mysql_fetch_array($result_conn);
-    
-    $nombre= $row['nombre'];
-    $base = $row['base'];
-    $usuario= $row['usuario'];
-    $pass= $row['pass'];
-    
-    $conectID = mssql_connect("$nombre","$usuario","$pass");
-    mssql_select_db("$base");
-    
-    $qry2 = "EXEC mv_SetEvidenciaEducandoModulo ".$id_sasa.",'".$rfe_e."',".$entidad.",".$cz.",".$icvemodulo.",'".$f_concluido."','".$rfc_a."'";
+    $consulta = "EXEC mv_SetEvidenciaEducandoModulo ".$id_sasa.",'".$rfe_e."',".$entidad.",".$cz.",".$icvemodulo.",'".$f_concluido."','".$rfc_a."'";
     //$qry2 = "EXEC mv_SetEvidenciaEducandoModulo 460418,'CAMJ980713ND5',8,1,64,'19/03/2014','AEAZ931110LC1'"; //
-    
     //echo "<br>".$qry2. "<---- consulta para SQL   ";
     
-    $result_usu = mssql_query($qry2);
+    $result_usu = mssql_query($consulta);
     $evidencia = mssql_fetch_array($result_usu);
     
     //$estatus = $evidencia['ccveestado'];
@@ -655,8 +787,7 @@ function inea_generate_rfe_teacher() {
                 SET RFE='".$teacher->RFE."'
                 WHERE CLAVEASESOR={$teacher->CLAVEASESOR}";
         if(!execute_sql($sql, false)) {
-            //notify("El asesor $teacher->NOMBRE $teacher->PATERNO no ha sido actualizado.");
-            \core\notification::info("El asesor $teacher->NOMBRE $teacher->PATERNO no ha sido actualizado.");
+			echo $OUTPUT->notification('El asesor '.$teacher->NOMBRE.' '.$teacher->PATERNO.' no ha sido actualizado.', 'notifymessage');
         }
     }
 }
@@ -876,7 +1007,7 @@ function getOcupacionString($ocupacion_id){
 }
 
 /**
- * INEA - Obtiene el ID del grupo si el usuario esta inscrito
+ * INEA - Obtiene los datos del grupo del usuario
  * @param int $userid
  * @param int $courseid
  * @return Object
@@ -1042,9 +1173,15 @@ function inea_useredit_shared_definition(&$mform, $editoroptions, $filemanagerop
     $element = &$mform->addElement('date_selector', 'aim', utf8_encode(get_string('fechanacimiento','inea')),array ('startyear'=> 1900,'stopyear'=> 2009,'zona horaria'=> 99,'applydst'=> true , 'opcional' => true), 'onchange="generaRFE(document.getElementById(\'id_lastname\').value, document.getElementById(\'id_icq\').value, document.getElementById(\'id_firstname\').value, this.form,\''.$url.'\');"');
     //$mform->addRule('aim', '', 'required', null, 'client');
     
-    
     //$user->aim = "02/12/2017";
-    $fecha = empty($user->aim)?"02/12/2009":date('d/m/o',$user->aim);
+	$fecha = "02/12/2009";
+	if(!empty($user->aim)) {
+		$timestamp = ((string) (int) $user->aim);
+		if( $timestamp === $user->aim) {
+			$fecha = date('d/m/y', $user->aim);
+		}
+	}
+	
     if($modificando){
         $t = explode('/',$fecha);
         $script =  '<script type="text/javascript">
@@ -1149,8 +1286,6 @@ function addEvent(elemento,nomevento,funcion,captura)
     //$mform->setDefault('city');
     $mform->addElement('hidden', 'skype', '', 'id="skype"');// skype es la plaza
     $mform->setType('skype', PARAM_NOTAGS);
-    
-    
     
     $entities = get_all_entities();
     $municipios = get_all_municipios();
@@ -1456,6 +1591,119 @@ function inea_unenrol_user($userid, $courseid) {
 	
     return true;
 }
+
+/**
+ * INEA - Elimina los respuestas de las actividades de usuario en un curso.
+ *
+ * @param int $courseid - El id del curso.
+ * @param int $userid - El id del usuario. 
+ * @return bool
+ */
+function inea_delete_inea_answers($courseid, $userid) {
+	global $CFG, $DB;
+	
+	if(empty($courseid) || empty($userid)) {
+		return false;
+	}
+	
+	// obtener las respuestas de un usuario en un curso
+	$sql = "SELECT ir.* 
+		FROM {inea_ejercicios} ie, 
+		INNER JOIN {inea_respuestas} ir ON ie.id = ir.ejercicios_id
+		WHERE ie.courseid = ? AND ir.userid = ?";
+	$params = array($courseid, $userid);
+	
+	if(!$answers = $DB->get_records_sql($query, $params)){
+		return false;
+	}
+	
+	foreach($answers as $answer) {
+		$DB->delete_records("inea_respuestas", array("id"=>$answer->id));
+	}
+	
+	return true;
+}
+
+/**
+ * INEA - Obtiene al reponsable estatal asociado a una zona
+ *
+ * @param int $userid - El id del asesor.
+ * @param int $courseid - El id del curso.
+ * @return Array  - Un arreglo con los responsables asociados
+ */
+function inea_get_responsable_estatal_por_zona($userid, $courseid) {
+	global $CFG, $DB;
+	
+	if(empty($userid) || empty($courseid)) {
+		return false;
+	}
+	
+	$user = $DB->get_record('user', array('id' => $userid), '*', MUST_EXIST);
+	$course = $DB->get_record('course', array('id' => $courseid), '*', MUST_EXIST);
+	
+	if(!$context = context_course::instance($course->id)) {
+		return false;
+	}
+	
+	if(empty($user->institution)) {
+		return false;
+	}
+	
+	// we are looking for all users with this role assigned in this context or higher
+    if ($usercontexts = $context->get_parent_context_ids(true)) {
+        $listofcontexts = '('.implode(',', $usercontexts).')';
+    } else {
+        $listofcontexts = '('.$context->id.')'; // must be site
+    }
+	
+	$select = "SELECT u.* "; // Obtener todos los usuarios
+	$from   = "FROM {user} u
+	INNER JOIN {role_assignments} r ON (r.userid = u.id) 
+	INNER JOIN {user_lastaccess} ul ON ((ul.userid = r.userid) AND (ul.courseid = ? OR ul.courseid IS NULL)) ";
+	
+	$where  = "WHERE (r.contextid = ? OR r.contextid IN $listofcontexts)
+   		AND u.deleted = 0
+        AND u.username != 'guest'
+        AND u.institution = ?
+        AND r.roleid = ?";
+
+	$sql = $select.$from.$where;
+	
+	return $DB->get_records_sql($sql, array($course->id, $context->id, $user->institution, RESPONSABLE));
+}
+
+/**
+ * INEA - Obtiene una lista de roles de un usuario en un curso
+ *
+ * @param int $userid - El id del asesor.
+ * @param int $courseid - El id del curso.
+ * @return Array  - Un arreglo con los id de roles asociados
+ */
+function inea_get_roles_usuario($userid, $courseid) {
+	global $CFG, $DB;
+	
+	if(empty($userid) || empty($courseid)) {
+		return false;
+	}
+	
+	$user = $DB->get_record('user', array('id' => $userid), '*', MUST_EXIST);
+	$course = $DB->get_record('course', array('id' => $courseid), '*', MUST_EXIST);
+	
+	$select = "SELECT r.* "; // Obtener todos los usuarios
+	$from   = "FROM {user} u
+	INNER JOIN {role_assignments} ra ON (ra.userid = u.id) 
+	INNER JOIN {role} r ON (r.id = ra.roleid) 
+	INNER JOIN {context} cx ON (cx.instanceid = ? AND cx.contextlevel = 50 AND cx.id = ra.contextid) ";
+	
+	$where  = "WHERE u.id = ?
+   		AND u.deleted = 0
+        AND u.username != 'guest'";
+
+	$sql = $select.$from.$where;
+	
+	return $DB->get_records_sql($sql, array($course->id, $user->id));
+}
+
 
 /**
  * Imprime datos en consola web
