@@ -168,14 +168,16 @@
     }
     
     // create the user filter form
-    $ufiltering = new user_filtering(array('realname' => 0, 'lastname' => 1, 'firstname' => 1, 'username' => 1, 'email' => 1, 'city' => 1, 'skype' => 0, 'idnumber'=>1));
+    $ufiltering = new user_filtering(array('realname' => 0, 'lastname' => 1, 'firstname' => 1, 'username' => 1, 'city' => 1, 'skype' => 0, 'idnumber'=>1));
     echo $OUTPUT->header();
     
     // Carry on with the user listing
     $context = context_system::instance();
-    $extracolumns = get_extra_user_fields($context, array('idnumber'));
+    $extracolumns = array();//get_extra_user_fields($context, array('idnumber'));
+    
     // Get all user name fields as an array.
     //$extracolumns = array();
+    $extracolumns[] = 'role';
     $extracolumns[] = 'idnumber';
     $extracolumns[] = 'institution';
     $extracolumns[] = 'city';
@@ -316,7 +318,8 @@
         foreach ($users as $user) {
             $buttons = array();
             $lastcolumn = '';
-
+            complete_user_role($user);
+            //$user->rol="MACUCO".complete_user_role($user);
             // delete button
             if (has_capability('moodle/user:delete', $sitecontext)) {
                 if (is_mnet_remote_user($user) or $user->id == $USER->id or is_siteadmin($user)) {

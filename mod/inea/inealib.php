@@ -869,9 +869,37 @@ function complete_user_inea($user){
     
 }
 
-function complete_user_role($user, $courseid){
-    $context = context_course::instance($courseid);
+function complete_user_role($user, $courseid=0){
+    if($courseid > 0 && $courseid != null){
+        $context = context_course::instance($courseid);
+    }else{
+        
+        global $DB;
+        $sql = "SELECT ra.*, r.name, r.shortname
+              FROM {role_assignments} ra, {role} r, {context} c
+             WHERE ra.userid = ?
+                   AND ra.roleid = r.id
+                   AND ra.contextid = c.id
+          ";
+        $params = array('userid'=>$user->id);
+        $roles = $DB->get_records_sql($sql ,$params);
+        if(empty($roles)){
+            $user->role = '';
+            $user->roleid = '';
+            return;
+        }
+        $obj = array_values($roles)[0];
+        if(isset($obj->shortname)){
+            $user->role = getRolename($obj->roleid);
+            $user->roleid = $obj->roleid;
+        }
+        return;
+        //$context = context_course::instance(2);
+    }
+    
     if(empty(get_user_roles($context, $user->id))){
+        $user->role = '';
+        $user->roleid = '';
         return;
     }
     $obj = array_values(get_user_roles($context, $user->id))[0];
@@ -888,6 +916,8 @@ function getRolename($roleid){
         return "Educando";
         case 4:
         return "Asesor";
+        case 9:
+            return "Responsable estatal";
     }
     return "Otro";
 }
