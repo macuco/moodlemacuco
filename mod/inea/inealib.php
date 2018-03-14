@@ -451,6 +451,30 @@ function inea_get_courses_page($categoryid="all", $sort="c.sortorder ASC", $fiel
 }
 
 /**
+ * INEA - Obtiene los roles del usuario en el sistema
+ *
+ * @param int $userid - El id del usuario
+ * @return Array
+ */
+function inea_get_system_roles($userid=0) {
+	global $CFG, $USER;
+	
+	if(empty($userid)) {
+		$userid = $USER->id;
+	}
+	
+	$context = context_system::instance();
+	$roles = get_user_roles($context, $userid, false);
+	
+	$myroles = array();
+	foreach($roles as $rol) {
+		$myroles[$rol->roleid] = $rol->name;
+	}
+	
+	return $myroles;
+}
+
+/**
  * INEA - Obtiene los roles del usuario en un curso
  *
  * @param int $courseid - El id del curso
@@ -489,6 +513,74 @@ function inea_get_course_role($courseid, $userid=0, $allcontexts=false) {
 	}
 	
 	return $myroles;
+}
+
+/**
+ * INEA - Regresa el nombre de un campo de la tabla usuario. Funciona para los campos de INEA
+ * @param string $field - Nombre del campo, ej. 'institution'
+ * @return string - Regresa la descripcion del nombre del campo ej. 'Entidad'
+ */
+function inea_get_user_field_name($field) {
+	global $CFG;
+    
+	// Some fields have language strings which are not the same as field name.
+    switch ($field) {
+		case 'idnumber' : {
+            return get_string('rfe', 'inea');
+        }
+		case 'firstname' : {
+            return get_string('nombres', 'inea');
+        }
+		case 'lastname' : {
+            return get_string('apaterno', 'inea');
+        }
+		case 'icq' : {
+            return get_string('amaterno', 'inea');
+        }
+        case 'institution' : {
+            return get_string('entidad', 'inea');
+        }
+        case 'city' : {
+            return get_string('municipio', 'inea');
+        }
+        case 'skype' : {
+            return get_string('plaza', 'inea');
+        }
+        case 'zona' : {
+            return get_string('zona', 'inea');
+        }
+		case 'yahoo' : {
+            return get_string('sexo', 'inea');
+        }
+		case 'aim' : {
+            return get_string('fechanacimiento', 'inea');
+        }
+		case 'msn' : {
+            return get_string('ocupacion', 'inea');
+        }
+		case 'phone1' : {
+            return get_string('telefono', 'inea');
+        }
+		case 'timezone' : {
+            return get_string('cp', 'inea');
+        }
+		case 'instituto' : {
+            return get_string('instituto', 'inea');
+        }
+    }
+    // Otherwise just use the same lang string.
+    return get_string($field);
+}
+
+/**
+ * INEA - Regresa el nombre de un campo de la tabla usuario. Funciona para los campos de INEA
+ * @param string $field - Nombre del campo, ej. 'institution'
+ * @return string - Regresa la descripcion del nombre del campo ej. 'Entidad'
+ */
+function inea_get_users_listing($params) {
+	global $CFG, $DB;
+	
+	// AQUI ME QUEDE: ARMAR LA CONSULTA SQL PARA LISTAR USUARIOS basarse en get_users_liting
 }
 //--------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------

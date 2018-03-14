@@ -26,8 +26,10 @@
     $suspend      = optional_param('suspend', 0, PARAM_INT);
     $unsuspend    = optional_param('unsuspend', 0, PARAM_INT);
     $unlock       = optional_param('unlock', 0, PARAM_INT);
-
-    admin_externalpage_setup('editusers');
+	$icvepais     = optional_param('icvepais', 1, PARAM_INT); // INEA - Mexico por default
+	$icveentfed   = optional_param('icveentfed', 0, PARAM_INT); // INEA - Filtro para Entidad
+    
+	admin_externalpage_setup('editusers');
 
     $sitecontext = context_system::instance();
     $site = get_site();
@@ -50,8 +52,43 @@
     } else {
         $securewwwroot = str_replace('http:','https:',$CFG->wwwroot);
     }
+	
+	// INEA - Verificar si el usuario actual es responsable estatal
+	$isresponsable = false;
+	$isadmin = false;
+	$entidadresponsable = 0;
+	$currentuser = $DB->get_record('user', array('id' => $USER->id), '*', MUST_EXIST);
+	if($myroles = inea_get_system_roles($currentuser)) {
+		foreach($myroles as $id_rol=>$nombre_rol) {
+			// Es responasable estatal ?
+			if($id_rol == RESPONSABLE) {
+				$isresponsable = true;
+				$entidadresponsable = isset($currentuser->institution)? $currentuser->institution : 0;
+				break;
+			}
+		}
+	}
 
-    $returnurl = new moodle_url('/admin/user.php', array('sort' => $sort, 'dir' => $dir, 'perpage' => $perpage, 'page'=>$page));
+	// INEA - Si es responsable estatal filtrar usuarios por entidad
+	if($entidadresponsable) {
+		$icveentfed = $entidadresponsable;
+	} 
+
+	// INEA - Mostrar opcion de filtrado por entidad si es administrador
+	$admins = get_admins();
+	foreach($admins as $admin) {
+		if ($USER->id == $admin->id) {
+			$isadmin = true;
+			break;
+		}
+	}
+
+	// INEA - Obtener el listado de entidades por país
+	if($listaentidades = inea_list_entidades(1)) {
+		$listaentidades[0] = get_string('selectestado', 'inea');
+	}
+
+    $returnurl = new moodle_url('/admin/user.php', array('sort' => $sort, 'dir' => $dir, 'perpage' => $perpage, 'page'=>$page, 'icveentfed' => $icveentfed));
 
     // The $user variable is also used outside of these if statements.
     $user = null;
@@ -189,7 +226,7 @@
     //print_object($columns);
     
     foreach ($columns as $column) {
-        $string[$column] = get_user_field_name($column);
+        $string[$column] = inea_get_user_field_name($column);
         if ($sort != $column) {
             $columnicon = "";
             if ($column == "lastaccess") {
@@ -241,6 +278,12 @@
     }
    
     list($extrasql, $params) = $ufiltering->get_sql_filter();
+	
+	// INEA - Filtrar por entidad federativa
+	if ($icveentfed && ($isresponsable || $isadmin)) {
+		$extrasql = 'u.institution = :institution'
+		$params = array_merge($params, array('institution' => $icveentfed));
+	}
    
     $users = get_users_listing($sort, $dir, $page*$perpage, $perpage, '', '', '',
             $extrasql, $params, $context);
@@ -259,6 +302,7 @@
 
     $strall = get_string('all');
 
+	// ****** AQUI ME QUEDE
     $baseurl = new moodle_url('/admin/user.php', array('sort' => $sort, 'dir' => $dir, 'perpage' => $perpage));
     echo $OUTPUT->paging_bar($usercount, $page, $perpage, $baseurl);
 

@@ -124,6 +124,7 @@ if($myroles = inea_get_course_role($course->id, $currentuser->id)) {
 		if($id_rol == RESPONSABLE) {
 			$isresponsable = true;
 			$entidadresponsable = isset($currentuser->institution)? $currentuser->institution : 0;
+			break;
 		}
 	}
 }
@@ -134,9 +135,12 @@ if($entidadresponsable) {
 } 
 
 // INEA - Mostrar opcion de filtrado por entidad si es administrador
-$admin = get_admin();
-if($USER->id == $admin->id) {
-	$isadmin = true;
+$admins = get_admins();
+foreach($admins as $admin) {
+    if ($USER->id == $admin->id) {
+        $isadmin = true;
+        break;
+    }
 }
 
 // INEA - Obtener el listado de entidades por país
