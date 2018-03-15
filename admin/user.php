@@ -58,7 +58,7 @@
 	$isadmin = false;
 	$entidadresponsable = 0;
 	$currentuser = $DB->get_record('user', array('id' => $USER->id), '*', MUST_EXIST);
-	if($myroles = inea_get_system_roles($currentuser)) {
+	if($myroles = inea_get_system_roles($currentuser->id)) {
 		foreach($myroles as $id_rol=>$nombre_rol) {
 			// Es responasable estatal ?
 			if($id_rol == RESPONSABLE) {
@@ -68,7 +68,7 @@
 			}
 		}
 	}
-
+	//exit;
 	// INEA - Si es responsable estatal filtrar usuarios por entidad
 	if($entidadresponsable) {
 		$icveentfed = $entidadresponsable;
@@ -205,7 +205,7 @@
     }
     
     // create the user filter form
-    $ufiltering = new user_filtering(array('realname' => 0, 'lastname' => 1, 'firstname' => 1, 'username' => 1, 'city' => 1, 'skype' => 0, 'idnumber'=>1));
+    $ufiltering = new user_filtering(array('realname' => 0, 'lastname' => 1, 'firstname' => 1, 'username' => 1, 'city' => 1, 'skype' => 0, 'idnumber'=>1, 'icveentfed'=>0));
     echo $OUTPUT->header();
     
     // Carry on with the user listing
@@ -281,7 +281,7 @@
 	
 	// INEA - Filtrar por entidad federativa
 	if ($icveentfed && ($isresponsable || $isadmin)) {
-		$extrasql = 'u.institution = :institution'
+		$extrasql = 'institution = :institution';
 		$params = array_merge($params, array('institution' => $icveentfed));
 	}
    
@@ -302,8 +302,12 @@
 
     $strall = get_string('all');
 
-	// ****** AQUI ME QUEDE
-    $baseurl = new moodle_url('/admin/user.php', array('sort' => $sort, 'dir' => $dir, 'perpage' => $perpage));
+	// INEA - Filtrar por entidad federativa
+	$urlparams = array('sort' => $sort, 'dir' => $dir, 'perpage' => $perpage);
+	if ($icveentfed && ($isresponsable || $isadmin)) {
+		$urlparams = array_merge($urlparams, array('icveentfed' => $icveentfed));
+	}
+    $baseurl = new moodle_url('/admin/user.php', $urlparams);
     echo $OUTPUT->paging_bar($usercount, $page, $perpage, $baseurl);
 
     flush();
