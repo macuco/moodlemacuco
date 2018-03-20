@@ -139,7 +139,7 @@ class user_filtering {
             case 'email':       return new user_filter_text('email', get_string('email'), $advanced, 'email');
             case 'city':        return new user_filter_text('city', get_string('city'), $advanced, 'city');
             case 'country':     return new user_filter_select('country', get_string('country'), $advanced, 'country', get_string_manager()->get_list_of_countries(), $USER->country);
-			case 'icveentfed':  return new user_filter_select('icveentfed', get_string('entidad', 'inea'), $advanced, 'icveentfed', array_merge(array(get_string('selectestado', 'inea')), inea_list_entidades(1))); // INEA - Filtro por entidad federativa
+			case 'institution':  return new user_filter_select('institution', get_string('entidad', 'inea'), $advanced, 'institution', array_merge(array(get_string('selectestado', 'inea')), inea_list_entidades($USER->country))); // INEA - Filtro por entidad federativa
             case 'confirmed':   return new user_filter_yesno('confirmed', get_string('confirmed', 'admin'), $advanced, 'confirmed');
             case 'suspended':   return new user_filter_yesno('suspended', get_string('suspended', 'auth'), $advanced, 'suspended');
             case 'profile':     return new user_filter_profilefield('profile', get_string('profilefields', 'admin'), $advanced);

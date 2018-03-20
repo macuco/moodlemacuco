@@ -74,7 +74,7 @@ function inea_get_entidad($id_pais, $id_entidad) {
 function inea_get_municipio($id_pais, $id_entidad, $id_municipio) {
     global $DB;
     
-    return $DB->get_record('inea_municipios', array('icveentfed'=>$id_entidad,'icvepais'=>$id_pais, 'icvemunicipio'=>$id_municipio), 'id, icvepais, icveentfed, icvemunicipio, cdesmunicipio');
+    return $DB->get_record('inea_municipios', array('icveentfed'=>$id_entidad, 'icvepais'=>$id_pais, 'icvemunicipio'=>$id_municipio), 'id, icvepais, icveentfed, icvemunicipio, cdesmunicipio');
 }
 
 /**
@@ -277,6 +277,20 @@ function inea_get_plaza_from_municipio() {
  */
 function inea_list_entidades($id_pais) {
 	global $CFG;
+
+	// Si no existe pais, por default es Mexico
+	if(empty($id_pais)) {
+		$id_pais = 1; // Default MEXICO
+	}
+	
+	// Verificar si el id del pais viene en formato de cadena
+	if(is_string($id_pais)) {
+		switch($id_pais) {
+			case 'MX': $id_pais = 1; // Mexico
+			case 'USA': $id_pais = 2; // Estados Unidos
+			default: $id_pais = 1; // Default Mexico
+		}
+	}
 	
 	$list = array();
 	if($entidades = inea_get_entidades($id_pais)) {
@@ -567,6 +581,9 @@ function inea_get_user_field_name($field) {
 		case 'instituto' : {
             return get_string('instituto', 'inea');
         }
+		case 'concluido' : {
+            return get_string('concluido', 'inea');
+        }
     }
     // Otherwise just use the same lang string.
     return get_string($field);
@@ -577,10 +594,65 @@ function inea_get_user_field_name($field) {
  * @param string $field - Nombre del campo, ej. 'institution'
  * @return string - Regresa la descripcion del nombre del campo ej. 'Entidad'
  */
-function inea_get_users_listing($params) {
-	global $CFG, $DB;
-	
-	// AQUI ME QUEDE: ARMAR LA CONSULTA SQL PARA LISTAR USUARIOS basarse en get_users_liting
+function inea_get_users_listing($sort='lastaccess', $dir='ASC', $page=0, $recordsperpage=0,
+                           $search='', $firstinitial='', $lastinitial='', $extraselect='',
+                           array $extraparams=null, $extracontext = null) {
+    global $DB, $CFG;
+
+    $fullname  = $DB->sql_fullname();
+
+    $select = "deleted <> 1 AND id <> :guestid";
+    $params = array('guestid' => $CFG->siteguest);
+
+    if (!empty($search)) {
+        $search = trim($search);
+        $select .= " AND (". $DB->sql_like($fullname, ':search1', false, false).
+                   " OR ". $DB->sql_like('email', ':search2', false, false).
+                   " OR username = :search3)";
+        $params['search1'] = "%$search%";
+        $params['search2'] = "%$search%";
+        $params['search3'] = "$search";
+    }
+
+    if ($firstinitial) {
+        $select .= " AND ". $DB->sql_like('firstname', ':fni', false, false);
+        $params['fni'] = "$firstinitial%";
+    }
+    if ($lastinitial) {
+        $select .= " AND ". $DB->sql_like('lastname', ':lni', false, false);
+        $params['lni'] = "$lastinitial%";
+    }
+
+    if ($extraselect) {
+        $select .= " AND $extraselect";
+        $params = $params + (array)$extraparams;
+    }
+
+    if ($sort) {
+        $sort = " ORDER BY $sort $dir";
+    }
+
+    // If a context is specified, get extra user fields that the current user
+    // is supposed to see.
+    $extrafields = '';
+    if ($extracontext) {
+        $extrafields = get_extra_user_fields_sql($extracontext, '', '',
+                array('id','idnumber', 'username', 'email', 'firstname', 'lastname', 'city', 'country',
+                'lastaccess', 'confirmed', 'mnethostid'));
+    }
+    $namefields = get_all_user_name_fields(true);
+    $extrafields = "$extrafields, $namefields";
+    $extrafields .= ", idnumber, institution, skype";
+    // warning: will return UNCONFIRMED USERS
+	echo "SELECT id, username, email, city, country, lastaccess, confirmed, mnethostid, suspended $extrafields 
+	FROM mdl_user 
+	WHERE $select $sort";
+    print_object($params);
+	/*return $DB->get_records_sql("SELECT id, username, email, city, country, lastaccess, confirmed, mnethostid, suspended $extrafields
+                                   FROM {user}
+                                  WHERE $select
+                                  $sort", $params, $page, $recordsperpage); */
+
 }
 //--------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------

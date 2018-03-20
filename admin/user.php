@@ -84,7 +84,7 @@
 	}
 
 	// INEA - Obtener el listado de entidades por país
-	if($listaentidades = inea_list_entidades(1)) {
+	if($listaentidades = inea_list_entidades($icvepais)) {
 		$listaentidades[0] = get_string('selectestado', 'inea');
 	}
 
@@ -205,7 +205,11 @@
     }
     
     // create the user filter form
-    $ufiltering = new user_filtering(array('realname' => 0, 'lastname' => 1, 'firstname' => 1, 'username' => 1, 'city' => 1, 'skype' => 0, 'idnumber'=>1, 'icveentfed'=>0));
+	$ffiltering = array('realname' => 0, 'lastname' => 1, 'firstname' => 1, 'username' => 1, 'city' => 1, 'skype' => 0, 'idnumber' => 1);
+	if($isadmin) {
+		$ffiltering = array_merge($ffiltering, array('institution' => 1));
+	}
+	$ufiltering = new user_filtering($ffiltering);
     echo $OUTPUT->header();
     
     // Carry on with the user listing
@@ -280,16 +284,18 @@
     list($extrasql, $params) = $ufiltering->get_sql_filter();
 	
 	// INEA - Filtrar por entidad federativa
-	if ($icveentfed && ($isresponsable || $isadmin)) {
-		$extrasql = 'institution = :institution';
-		$params = array_merge($params, array('institution' => $icveentfed));
+	if ($icveentfed && $isresponsable) {
+		if(!empty($extrasql)) {
+			$extrasql .= ' AND';
+		}
+		$extrasql .= ' institution = :entidad ';
+		$params = array_merge($params, array('entidad' => $icveentfed));
 	}
    
+	//print_object($extrasql);
+	//print_object($params);
     $users = get_users_listing($sort, $dir, $page*$perpage, $perpage, '', '', '',
             $extrasql, $params, $context);
-    
-    //print_object($users);
-    
     $usercount = get_users(false);
     $usersearchcount = get_users(false, '', false, null, "", '', '', '', '', '*', $extrasql, $params);
 

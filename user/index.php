@@ -43,8 +43,8 @@ $search       = optional_param('search', '', PARAM_RAW); // Make sure it is proc
 $roleid       = optional_param('roleid', 0, PARAM_INT); // Optional roleid, 0 means all enrolled users (or all on the frontpage).
 $contextid    = optional_param('contextid', 0, PARAM_INT); // One of this or.
 $courseid     = optional_param('id', 0, PARAM_INT); // This are required.
-$icvepais     = optional_param('icvepais', 1, PARAM_INT); // This are required.
-$icveentfed   = optional_param('icveentfed', 0, PARAM_INT); // This are required.
+$country      = optional_param('country', 1, PARAM_INT); // INEA - Pais, por default Mexico (1)
+$institution  = optional_param('institution', 0, PARAM_INT); // INEA - Filtro por entidad
 $selectall    = optional_param('selectall', false, PARAM_BOOL); // When rendering checkboxes against users mark them all checked.
 
 $PAGE->set_url('/user/index.php', array(
@@ -56,7 +56,7 @@ $PAGE->set_url('/user/index.php', array(
         'roleid' => $roleid,
         'contextid' => $contextid,
         'id' => $courseid,
-		'icveentfed' => $icveentfed)); // INEA - Agregar filtro por entidad al url
+		'institution' => $institution)); // INEA - Agregar filtro por entidad al url
 
 if ($contextid) {
     $context = context::instance_by_id($contextid, MUST_EXIST);
@@ -131,7 +131,7 @@ if($myroles = inea_get_course_role($course->id, $currentuser->id)) {
 
 // INEA - Si es responsable estatal filtrar usuarios por entidad
 if($entidadresponsable) {
-	$icveentfed = $entidadresponsable;
+	$institution = $entidadresponsable;
 } 
 
 // INEA - Mostrar opcion de filtrado por entidad si es administrador
@@ -144,7 +144,7 @@ foreach($admins as $admin) {
 }
 
 // INEA - Obtener el listado de entidades por país
-if($listaentidades = inea_list_entidades(1)) {
+if($listaentidades = inea_list_entidades($country)) {
 	$listaentidades[0] = get_string('selectestado', 'inea');
 }
 
@@ -217,7 +217,7 @@ $baseurl = new moodle_url('/user/index.php', array(
         'perpage' => $perpage,
         'accesssince' => $accesssince,
         'search' => s($search),
-		'icveentfed' => $icveentfed));
+		'institution' => $institution));
 
 // Setting up tags.
 if ($course->id == SITEID) {
@@ -524,9 +524,9 @@ if ($wheres) {
 }
 
 // INEA - Filtrar por entidad federativa
-if ($icveentfed && ($isresponsable || $isadmin)) {
+if ($institution && ($isresponsable || $isadmin)) {
     $wheres[] = "u.institution = :institution ";
-    $params = array_merge($params, array('institution' => $icveentfed));
+    $params = array_merge($params, array('institution' => $institution));
 }
 
 $from = implode("\n", $joins);
@@ -557,8 +557,8 @@ $userlist = $DB->get_recordset_sql("$select $from $where $sort", $params, $table
 // If there are multiple Roles in the course, then show a drop down menu for switching.
 if (count($rolenames) > 1) {
 	// INEA - Filtrar por entidad si ya habia sido activado el filtro
-	if($icveentfed && ($isresponsable || $isadmin)) {
-		$nueva_url = $url . '&icveentfed='.$icveentfed;
+	if($institution && ($isresponsable || $isadmin)) {
+		$nueva_url = $url . '&institution='.$institution;
 	} else {
 		$nueva_url = $url;
 	}
@@ -585,7 +585,7 @@ if((count($listaentidades) > 1) && $isadmin) {
 	}
 	$entidadnamesurl = new moodle_url($nueva_url);
 	echo '<div class="entidadesform">';
-    echo $OUTPUT->single_select($entidadnamesurl, 'icveentfed', $listaentidades, $icveentfed, null,
+    echo $OUTPUT->single_select($entidadnamesurl, 'institution', $listaentidades, $institution, null,
         'entidadesform', array('label' => get_string('entidad', 'inea')));
     echo '</div>';
 }
@@ -637,9 +637,9 @@ if ($roleid > 0) {
 }
 
 // INEA - Mostrar una leyenda para resaltar la entidad de los usuarios
-if(($icveentfed > 0) && ($isresponsable || $isadmin)) {
-	//get_string('perteneceentidad', 'inea', $entidades[$icveentfed])
-	$entidad = $listaentidades[$icveentfed];
+if(($institution > 0) && ($isresponsable || $isadmin)) {
+	//get_string('perteneceentidad', 'inea', $entidades[$institution])
+	$entidad = $listaentidades[$institution];
 	$heading = format_string(get_string('perteneceentidad', 'inea', $entidad));
 	echo $OUTPUT->heading($heading, 3);
 }
