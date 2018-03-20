@@ -644,9 +644,20 @@ function inea_get_users_listing($sort='lastaccess', $dir='ASC', $page=0, $record
     $extrafields = "$extrafields, $namefields";
     $extrafields .= ", idnumber, institution, skype";
     // warning: will return UNCONFIRMED USERS
-	echo "SELECT id, username, email, city, country, lastaccess, confirmed, mnethostid, suspended $extrafields 
-	FROM mdl_user 
-	WHERE $select $sort";
+	
+	$select = "SELECT DISTINCT u.id, u.firstname, u.lastname, u.email, u.city, u.institution, u.skype, u.msn, u.idnumber, u.yahoo, c.id as courseid, c.fullname as coursename ";
+	
+	$from   = "FROM {user} u 
+			INNER JOIN {user_enrolments} ue ON (ue.userid = u.id AND ue.status = 0) 
+			INNER JOIN {enrol} e ON (e.id = ue.enrolid AND e.status = 0)
+			INNER JOIN {role_assignments} ra ON (ra.userid = u.id) ";
+	
+	$from   .= "LEFT OUTER JOIN {context} ctx ON (ctx.id = ra.contextid AND ctx.contextlevel = 50)
+			LEFT OUTER JOIN {course} c ON (ctx.instanceid = c.id AND ctx.instanceid IS NOT NULL) ";
+	
+	$where  = "WHERE $select ";
+	
+	$sql = $select.$from.$where.$sort;
     print_object($params);
 	/*return $DB->get_records_sql("SELECT id, username, email, city, country, lastaccess, confirmed, mnethostid, suspended $extrafields
                                    FROM {user}
