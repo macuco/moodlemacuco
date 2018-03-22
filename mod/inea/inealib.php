@@ -594,19 +594,19 @@ function inea_get_user_field_name($field) {
  * @param string $field - Nombre del campo, ej. 'institution'
  * @return string - Regresa la descripcion del nombre del campo ej. 'Entidad'
  */
-function inea_get_users_listing($sort='lastaccess', $dir='ASC', $page=0, $recordsperpage=0,
+function inea_get_users_listing($sort='courseid', $dir='ASC', $page=0, $recordsperpage=0,
                            $search='', $firstinitial='', $lastinitial='', $extraselect='',
-                           array $extraparams=null, $extracontext = null) {
+                           array $extraparams=null) {
     global $DB, $CFG;
 
     $fullname  = $DB->sql_fullname();
 
-    $select = "deleted <> 1 AND id <> :guestid";
+    $toselect = "u.deleted <> 1 AND u.confirmed <> 0 AND u.id <> :guestid";
     $params = array('guestid' => $CFG->siteguest);
 
     if (!empty($search)) {
         $search = trim($search);
-        $select .= " AND (". $DB->sql_like($fullname, ':search1', false, false).
+        $toselect .= " AND (". $DB->sql_like($fullname, ':search1', false, false).
                    " OR ". $DB->sql_like('email', ':search2', false, false).
                    " OR username = :search3)";
         $params['search1'] = "%$search%";
@@ -615,55 +615,54 @@ function inea_get_users_listing($sort='lastaccess', $dir='ASC', $page=0, $record
     }
 
     if ($firstinitial) {
-        $select .= " AND ". $DB->sql_like('firstname', ':fni', false, false);
+        $toselect .= " AND ". $DB->sql_like('firstname', ':fni', false, false);
         $params['fni'] = "$firstinitial%";
     }
     if ($lastinitial) {
-        $select .= " AND ". $DB->sql_like('lastname', ':lni', false, false);
+        $toselect .= " AND ". $DB->sql_like('lastname', ':lni', false, false);
         $params['lni'] = "$lastinitial%";
     }
 
     if ($extraselect) {
-        $select .= " AND $extraselect";
+        $toselect .= " AND $extraselect";
         $params = $params + (array)$extraparams;
     }
 
     if ($sort) {
         $sort = " ORDER BY $sort $dir";
     }
+	
+	// Campos a obtener de la consulta
+	$select = "SELECT u.id, u.firstname, u.lastname, u.email, u.city, u.institution, u.skype, u.msn, u.idnumber, u.yahoo, c.id as courseid, c.fullname as coursename, ug.groupname, ug.concluido ";
+	
+	$from   = " FROM {user} u ";
+	
+	// Subconsulta para obtener a los usuarios que esten enrolados y activos
+	$subjoinenrol = " INNER JOIN (
+		SELECT DISTINCT u.id
+		FROM {user} u
+		INNER JOIN {user_enrolments} ue ON (ue.userid = u.id AND ue.status = 0) 
+		INNER JOIN {enrol} e ON (e.id = ue.enrolid AND e.status = 0)) ue ON (ue.id = u.id) ";
+	
+	// Join para verificar el rol y contexto del usuario 
+	$joins   = " INNER JOIN {role_assignments} ra ON (ra.userid = u.id)
+		INNER JOIN {context} ctx ON (ctx.id = ra.contextid AND ctx.contextlevel = 50)
+		INNER JOIN {course} c ON (c.id = ctx.instanceid AND ctx.instanceid IS NOT NULL) ";
 
-    // If a context is specified, get extra user fields that the current user
-    // is supposed to see.
-    $extrafields = '';
-    if ($extracontext) {
-        $extrafields = get_extra_user_fields_sql($extracontext, '', '',
-                array('id','idnumber', 'username', 'email', 'firstname', 'lastname', 'city', 'country',
-                'lastaccess', 'confirmed', 'mnethostid'));
-    }
-    $namefields = get_all_user_name_fields(true);
-    $extrafields = "$extrafields, $namefields";
-    $extrafields .= ", idnumber, institution, skype";
-    // warning: will return UNCONFIRMED USERS
+	// Subconsulta para obtener el nombre del grupo del educando
+	$subjoingroup = " INNER JOIN ( 
+		SELECT DISTINCT u.id, g.name as groupname, g.courseid, gm.concluido, gm.acreditado
+		FROM {user} u 
+		INNER JOIN {groups_members} gm ON (gm.userid = u.id)
+		INNER JOIN {groups} g ON (g.id = gm.groupid)) ug ON (ug.id = u.id AND ug.courseid = c.id)";
 	
-	$select = "SELECT DISTINCT u.id, u.firstname, u.lastname, u.email, u.city, u.institution, u.skype, u.msn, u.idnumber, u.yahoo, c.id as courseid, c.fullname as coursename ";
+	// Seleccion
+	$where  = " WHERE $toselect ";
 	
-	$from   = "FROM {user} u 
-			INNER JOIN {user_enrolments} ue ON (ue.userid = u.id AND ue.status = 0) 
-			INNER JOIN {enrol} e ON (e.id = ue.enrolid AND e.status = 0)
-			INNER JOIN {role_assignments} ra ON (ra.userid = u.id) ";
-	
-	$from   .= "LEFT OUTER JOIN {context} ctx ON (ctx.id = ra.contextid AND ctx.contextlevel = 50)
-			LEFT OUTER JOIN {course} c ON (ctx.instanceid = c.id AND ctx.instanceid IS NOT NULL) ";
-	
-	$where  = "WHERE $select ";
-	
-	$sql = $select.$from.$where.$sort;
-    print_object($params);
-	/*return $DB->get_records_sql("SELECT id, username, email, city, country, lastaccess, confirmed, mnethostid, suspended $extrafields
-                                   FROM {user}
-                                  WHERE $select
-                                  $sort", $params, $page, $recordsperpage); */
-
+	$sql = $select.$from.$subjoinenrol.$joins.$subjoingroup.$where.$sort;
+	//echo $sql;
+    //print_object($params);
+	return $DB->get_recordset_sql($sql, $params, $page, $recordsperpage);
 }
 //--------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------
