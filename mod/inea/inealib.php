@@ -334,6 +334,26 @@ function inea_get_modelo_from_user($userid) {
 }
 
 /**
+ * INEA - Obtiene el valor de un campo de una tabla
+ *
+ * @param int $courseid
+ * @return String
+ */
+function inea_get_valorcampo($tabla='', $campo='', $params=array()) {
+	global $CFG, $DB;
+	
+	if(empty($tabla) || empty($campo) || empty($params)) {
+		return false;
+	}
+	
+	if(!is_array($params)) {
+		return false;
+	}
+	
+	return $DB->get_field($tabla, $campo, $params);
+}
+
+/**
  * INEA - Regresa la lista de cursos de acuerdo a la categoria
  *
  * @global object
@@ -584,6 +604,9 @@ function inea_get_user_field_name($field) {
 		case 'concluido' : {
             return get_string('concluido', 'inea');
         }
+		case 'fecha_concluido' : {
+            return get_string('fecha_concluido', 'inea');
+        }
     }
     // Otherwise just use the same lang string.
     return get_string($field);
@@ -594,7 +617,7 @@ function inea_get_user_field_name($field) {
  * @param string $field - Nombre del campo, ej. 'institution'
  * @return string - Regresa la descripcion del nombre del campo ej. 'Entidad'
  */
-function inea_get_users_listing($sort='courseid', $dir='ASC', $page=0, $recordsperpage=0,
+function inea_get_users_listing($sort='course', $dir='ASC', $page=0, $recordsperpage=0,
                            $search='', $firstinitial='', $lastinitial='', $extraselect='',
                            array $extraparams=null) {
     global $DB, $CFG;
@@ -632,8 +655,12 @@ function inea_get_users_listing($sort='courseid', $dir='ASC', $page=0, $recordsp
         $sort = " ORDER BY $sort $dir";
     }
 	
+	$userfields = ' u.id, u.firstname, u.lastname, u.email, u.country, u.institution, u.city, u.skype, u.idnumber '; 
+	$namefields = get_all_user_name_fields(true);
+	$extrafields = "$userfields, $namefields";
+	
 	// Campos a obtener de la consulta
-	$select = "SELECT u.id, u.firstname, u.lastname, u.email, u.city, u.institution, u.skype, u.msn, u.idnumber, u.yahoo, c.id as courseid, c.fullname as coursename, ug.groupname, ug.concluido ";
+	$select = "SELECT $extrafields, ctx.instanceid AS course, ra.roleid AS role, ug.groupid AS usergroup, ug.concluido, ug.fecha_concluido ";
 	
 	$from   = " FROM {user} u ";
 	
@@ -646,15 +673,14 @@ function inea_get_users_listing($sort='courseid', $dir='ASC', $page=0, $recordsp
 	
 	// Join para verificar el rol y contexto del usuario 
 	$joins   = " INNER JOIN {role_assignments} ra ON (ra.userid = u.id)
-		INNER JOIN {context} ctx ON (ctx.id = ra.contextid AND ctx.contextlevel = 50)
-		INNER JOIN {course} c ON (c.id = ctx.instanceid AND ctx.instanceid IS NOT NULL) ";
+		INNER JOIN {context} ctx ON (ctx.id = ra.contextid AND ctx.contextlevel = 50) ";
 
 	// Subconsulta para obtener el nombre del grupo del educando
 	$subjoingroup = " INNER JOIN ( 
-		SELECT DISTINCT u.id, g.name as groupname, g.courseid, gm.concluido, gm.acreditado
+		SELECT DISTINCT u.id, g.id as groupid, g.courseid, gm.concluido, gm.acreditado, gm.fecha_concluido
 		FROM {user} u 
 		INNER JOIN {groups_members} gm ON (gm.userid = u.id)
-		INNER JOIN {groups} g ON (g.id = gm.groupid)) ug ON (ug.id = u.id AND ug.courseid = c.id)";
+		INNER JOIN {groups} g ON (g.id = gm.groupid)) ug ON (ug.id = u.id AND ug.courseid = ctx.instanceid) ";
 	
 	// Seleccion
 	$where  = " WHERE $toselect ";

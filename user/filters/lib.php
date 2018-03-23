@@ -188,7 +188,17 @@ class user_filtering {
                 }
                 return new user_filter_simpleselect('mnethostid', get_string('mnetidprovider', 'mnet'), $advanced, 'mnethostid', $choices);
 
-            default:
+            case 'role':  //INEA - Filtro por rol
+				// Obtener el listado de roles
+				if(!$roles = $DB->get_records('role')) {
+					$roles = array();
+				}
+				$rolelist[0] = 'Seleccione ...';
+				foreach($roles as $key=>$rol) {
+					$rolelist[$key] = $rol->name; 
+				}
+				return new user_filter_select('role', get_string('role'), $advanced, 'role', $rolelist); // INEA - Filtro por rol
+			default:
                 return null;
         }
     }

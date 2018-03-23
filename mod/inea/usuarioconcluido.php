@@ -14,30 +14,35 @@
 
     //$delete       = optional_param('delete', 0, PARAM_INT);
     //$confirm      = optional_param('confirm', '', PARAM_ALPHANUM);   //md5 confirmation hash
-    //$confirmuser  = optional_param('confirmuser', 0, PARAM_INT);
-    $sort         = optional_param('sort', 'name', PARAM_ALPHANUM);
-    $dir          = optional_param('dir', 'ASC', PARAM_ALPHA);
-    $page         = optional_param('page', 0, PARAM_INT);
-    $perpage      = optional_param('perpage', 30, PARAM_INT);        // how many per page
+    $updateuser  	= optional_param('updateuser', 0, PARAM_INT); // INEA - Id de usuario
+    $groupid  		= optional_param('groupid', 0, PARAM_INT); // INEA - Id de grupo
+    $sort         	= optional_param('sort', 'courseid', PARAM_ALPHANUM); // Order by courseid
+    $dir          	= optional_param('dir', 'ASC', PARAM_ALPHA);
+    $page         	= optional_param('page', 0, PARAM_INT);
+    $perpage      	= optional_param('perpage', 30, PARAM_INT);        // how many per page
     //$ru           = optional_param('ru', '2', PARAM_INT);            // show remote users
     //$lu           = optional_param('lu', '2', PARAM_INT);            // show local users
     //$acl          = optional_param('acl', '0', PARAM_INT);           // id of user to tweak mnet ACL (requires $access)
     //$suspend      = optional_param('suspend', 0, PARAM_INT);
     //$unsuspend    = optional_param('unsuspend', 0, PARAM_INT);
     //$unlock       = optional_param('unlock', 0, PARAM_INT);
-	$icvepais     = optional_param('icvepais', 1, PARAM_INT); // INEA - Mexico por default
-	$icveentfed   = optional_param('icveentfed', 0, PARAM_INT); // INEA - Filtro para Entidad
-	$concluido    = optional_param('concluido', 0, PARAM_INT); // INEA - Filtro para Concluido
+	$roleid			= optional_param('roleid', EDUCANDO, PARAM_INT); // INEA - Estudiante por default
+	$icvepais     	= optional_param('icvepais', 1, PARAM_INT); // INEA - Mexico por default
+	$icveentfed   	= optional_param('icveentfed', 0, PARAM_INT); // INEA - Filtro para Entidad
+	$concluido    	= optional_param('concluido', 0, PARAM_INT); // INEA - Filtro para Concluido
     
-	admin_externalpage_setup('editusers');
-
-    $sitecontext = context_system::instance();
+	//admin_externalpage_setup('editusers');
+	$PAGE->set_url('/mod/inea/usuarioconcluido.php', array('sort' => $sort, 'dir' => $dir, 'perpage' => $perpage, 'page'=>$page)); // INEA - Agregar filtro por entidad al url
+	$PAGE->set_pagelayout('admin');
+    
+	$sitecontext = context_system::instance();
     $site = get_site();
 
     if (!has_capability('moodle/user:update', $sitecontext) and !has_capability('moodle/user:delete', $sitecontext)) {
         print_error('nopermissions', 'error', '', 'edit/delete users');
     }
 
+	require_login($site);
     //$stredit   = get_string('edit');
     //$strdelete = get_string('delete');
     //$strdeletecheck = get_string('deletecheck');
@@ -88,15 +93,34 @@
 		$listaentidades[0] = get_string('selectestado', 'inea');
 	}
 
-    $returnurl = new moodle_url('/admin/user.php', array('sort' => $sort, 'dir' => $dir, 'perpage' => $perpage, 'page'=>$page, 'icveentfed' => $icveentfed, 'concluido' => $concluido));
+    $returnurl = new moodle_url('/mod/inea/usuarioconcluido.php', array('sort' => $sort, 'dir' => $dir, 'perpage' => $perpage, 'page'=>$page));
 
 	// INEA - Verificar si es admin o responsable estatal
-	if(!$isadmin || !$isresponsable) {
+	if(!$isadmin && !$isresponsable) {
 		print_error('nopermissions', 'error', '', 'edit/delete users');
 	}
 	
     // The $user variable is also used outside of these if statements.
     $user = null;
+	if ($updateuser) {
+        require_capability('moodle/user:update', $sitecontext);
+        if (!$user = $DB->get_record('user', array('id'=>$updatemuser, 'mnethostid'=>$CFG->mnet_localhost_id))) {
+            print_error('nousers');
+        }
+		
+		if(!$group = $DB->get_record('group', array('id'=>$groupid))) {
+			print_error('nogroup', 'group');
+		}
+		
+		// Fecha actual del sistema
+		$fecha_actual = time();
+	
+		// Actualizar la fecha de conclusion de curso
+		$DB->set_field('groups_members', 'fecha_concluido', $fecha_actual, array('groupid' => $group->id, 'userid' => $user->id));
+		
+        redirect($returnurl);
+    }
+	
     /*if ($confirmuser and confirm_sesskey()) {
         require_capability('moodle/user:update', $sitecontext);
         if (!$user = $DB->get_record('user', array('id'=>$confirmuser, 'mnethostid'=>$CFG->mnet_localhost_id))) {
@@ -210,9 +234,9 @@
     }*/
     
     // create the user filter form
-	$ffiltering = array('realname' => 0, 'lastname' => 1, 'firstname' => 1, 'username' => 1, 'city' => 1, 'skype' => 0, 'idnumber' => 1);
+	$ffiltering = array('realname' => 1, 'lastname' => 1, 'firstname' => 1, 'username' => 1, 'city' => 1, 'skype' => 1, 'idnumber' => 1, 'role' => 0, 'concluido' => 0);
 	if($isadmin) {
-		$ffiltering = array_merge($ffiltering, array('institution' => 1, 'concluido' => 1));
+		$ffiltering = array_merge($ffiltering, array('institution' => 0));
 	}
 	$ufiltering = new user_filtering($ffiltering);
     echo $OUTPUT->header();
@@ -223,14 +247,17 @@
     
     // Get all user name fields as an array.
     //$extracolumns = array();
-    $extracolumns[] = 'role';
     $extracolumns[] = 'idnumber';
     $extracolumns[] = 'institution';
     $extracolumns[] = 'city';
     $extracolumns[] = 'skype';
+	$extracolumns[] = 'course';
+	$extracolumns[] = 'role';
+	$extracolumns[] = 'concluido';
+	$extracolumns[] = 'fecha_concluido';
     $allusernamefields = get_all_user_name_fields(false, null, null, null, true);
     //print_object($extracolumns);
-    $columns = array_merge($allusernamefields, $extracolumns, array('institution', 'city', 'skype', 'course', 'fecha_concluido'));
+    $columns = array_merge($allusernamefields, $extracolumns, array('institution', 'city', 'skype', 'course', 'concluido', 'fecha_concluido'));
 
     //print_object($columns);
     
@@ -254,7 +281,7 @@
                                             ['class' => 'iconsort']);
 
         }
-        $$column = "<a href=\"user.php?sort=$column&amp;dir=$columndir\">".$string[$column]."</a>$columnicon";
+        $$column = "<a href=\"usuarioconcluido.php?sort=$column&amp;dir=$columndir\">".$string[$column]."</a>$columnicon";
     }
     
     // We need to check that alternativefullnameformat is not set to '' or language.
@@ -301,10 +328,18 @@
 	//print_object($params);
     $users = inea_get_users_listing($sort, $dir, $page*$perpage, $perpage, '', '', '',
             $extrasql, $params, $context);
-    $usercount = get_users(false);
-    $usersearchcount = get_users(false, '', false, null, "", '', '', '', '', '*', $extrasql, $params);
-
-    if ($extrasql !== '') {
+	
+	// INEA - Filtrar por entidad federativa
+	$urlparams = array('sort' => $sort, 'dir' => $dir, 'perpage' => $perpage, 'roleid' => $roleid, 'concluido' => $concluido);
+	if ($icveentfed && ($isresponsable || $isadmin)) {
+		$urlparams = array_merge($urlparams, array('icveentfed' => $icveentfed));
+	}
+    $baseurl = new moodle_url('/mod/inea/usuarioconcluido.php', $urlparams);
+    
+	$usercount = 100;
+	$usersearchcount = 100;
+	
+	if ($extrasql !== '') {
         echo $OUTPUT->heading("$usersearchcount / $usercount ".get_string('users'));
         $usercount = $usersearchcount;
     } else {
@@ -313,17 +348,10 @@
 
     $strall = get_string('all');
 
-	// INEA - Filtrar por entidad federativa
-	$urlparams = array('sort' => $sort, 'dir' => $dir, 'perpage' => $perpage);
-	if ($icveentfed && ($isresponsable || $isadmin)) {
-		$urlparams = array_merge($urlparams, array('icveentfed' => $icveentfed, 'concluido' => $concluido));
-	}
-    $baseurl = new moodle_url('/admin/user.php', $urlparams);
-    echo $OUTPUT->paging_bar($usercount, $page, $perpage, $baseurl);
+	echo $OUTPUT->paging_bar($usercount, $page, $perpage, $baseurl);
 
     flush();
-    
-
+   
     if (!$users) {
         $match = array();
         echo $OUTPUT->heading(get_string('nousersfound'));
@@ -332,7 +360,7 @@
 
     } else {
 
-        $countries = get_string_manager()->get_list_of_countries(false);
+        /*$countries = get_string_manager()->get_list_of_countries(false);
         if (empty($mnethosts)) {
             $mnethosts = $DB->get_records('mnet_host', null, 'id', 'id,wwwroot,name');
         }
@@ -351,7 +379,7 @@
                 $nusers[] = $users[$key];
             }
             $users = $nusers;
-        }
+        }*/
 
         $table = new html_table();
         $table->head = array ();
@@ -377,7 +405,7 @@
         foreach ($users as $user) {
             $buttons = array();
             $lastcolumn = '';
-            complete_user_role($user);
+            //complete_user_role($user);
             //$user->rol="MACUCO".complete_user_role($user);
             // delete button
             /*if (has_capability('moodle/user:delete', $sitecontext)) {
@@ -446,11 +474,11 @@
                 }
             }*/
 
-            if ($user->lastaccess) {
+            /*if ($user->lastaccess) {
                 $strlastaccess = format_time(time() - $user->lastaccess);
             } else {
                 $strlastaccess = get_string('never');
-            }
+            }*/
             $fullname = fullname($user, true);
             
             //$usertemp = $DB->get_record('user', array('id'=>$user->id));
@@ -475,9 +503,13 @@
             }
 			
 			// INEA - Obtener nombre del Curso
+			if(!empty($user->role)){
+                $user->role = inea_get_valorcampo('role', 'name', array('id' => $user->role));
+            }
+			
+			// INEA - Obtener nombre del Curso
 			if(!empty($user->course)){
-                $course = inea_get_coursename($user->course);
-                $user->course = isset($course->fullname)? $course->fullname : '';
+                $user->course = inea_get_valorcampo('course', 'fullname', array('id' => $user->course));
             }
             
             $row = array ();
@@ -490,11 +522,11 @@
             //$row[] = $omunicipio;
             //$row[] = $user->country;
             //$row[] = $strlastaccess;
-            if ($user->suspended) {
+            /*if ($user->suspended) {
                 foreach ($row as $k=>$v) {
                     $row[$k] = html_writer::tag('span', $v, array('class'=>'usersuspended'));
                 }
-            }
+            }*/
             $row[] = implode(' ', $buttons);
             $row[] = $lastcolumn;
             $table->data[] = $row;
@@ -511,9 +543,9 @@
         echo html_writer::end_tag('div');
         echo $OUTPUT->paging_bar($usercount, $page, $perpage, $baseurl);
     }
-    if (has_capability('moodle/user:create', $sitecontext)) {
+    /*if (has_capability('moodle/user:create', $sitecontext)) {
         $url = new moodle_url($securewwwroot . '/user/editadvanced.php', array('id' => -1));
         echo $OUTPUT->single_button($url, get_string('addnewuser'), 'get');
-    }
+    }*/
 
     echo $OUTPUT->footer();
