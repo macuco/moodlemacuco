@@ -16,6 +16,7 @@
     //$confirm      = optional_param('confirm', '', PARAM_ALPHANUM);   //md5 confirmation hash
     $updateuser  	= optional_param('updateuser', 0, PARAM_INT); // INEA - Id de usuario
     $groupid  		= optional_param('groupid', 0, PARAM_INT); // INEA - Id de grupo
+    $roleid  		= optional_param('roleid', EDUCANDO, PARAM_INT); // INEA - Educando por Default
     $sort         	= optional_param('sort', 'courseid', PARAM_ALPHANUM); // Order by courseid
     $dir          	= optional_param('dir', 'ASC', PARAM_ALPHA);
     $page         	= optional_param('page', 0, PARAM_INT);
@@ -26,7 +27,6 @@
     //$suspend      = optional_param('suspend', 0, PARAM_INT);
     //$unsuspend    = optional_param('unsuspend', 0, PARAM_INT);
     //$unlock       = optional_param('unlock', 0, PARAM_INT);
-	$roleid			= optional_param('roleid', EDUCANDO, PARAM_INT); // INEA - Estudiante por default
 	$icvepais     	= optional_param('icvepais', 1, PARAM_INT); // INEA - Mexico por default
 	$icveentfed   	= optional_param('icveentfed', 0, PARAM_INT); // INEA - Filtro para Entidad
 	$concluido    	= optional_param('concluido', 0, PARAM_INT); // INEA - Filtro para Concluido
@@ -38,11 +38,12 @@
 	$sitecontext = context_system::instance();
     $site = get_site();
 
+	require_login($site);
+	
     if (!has_capability('moodle/user:update', $sitecontext) and !has_capability('moodle/user:delete', $sitecontext)) {
         print_error('nopermissions', 'error', '', 'edit/delete users');
     }
-
-	require_login($site);
+	
     //$stredit   = get_string('edit');
     //$strdelete = get_string('delete');
     //$strdeletecheck = get_string('deletecheck');
@@ -104,11 +105,11 @@
     $user = null;
 	if ($updateuser) {
         require_capability('moodle/user:update', $sitecontext);
-        if (!$user = $DB->get_record('user', array('id'=>$updatemuser, 'mnethostid'=>$CFG->mnet_localhost_id))) {
+        if (!$user = $DB->get_record('user', array('id'=>$updateuser, 'mnethostid'=>$CFG->mnet_localhost_id))) {
             print_error('nousers');
         }
 		
-		if(!$group = $DB->get_record('group', array('id'=>$groupid))) {
+		if(!$group = $DB->get_record('groups', array('id'=>$groupid))) {
 			print_error('nogroup', 'group');
 		}
 		
@@ -234,7 +235,7 @@
     }*/
     
     // create the user filter form
-	$ffiltering = array('realname' => 1, 'lastname' => 1, 'firstname' => 1, 'username' => 1, 'city' => 1, 'skype' => 1, 'idnumber' => 1, 'role' => 0, 'concluido' => 0);
+	$ffiltering = array('realname' => 1, 'lastname' => 1, 'firstname' => 1, 'username' => 1, 'city' => 1, 'skype' => 1, 'idnumber' => 1, 'concluido' => 0, 'course' => 0);
 	if($isadmin) {
 		$ffiltering = array_merge($ffiltering, array('institution' => 0));
 	}
@@ -252,7 +253,7 @@
     $extracolumns[] = 'city';
     $extracolumns[] = 'skype';
 	$extracolumns[] = 'course';
-	$extracolumns[] = 'role';
+	$extracolumns[] = 'usergroup';
 	$extracolumns[] = 'concluido';
 	$extracolumns[] = 'fecha_concluido';
     $allusernamefields = get_all_user_name_fields(false, null, null, null, true);
@@ -315,12 +316,25 @@
    
     list($extrasql, $params) = $ufiltering->get_sql_filter();
 	
+	// INEA - Filtrar por rol EDUCANDO
+	if(!$roleid) {
+		$roleid = !empty(EDUCANDO)? EDUCANDO : 5;
+	}
+	
+	if($roleid) {
+		if(!empty($extrasql)) {
+			$extrasql .= ' AND';
+		}
+		$extrasql .= ' ra.roleid = :roleid ';
+		$params = array_merge($params, array('roleid' => $roleid));
+	}
+	
 	// INEA - Filtrar por entidad federativa
 	if ($icveentfed && $isresponsable) {
 		if(!empty($extrasql)) {
 			$extrasql .= ' AND';
 		}
-		$extrasql .= ' institution = :entidad ';
+		$extrasql .= ' u.institution = :entidad ';
 		$params = array_merge($params, array('entidad' => $icveentfed));
 	}
    
@@ -330,209 +344,226 @@
             $extrasql, $params, $context);
 	
 	// INEA - Filtrar por entidad federativa
-	$urlparams = array('sort' => $sort, 'dir' => $dir, 'perpage' => $perpage, 'roleid' => $roleid, 'concluido' => $concluido);
+	$urlparams = array('sort' => $sort, 'dir' => $dir, 'perpage' => $perpage);
 	if ($icveentfed && ($isresponsable || $isadmin)) {
 		$urlparams = array_merge($urlparams, array('icveentfed' => $icveentfed));
 	}
     $baseurl = new moodle_url('/mod/inea/usuarioconcluido.php', $urlparams);
     
-	$usercount = 100;
-	$usersearchcount = 100;
+	$usercount = 0;
 	
-	if ($extrasql !== '') {
-        echo $OUTPUT->heading("$usersearchcount / $usercount ".get_string('users'));
-        $usercount = $usersearchcount;
-    } else {
-        echo $OUTPUT->heading("$usercount ".get_string('users'));
-    }
-
-    $strall = get_string('all');
-
-	echo $OUTPUT->paging_bar($usercount, $page, $perpage, $baseurl);
-
-    flush();
+    //$strall = get_string('all');
    
-    if (!$users) {
-        $match = array();
-        echo $OUTPUT->heading(get_string('nousersfound'));
+	/*$countries = get_string_manager()->get_list_of_countries(false);
+	if (empty($mnethosts)) {
+		$mnethosts = $DB->get_records('mnet_host', null, 'id', 'id,wwwroot,name');
+	}
+
+	foreach ($users as $key => $user) {
+		if (isset($countries[$user->country])) {
+			$users[$key]->country = $countries[$user->country];
+		}
+	}
+	if ($sort == "country") {  // Need to resort by full country name, not code
+		foreach ($users as $user) {
+			$susers[$user->id] = $user->country;
+		}
+		asort($susers);
+		foreach ($susers as $key => $value) {
+			$nusers[] = $users[$key];
+		}
+		$users = $nusers;
+	}*/
+
+	$table = new html_table();
+	$table->head = array ();
+	$table->colclasses = array();
+	$table->head[] = $fullnamedisplay;
+	$table->attributes['class'] = 'admintable generaltable';
+	//print_object($extracolumns);
+	foreach ($extracolumns as $field) {
+		//print_object($field);
+		//print_object(${$field});
+		$table->head[] = ${$field};
+	}
+	//print_object($table->head);
+	//$table->head[] = $city;
+	//$table->head[] = $country;
+	//$table->head[] = $lastaccess;
+	$table->head[] = get_string('update').' '.get_string('date');
+	$table->colclasses[] = 'centeralign';
+	$table->head[] = "";
+	$table->colclasses[] = 'centeralign';
+
+	$table->id = "users";
+	foreach ($users as $user) {
+		$buttons = array();
+		$lastcolumn = '';
+		$usercount += 1;
+		//complete_user_role($user);
+		//$user->rol="MACUCO".complete_user_role($user);
+		// delete button
+		/*if (has_capability('moodle/user:delete', $sitecontext)) {
+			if (is_mnet_remote_user($user) or $user->id == $USER->id or is_siteadmin($user)) {
+				// no deleting of self, mnet accounts or admins allowed
+			} else {
+				$url = new moodle_url($returnurl, array('delete'=>$user->id, 'sesskey'=>sesskey()));
+				$buttons[] = html_writer::link($url, $OUTPUT->pix_icon('t/delete', $strdelete));
+			}
+		}*/
+
+		// suspend button
+		/*if (has_capability('moodle/user:update', $sitecontext)) {
+			if (is_mnet_remote_user($user)) {
+				// mnet users have special access control, they can not be deleted the standard way or suspended
+				$accessctrl = 'allow';
+				if ($acl = $DB->get_record('mnet_sso_access_control', array('username'=>$user->username, 'mnet_host_id'=>$user->mnethostid))) {
+					$accessctrl = $acl->accessctrl;
+				}
+				$changeaccessto = ($accessctrl == 'deny' ? 'allow' : 'deny');
+				$buttons[] = " (<a href=\"?acl={$user->id}&amp;accessctrl=$changeaccessto&amp;sesskey=".sesskey()."\">".get_string($changeaccessto, 'mnet') . " access</a>)";
+
+			} else {
+				if ($user->suspended) {
+					$url = new moodle_url($returnurl, array('unsuspend'=>$user->id, 'sesskey'=>sesskey()));
+					$buttons[] = html_writer::link($url, $OUTPUT->pix_icon('t/show', $strunsuspend));
+				} else {
+					if ($user->id == $USER->id or is_siteadmin($user)) {
+						// no suspending of admins or self!
+					} else {
+						$url = new moodle_url($returnurl, array('suspend'=>$user->id, 'sesskey'=>sesskey()));
+						$buttons[] = html_writer::link($url, $OUTPUT->pix_icon('t/hide', $strsuspend));
+					}
+				}
+
+				if (login_is_lockedout($user)) {
+					$url = new moodle_url($returnurl, array('unlock'=>$user->id, 'sesskey'=>sesskey()));
+					$buttons[] = html_writer::link($url, $OUTPUT->pix_icon('t/unlock', $strunlock));
+				}
+			}
+		}*/
+
+		// edit button
+		/*if (has_capability('moodle/user:update', $sitecontext)) {
+			// prevent editing of admins by non-admins
+			if (is_siteadmin($USER) or !is_siteadmin($user)) {
+				$url = new moodle_url($securewwwroot.'/user/editadvanced.php', array('id'=>$user->id, 'course'=>$site->id));
+				$buttons[] = html_writer::link($url, $OUTPUT->pix_icon('t/edit', $stredit));
+			}
+		}*/
+		
+		// the last column - confirm or mnet info
+		/*if (is_mnet_remote_user($user)) {
+			// all mnet users are confirmed, let's print just the name of the host there
+			if (isset($mnethosts[$user->mnethostid])) {
+				$lastcolumn = get_string($accessctrl, 'mnet').': '.$mnethosts[$user->mnethostid]->name;
+			} else {
+				$lastcolumn = get_string($accessctrl, 'mnet');
+			}
+
+		} else if ($user->confirmed == 0) {
+			if (has_capability('moodle/user:update', $sitecontext)) {
+				$lastcolumn = html_writer::link(new moodle_url($returnurl, array('confirmuser'=>$user->id, 'sesskey'=>sesskey())), $strconfirm);
+			} else {
+				$lastcolumn = "<span class=\"dimmed_text\">".get_string('confirm')."</span>";
+			}
+		}*/
+
+		/*if ($user->lastaccess) {
+			$strlastaccess = format_time(time() - $user->lastaccess);
+		} else {
+			$strlastaccess = get_string('never');
+		}*/
+		
+		// INEA - boton actualizar
+		if (($user->concluido > 0) && has_capability('moodle/user:update', $sitecontext)) {
+			// prevent editing of admins by non-admins
+			if ($isadmin or !is_siteadmin($user)) {
+				$urlparams = array_merge($urlparams, array('updateuser' => $user->id, 'groupid' => $user->usergroup));
+				$url = new moodle_url('/mod/inea/usuarioconcluido.php', $urlparams);
+				$buttons[] = html_writer::link($url, $OUTPUT->pix_icon('i/reload', get_string('update')));
+			}
+		}
+		
+		$fullname = fullname($user, true);
+		
+		//$usertemp = $DB->get_record('user', array('id'=>$user->id));
+		
+		// INEA - Obtener Municipio
+		if(!empty($user->institution) && !empty($user->city)) {
+			$municipio = inea_get_municipio($user->country, $user->institution, $user->city);
+			$user->city = isset($municipio->cdesmunicipio)? $municipio->cdesmunicipio : '';
+		}
+		
+		// INEA - Obtener Entidad
+		if(!empty($user->institution)) {
+			$entidad = inea_get_entidad($user->country, $user->institution);
+			//print_object($entidad);
+			$user->institution = isset($entidad->cdesentfed)? $entidad->cdesentfed : ''; 
+		}
+		
+		// INEA - Obtener Plaza
+		if(!empty($user->skype)) {
+			$plaza = inea_get_plaza($user->skype);
+			$user->skype = isset($plaza->cnomplaza)? $plaza->cnomplaza : '';
+		}
+		
+		// INEA - Obtener nombre del Curso
+		if(!empty($user->role)) {
+			$user->role = inea_get_valorcampo('role', 'name', array('id' => $user->role));
+		}
+		
+		// INEA - Obtener nombre del Curso
+		if(!empty($user->course)) {
+			$user->course = inea_get_valorcampo('course', 'fullname', array('id' => $user->course));
+		}
+		
+		// INEA - Obtener nombre del Curso
+		if(!empty($user->usergroup)) {
+			$user->usergroup = inea_get_valorcampo('groups', 'name', array('id' => $user->usergroup));
+		}
+		
+		// INEA - Mostrar concluido SI/NO
+		$lconcluido = array(0 => 'No', 1 => 'Si');
+		$user->concluido = isset($lconcluido[$user->concluido])? $lconcluido[$user->concluido] : 'No';
+		
+		// INEA - Mostrar fecha de conclusion
+		$user->fecha_concluido = !empty($user->fecha_concluido)? date('d-m-Y', $user->fecha_concluido) : 'N/A';
+		
+		$row = array();
+		$row[] = "<a href=\"../../user/view.php?id=$user->id&amp;course=$site->id\">$fullname</a>";
+		//print_object($extracolumns);
+		//print_object($user);
+		foreach ($extracolumns as $field) {
+			$row[] = $user->{$field};
+		}       
+		//$row[] = $omunicipio;
+		//$row[] = $user->country;
+		//$row[] = $strlastaccess;
+		/*if ($user->suspended) {
+			foreach ($row as $k=>$v) {
+				$row[$k] = html_writer::tag('span', $v, array('class'=>'usersuspended'));
+			}
+		}*/
+		$row[] = implode(' ', $buttons);
+		$row[] = $lastcolumn;
+		$table->data[] = $row;
+	}
+    
+	// INEA - Si existen estudiantes mostrar la lista
+	if($usercount > 0) {
+		echo $OUTPUT->heading("$usercount ".get_string('students')."<br>");
+	} else {
+		$match = array();
+		echo $OUTPUT->heading(get_string('nousersfound')."<br>");
 
         $table = NULL;
-
-    } else {
-
-        /*$countries = get_string_manager()->get_list_of_countries(false);
-        if (empty($mnethosts)) {
-            $mnethosts = $DB->get_records('mnet_host', null, 'id', 'id,wwwroot,name');
-        }
-
-        foreach ($users as $key => $user) {
-            if (isset($countries[$user->country])) {
-                $users[$key]->country = $countries[$user->country];
-            }
-        }
-        if ($sort == "country") {  // Need to resort by full country name, not code
-            foreach ($users as $user) {
-                $susers[$user->id] = $user->country;
-            }
-            asort($susers);
-            foreach ($susers as $key => $value) {
-                $nusers[] = $users[$key];
-            }
-            $users = $nusers;
-        }*/
-
-        $table = new html_table();
-        $table->head = array ();
-        $table->colclasses = array();
-        $table->head[] = $fullnamedisplay;
-        $table->attributes['class'] = 'admintable generaltable';
-        //print_object($extracolumns);
-        foreach ($extracolumns as $field) {
-            //print_object($field);
-            //print_object(${$field});
-            $table->head[] = ${$field};
-        }
-        //print_object($table->head);
-        //$table->head[] = $city;
-        //$table->head[] = $country;
-        //$table->head[] = $lastaccess;
-        //$table->head[] = get_string('edit');
-        $table->colclasses[] = 'centeralign';
-        $table->head[] = "";
-        $table->colclasses[] = 'centeralign';
-
-        $table->id = "users";
-        foreach ($users as $user) {
-            $buttons = array();
-            $lastcolumn = '';
-            //complete_user_role($user);
-            //$user->rol="MACUCO".complete_user_role($user);
-            // delete button
-            /*if (has_capability('moodle/user:delete', $sitecontext)) {
-                if (is_mnet_remote_user($user) or $user->id == $USER->id or is_siteadmin($user)) {
-                    // no deleting of self, mnet accounts or admins allowed
-                } else {
-                    $url = new moodle_url($returnurl, array('delete'=>$user->id, 'sesskey'=>sesskey()));
-                    $buttons[] = html_writer::link($url, $OUTPUT->pix_icon('t/delete', $strdelete));
-                }
-            }*/
-
-            // suspend button
-            /*if (has_capability('moodle/user:update', $sitecontext)) {
-                if (is_mnet_remote_user($user)) {
-                    // mnet users have special access control, they can not be deleted the standard way or suspended
-                    $accessctrl = 'allow';
-                    if ($acl = $DB->get_record('mnet_sso_access_control', array('username'=>$user->username, 'mnet_host_id'=>$user->mnethostid))) {
-                        $accessctrl = $acl->accessctrl;
-                    }
-                    $changeaccessto = ($accessctrl == 'deny' ? 'allow' : 'deny');
-                    $buttons[] = " (<a href=\"?acl={$user->id}&amp;accessctrl=$changeaccessto&amp;sesskey=".sesskey()."\">".get_string($changeaccessto, 'mnet') . " access</a>)";
-
-                } else {
-                    if ($user->suspended) {
-                        $url = new moodle_url($returnurl, array('unsuspend'=>$user->id, 'sesskey'=>sesskey()));
-                        $buttons[] = html_writer::link($url, $OUTPUT->pix_icon('t/show', $strunsuspend));
-                    } else {
-                        if ($user->id == $USER->id or is_siteadmin($user)) {
-                            // no suspending of admins or self!
-                        } else {
-                            $url = new moodle_url($returnurl, array('suspend'=>$user->id, 'sesskey'=>sesskey()));
-                            $buttons[] = html_writer::link($url, $OUTPUT->pix_icon('t/hide', $strsuspend));
-                        }
-                    }
-
-                    if (login_is_lockedout($user)) {
-                        $url = new moodle_url($returnurl, array('unlock'=>$user->id, 'sesskey'=>sesskey()));
-                        $buttons[] = html_writer::link($url, $OUTPUT->pix_icon('t/unlock', $strunlock));
-                    }
-                }
-            }*/
-
-            // edit button
-            /*if (has_capability('moodle/user:update', $sitecontext)) {
-                // prevent editing of admins by non-admins
-                if (is_siteadmin($USER) or !is_siteadmin($user)) {
-                    $url = new moodle_url($securewwwroot.'/user/editadvanced.php', array('id'=>$user->id, 'course'=>$site->id));
-                    $buttons[] = html_writer::link($url, $OUTPUT->pix_icon('t/edit', $stredit));
-                }
-            }*/
-
-            // the last column - confirm or mnet info
-            /*if (is_mnet_remote_user($user)) {
-                // all mnet users are confirmed, let's print just the name of the host there
-                if (isset($mnethosts[$user->mnethostid])) {
-                    $lastcolumn = get_string($accessctrl, 'mnet').': '.$mnethosts[$user->mnethostid]->name;
-                } else {
-                    $lastcolumn = get_string($accessctrl, 'mnet');
-                }
-
-            } else if ($user->confirmed == 0) {
-                if (has_capability('moodle/user:update', $sitecontext)) {
-                    $lastcolumn = html_writer::link(new moodle_url($returnurl, array('confirmuser'=>$user->id, 'sesskey'=>sesskey())), $strconfirm);
-                } else {
-                    $lastcolumn = "<span class=\"dimmed_text\">".get_string('confirm')."</span>";
-                }
-            }*/
-
-            /*if ($user->lastaccess) {
-                $strlastaccess = format_time(time() - $user->lastaccess);
-            } else {
-                $strlastaccess = get_string('never');
-            }*/
-            $fullname = fullname($user, true);
-            
-            //$usertemp = $DB->get_record('user', array('id'=>$user->id));
-            
-			// INEA - Obtener Municipio
-            if(!empty($user->institution) && !empty($user->city)){
-                $municipio = inea_get_municipio($user->country, $user->institution, $user->city);
-                $user->city = isset($municipio->cdesmunicipio)? $municipio->cdesmunicipio : '';
-            }
-            
-			// INEA - Obtener Entidad
-            if(!empty($user->institution)){
-                $entidad = inea_get_entidad($user->country, $user->institution);
-                //print_object($entidad);
-                $user->institution = isset($entidad->cdesentfed)? $entidad->cdesentfed : ''; 
-            }
-            
-			// INEA - Obtener Plaza
-            if(!empty($user->skype)){
-                $plaza = inea_get_plaza($user->skype);
-                $user->skype = isset($plaza->cnomplaza)? $plaza->cnomplaza : '';
-            }
-			
-			// INEA - Obtener nombre del Curso
-			if(!empty($user->role)){
-                $user->role = inea_get_valorcampo('role', 'name', array('id' => $user->role));
-            }
-			
-			// INEA - Obtener nombre del Curso
-			if(!empty($user->course)){
-                $user->course = inea_get_valorcampo('course', 'fullname', array('id' => $user->course));
-            }
-            
-            $row = array ();
-            $row[] = "<a href=\"../user/view.php?id=$user->id&amp;course=$site->id\">$fullname</a>";
-            //print_object($extracolumns);
-            //print_object($user);
-            foreach ($extracolumns as $field) {
-                $row[] = $user->{$field};
-            }       
-            //$row[] = $omunicipio;
-            //$row[] = $user->country;
-            //$row[] = $strlastaccess;
-            /*if ($user->suspended) {
-                foreach ($row as $k=>$v) {
-                    $row[$k] = html_writer::tag('span', $v, array('class'=>'usersuspended'));
-                }
-            }*/
-            $row[] = implode(' ', $buttons);
-            $row[] = $lastcolumn;
-            $table->data[] = $row;
-        }
-    }
-    
+	}
+	
+	echo $OUTPUT->paging_bar($usercount, $page, $perpage, $baseurl);
+	
+	flush();
+	
     // add filters
     $ufiltering->display_add();
     $ufiltering->display_active();

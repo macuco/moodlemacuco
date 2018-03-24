@@ -601,6 +601,9 @@ function inea_get_user_field_name($field) {
 		case 'instituto' : {
             return get_string('instituto', 'inea');
         }
+		case 'usergroup' : {
+            return get_string('usergroup', 'inea');
+        }
 		case 'concluido' : {
             return get_string('concluido', 'inea');
         }
@@ -617,13 +620,13 @@ function inea_get_user_field_name($field) {
  * @param string $field - Nombre del campo, ej. 'institution'
  * @return string - Regresa la descripcion del nombre del campo ej. 'Entidad'
  */
-function inea_get_users_listing($sort='course', $dir='ASC', $page=0, $recordsperpage=0,
+function inea_get_users_listing($sort='u.course', $dir='ASC', $page=0, $recordsperpage=0,
                            $search='', $firstinitial='', $lastinitial='', $extraselect='',
                            array $extraparams=null) {
     global $DB, $CFG;
 
     $fullname  = $DB->sql_fullname();
-
+	
     $toselect = "u.deleted <> 1 AND u.confirmed <> 0 AND u.id <> :guestid";
     $params = array('guestid' => $CFG->siteguest);
 

@@ -152,7 +152,8 @@ class user_filtering {
             case 'nevermodified': return new user_filter_checkbox('nevermodified', get_string('nevermodified', 'filters'), $advanced, array('timemodified', 'timecreated'), array('timemodified_sck', 'timemodified_eck'));
             case 'cohort':      return new user_filter_cohort($advanced);
             case 'idnumber':    return new user_filter_text('idnumber', get_string('idnumber'), $advanced, 'idnumber');
-            case 'auth':
+            case 'concluido': 	return new user_filter_select('concluido', get_string('concluido', 'inea'), $advanced, 'concluido', array(-1 => 'Seleccione ...', 0 => 'No', 1 => 'Si')); //INEA - Filtro por usuario concluido
+			case 'auth':
                 $plugins = core_component::get_plugin_list('auth');
                 $choices = array();
                 foreach ($plugins as $auth => $unused) {
@@ -187,17 +188,28 @@ class user_filtering {
                     return null; // Filter not needed.
                 }
                 return new user_filter_simpleselect('mnethostid', get_string('mnetidprovider', 'mnet'), $advanced, 'mnethostid', $choices);
-
-            case 'role':  //INEA - Filtro por rol
+            
+			case 'role':  //INEA - Filtro por rol
 				// Obtener el listado de roles
-				if(!$roles = $DB->get_records('role')) {
+				if(!$roles = $DB->get_records_select('role', 'id = '.EDUCANDO.' OR id = '.ASESOR)) {
 					$roles = array();
 				}
 				$rolelist[0] = 'Seleccione ...';
 				foreach($roles as $key=>$rol) {
 					$rolelist[$key] = $rol->name; 
 				}
-				return new user_filter_select('role', get_string('role'), $advanced, 'role', $rolelist); // INEA - Filtro por rol
+				return new user_filter_select('role', get_string('role'), $advanced, 'roleid', $rolelist); // INEA - Filtro por rol
+			
+			case 'course': // INEA - Filtro por curso
+				$courses = inea_get_courses('all', 'c.id ASC', 'c.id, c.fullname, c.shortname, c.category');
+				$courselist = array(0 => "Seleccione ...");
+				foreach($courses as $course) {
+					if($course->category > 0) {
+						$courselist[$course->id] = $course->fullname;
+					}
+				}
+				return new user_filter_select('course', get_string('course'), $advanced, 'courseid', $courselist); // INEA - Filtro por rol
+				
 			default:
                 return null;
         }

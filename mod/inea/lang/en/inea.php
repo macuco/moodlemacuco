@@ -145,6 +145,7 @@ $string['toolbar'] = 'Mostrar la barra de herramientas';
 $string['status'] = 'Estatus';
 $string['concluido'] = 'Concluido';
 $string['fecha_concluido'] = 'Fecha de conclusión';
+$string['usergroup'] = 'Grupo';
 
 //***************************************** REGISTRO
 $string['registro'] = 'Resgistro';
