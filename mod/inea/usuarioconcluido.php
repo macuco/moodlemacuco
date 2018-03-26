@@ -29,7 +29,7 @@
     //$unlock       = optional_param('unlock', 0, PARAM_INT);
 	$icvepais     	= optional_param('icvepais', 1, PARAM_INT); // INEA - Mexico por default
 	$icveentfed   	= optional_param('icveentfed', 0, PARAM_INT); // INEA - Filtro para Entidad
-	$concluido    	= optional_param('concluido', 0, PARAM_INT); // INEA - Filtro para Concluido
+	$courseid    	= optional_param('courseid', 0, PARAM_INT); // INEA - Filtro por Curso    
     
 	//admin_externalpage_setup('editusers');
 	$PAGE->set_url('/mod/inea/usuarioconcluido.php', array('sort' => $sort, 'dir' => $dir, 'perpage' => $perpage, 'page'=>$page)); // INEA - Agregar filtro por entidad al url
@@ -89,12 +89,14 @@
 		}
 	}
 
-	// INEA - Obtener el listado de entidades por país
-	if($listaentidades = inea_list_entidades($icvepais)) {
-		$listaentidades[0] = get_string('selectestado', 'inea');
+	$urlparams = array('sort' => $sort, 'dir' => $dir, 'perpage' => $perpage, 'page'=>$page);
+	
+	// INEA - Validar si viene de un curso
+	if(!$courseid) {
+		$urlparams = array_merge($urlparams, array('courseid' => $courseid));
 	}
-
-    $returnurl = new moodle_url('/mod/inea/usuarioconcluido.php', array('sort' => $sort, 'dir' => $dir, 'perpage' => $perpage, 'page'=>$page));
+	
+	$returnurl = new moodle_url('/mod/inea/usuarioconcluido.php', $urlparams);
 
 	// INEA - Verificar si es admin o responsable estatal
 	if(!$isadmin && !$isresponsable) {
@@ -235,7 +237,11 @@
     }*/
     
     // create the user filter form
-	$ffiltering = array('realname' => 1, 'lastname' => 1, 'firstname' => 1, 'username' => 1, 'city' => 1, 'skype' => 1, 'idnumber' => 1, 'concluido' => 0, 'course' => 0);
+	$ffiltering = array('realname' => 1, 'lastname' => 1, 'firstname' => 1, 'username' => 1, 'city' => 1, 'skype' => 1, 'idnumber' => 1, 'concluido' => 0);
+	// INEA - Crear filtro para el Curso
+	if(!$courseid) {
+		$ffiltering = array_merge($ffiltering, array('course' => 0));
+	}
 	if($isadmin) {
 		$ffiltering = array_merge($ffiltering, array('institution' => 0));
 	}
@@ -329,6 +335,15 @@
 		$params = array_merge($params, array('roleid' => $roleid));
 	}
 	
+	// INEA - Filtrar por curso
+	if($courseid) {
+		if(!empty($extrasql)) {
+			$extrasql .= ' AND';
+		}
+		$extrasql .= ' ug.courseid = :courseid ';
+		$params = array_merge($params, array('courseid' => $courseid));
+	}
+	
 	// INEA - Filtrar por entidad federativa
 	if ($icveentfed && $isresponsable) {
 		if(!empty($extrasql)) {
@@ -343,8 +358,14 @@
     $users = inea_get_users_listing($sort, $dir, $page*$perpage, $perpage, '', '', '',
             $extrasql, $params, $context);
 	
-	// INEA - Filtrar por entidad federativa
 	$urlparams = array('sort' => $sort, 'dir' => $dir, 'perpage' => $perpage);
+	
+	// INEA - Agregar filtrado por Curso a la direccion URL
+	if(!empty($courseid)) {
+		$urlparams = array_merge($urlparams, array('courseid' => $courseid));
+	}
+	
+	// INEA - Agregar filtrado por entidad federativa a la direccion URL
 	if ($icveentfed && ($isresponsable || $isadmin)) {
 		$urlparams = array_merge($urlparams, array('icveentfed' => $icveentfed));
 	}
