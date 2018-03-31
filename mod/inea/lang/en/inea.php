@@ -146,6 +146,7 @@ $string['status'] = 'Estatus';
 $string['concluido'] = 'Concluido';
 $string['fecha_concluido'] = 'Fecha de conclusión';
 $string['usergroup'] = 'Grupo';
+$string['listaconcluidos'] = 'Lista de usuarios concluidos';
 
 //***************************************** REGISTRO
 $string['registro'] = 'Resgistro';

@@ -68,6 +68,16 @@ if (has_capability('moodle/site:config', $context)) {
 
 if ($showsettingslinks) {
     $node = $PAGE->settingsnav->find('root', navigation_node::TYPE_SITE_ADMIN);
+	
+	//INEA - Agregar enlace para lista de usuarios concluidos
+	$concluidotag = get_string('listaconcluidos', 'inea');
+	$concluidourl = new moodle_url('/mod/inea/usuarioconcluido.php');
+	$concluidonode = navigation_node::create(
+		$concluidotag,
+        $concluidourl,
+        navigation_node::NODETYPE_LEAF);
+	$node->add_node($concluidonode);
+	
     if ($node) {
         echo $OUTPUT->render_from_template('core/settings_link_page', ['node' => $node]);
     }
