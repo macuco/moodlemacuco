@@ -12,8 +12,9 @@
         require_once($CFG->dirroot . '/mod/inea/inealib.php');
     }
 
-    //$delete       = optional_param('delete', 0, PARAM_INT);
-    //$confirm      = optional_param('confirm', '', PARAM_ALPHANUM);   //md5 confirmation hash
+    //$confirm      	= optional_param('confirm', '', PARAM_ALPHANUM);   //md5 confirmation hash
+	//$confirmuser  	= optional_param('confirmuser', 0, PARAM_INT);
+	//$deleteuser     = optional_param('deleteuser', 0, PARAM_INT);
     $updateuser  	= optional_param('updateuser', 0, PARAM_INT); // INEA - Id de usuario
     $groupid  		= optional_param('groupid', 0, PARAM_INT); // INEA - Id de grupo
     $roleid  		= optional_param('roleid', EDUCANDO, PARAM_INT); // INEA - Educando por Default
@@ -44,15 +45,15 @@
         print_error('nopermissions', 'error', '', 'edit/delete users');
     }
 	
-    //$stredit   = get_string('edit');
-    //$strdelete = get_string('delete');
+    $strupdate   = get_string('update');
+    $strdelete = get_string('delete');
+	$strconfirm = get_string('confirm');
     //$strdeletecheck = get_string('deletecheck');
     //$strshowallusers = get_string('showallusers');
     //$strsuspend = get_string('suspenduser', 'admin');
     //$strunsuspend = get_string('unsuspenduser', 'admin');
     //$strunlock = get_string('unlockaccount', 'admin');
-    //$strconfirm = get_string('confirm');
-
+    
     if (empty($CFG->loginhttps)) {
         $securewwwroot = $CFG->wwwroot;
     } else {
@@ -92,7 +93,7 @@
 	$urlparams = array('sort' => $sort, 'dir' => $dir, 'perpage' => $perpage, 'page'=>$page);
 	
 	// INEA - Validar si viene de un curso
-	if(!$courseid) {
+	if(!empty($courseid)) {
 		$urlparams = array_merge($urlparams, array('courseid' => $courseid));
 	}
 	
@@ -105,6 +106,66 @@
 	
     // The $user variable is also used outside of these if statements.
     $user = null;
+	
+    /*if ($confirmuser and confirm_sesskey()) {
+        require_capability('moodle/user:update', $sitecontext);
+        if (!$user = $DB->get_record('user', array('id'=>$confirmuser, 'mnethostid'=>$CFG->mnet_localhost_id))) {
+            print_error('nousers');
+        }
+
+        $auth = get_auth_plugin($user->auth);
+
+        $result = $auth->user_confirm($user->username, $user->secret);
+
+        if ($result == AUTH_CONFIRM_OK or $result == AUTH_CONFIRM_ALREADY) {
+			// INEA -- Poner el id del rol en el campo url
+			if($roleid) {
+				$user->url = $roleid;
+				if($DB->update_record('user', $user)) {
+				}
+			}
+            redirect($returnurl);
+        } else {
+            echo $OUTPUT->header();
+            redirect($returnurl, get_string('usernotconfirmed', '', fullname($user, true)));
+        }
+
+    } else if ($deleteuser and confirm_sesskey()) {              // Delete a selected user, after confirmation
+        require_capability('moodle/user:delete', $sitecontext);
+
+        $user = $DB->get_record('user', array('id'=>$deleteuser, 'mnethostid'=>$CFG->mnet_localhost_id), '*', MUST_EXIST);
+
+        if ($user->deleted) {
+            print_error('usernotdeleteddeleted', 'error');
+        }
+        if (is_siteadmin($user->id)) {
+            print_error('useradminodelete', 'error');
+        }
+
+        if ($confirm != md5($deleteuser)) {
+            echo $OUTPUT->header();
+            $fullname = fullname($user, true);
+            echo $OUTPUT->heading(get_string('deleteuser', 'admin'));
+
+            $optionsyes = array('delete'=>$deleteuser, 'confirm'=>md5($deleteuser), 'sesskey'=>sesskey());
+            $deleteurl = new moodle_url($returnurl, $optionsyes);
+            $deletebutton = new single_button($deleteurl, get_string('delete'), 'post');
+
+            echo $OUTPUT->confirm(get_string('deletecheckfull', '', "'$fullname'"), $deletebutton, $returnurl);
+            echo $OUTPUT->footer();
+            die;
+        } else if (data_submitted()) {
+            if (delete_user($user)) {
+                \core\session\manager::gc(); // Remove stale sessions.
+                redirect($returnurl);
+            } else {
+                \core\session\manager::gc(); // Remove stale sessions.
+                echo $OUTPUT->header();
+                echo $OUTPUT->notification($returnurl, get_string('deletednot', '', fullname($user, true)));
+            }
+        }
+    }*/
+	
 	if ($updateuser) {
         require_capability('moodle/user:update', $sitecontext);
         if (!$user = $DB->get_record('user', array('id'=>$updateuser, 'mnethostid'=>$CFG->mnet_localhost_id))) {
@@ -122,60 +183,7 @@
 		$DB->set_field('groups_members', 'fecha_concluido', $fecha_actual, array('groupid' => $group->id, 'userid' => $user->id));
 		
         redirect($returnurl);
-    }
-	
-    /*if ($confirmuser and confirm_sesskey()) {
-        require_capability('moodle/user:update', $sitecontext);
-        if (!$user = $DB->get_record('user', array('id'=>$confirmuser, 'mnethostid'=>$CFG->mnet_localhost_id))) {
-            print_error('nousers');
-        }
-
-        $auth = get_auth_plugin($user->auth);
-
-        $result = $auth->user_confirm($user->username, $user->secret);
-
-        if ($result == AUTH_CONFIRM_OK or $result == AUTH_CONFIRM_ALREADY) {
-            redirect($returnurl);
-        } else {
-            echo $OUTPUT->header();
-            redirect($returnurl, get_string('usernotconfirmed', '', fullname($user, true)));
-        }
-
-    } else if ($delete and confirm_sesskey()) {              // Delete a selected user, after confirmation
-        require_capability('moodle/user:delete', $sitecontext);
-
-        $user = $DB->get_record('user', array('id'=>$delete, 'mnethostid'=>$CFG->mnet_localhost_id), '*', MUST_EXIST);
-
-        if ($user->deleted) {
-            print_error('usernotdeleteddeleted', 'error');
-        }
-        if (is_siteadmin($user->id)) {
-            print_error('useradminodelete', 'error');
-        }
-
-        if ($confirm != md5($delete)) {
-            echo $OUTPUT->header();
-            $fullname = fullname($user, true);
-            echo $OUTPUT->heading(get_string('deleteuser', 'admin'));
-
-            $optionsyes = array('delete'=>$delete, 'confirm'=>md5($delete), 'sesskey'=>sesskey());
-            $deleteurl = new moodle_url($returnurl, $optionsyes);
-            $deletebutton = new single_button($deleteurl, get_string('delete'), 'post');
-
-            echo $OUTPUT->confirm(get_string('deletecheckfull', '', "'$fullname'"), $deletebutton, $returnurl);
-            echo $OUTPUT->footer();
-            die;
-        } else if (data_submitted()) {
-            if (delete_user($user)) {
-                \core\session\manager::gc(); // Remove stale sessions.
-                redirect($returnurl);
-            } else {
-                \core\session\manager::gc(); // Remove stale sessions.
-                echo $OUTPUT->header();
-                echo $OUTPUT->notification($returnurl, get_string('deletednot', '', fullname($user, true)));
-            }
-        }
-    } else if ($acl and confirm_sesskey()) {
+    }/* else if ($acl and confirm_sesskey()) {
         if (!has_capability('moodle/user:update', $sitecontext)) {
             print_error('nopermissions', 'error', '', 'modify the NMET access control list');
         }
@@ -411,7 +419,7 @@
 	//$table->head[] = $city;
 	//$table->head[] = $country;
 	//$table->head[] = $lastaccess;
-	$table->head[] = get_string('update').' '.get_string('date');
+	$table->head[] = get_string('update').' '.get_string('fecha_concluido', 'inea');
 	$table->colclasses[] = 'centeralign';
 	$table->head[] = "";
 	$table->colclasses[] = 'centeralign';
@@ -423,16 +431,7 @@
 		$usercount += 1;
 		//complete_user_role($user);
 		//$user->rol="MACUCO".complete_user_role($user);
-		// delete button
-		/*if (has_capability('moodle/user:delete', $sitecontext)) {
-			if (is_mnet_remote_user($user) or $user->id == $USER->id or is_siteadmin($user)) {
-				// no deleting of self, mnet accounts or admins allowed
-			} else {
-				$url = new moodle_url($returnurl, array('delete'=>$user->id, 'sesskey'=>sesskey()));
-				$buttons[] = html_writer::link($url, $OUTPUT->pix_icon('t/delete', $strdelete));
-			}
-		}*/
-
+		
 		// suspend button
 		/*if (has_capability('moodle/user:update', $sitecontext)) {
 			if (is_mnet_remote_user($user)) {
@@ -496,7 +495,7 @@
 			$strlastaccess = get_string('never');
 		}*/
 		
-		// INEA - boton actualizar
+		// INEA - boton de actualizar usuario
 		if (($user->concluido > 0) && has_capability('moodle/user:update', $sitecontext)) {
 			// prevent editing of admins by non-admins
 			if ($isadmin or !is_siteadmin($user)) {
@@ -505,6 +504,27 @@
 				$buttons[] = html_writer::link($url, $OUTPUT->pix_icon('i/reload', get_string('update')));
 			}
 		}
+		
+		// INEA - boton de confirmar usuario
+		/*if ($user->confirmed == 0 && has_capability('moodle/user:update', $sitecontext)) {
+			if (is_mnet_remote_user($user) or $user->id == $USER->id or is_siteadmin($user)) {
+				// no mostrar boton
+			} else {
+				$url = new moodle_url($returnurl, array('confirmuser'=>$user->id, 'roleid' => $user->role, 'sesskey'=>sesskey()));
+				$buttons[] = html_writer::link($url, $OUTPUT->pix_icon('i/checkpermissions', $strconfirm));
+			}
+		}*/
+		
+		// INEA - boton de borrar usuario
+		/*if (has_capability('moodle/user:delete', $sitecontext)) {
+			if (is_mnet_remote_user($user) or $user->id == $USER->id or is_siteadmin($user)) {
+				// no deleting of self, mnet accounts or admins allowed
+			} else {
+				
+				$url = new moodle_url($returnurl, array('deleteuser'=>$user->id, 'sesskey'=>sesskey()));
+				$buttons[] = html_writer::link($url, $OUTPUT->pix_icon('t/delete', $strdelete));
+			}
+		}*/
 		
 		$fullname = fullname($user, true);
 		

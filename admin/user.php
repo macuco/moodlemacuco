@@ -28,6 +28,7 @@
     $unlock       = optional_param('unlock', 0, PARAM_INT);
 	$icvepais     = optional_param('icvepais', 1, PARAM_INT); // INEA - Mexico por default
 	$icveentfed   = optional_param('icveentfed', 0, PARAM_INT); // INEA - Filtro para Entidad
+	$userroleid   = optional_param('userroleid', 0, PARAM_INT); // INEA - Rol del usuario a confirmar
     
 	admin_externalpage_setup('editusers');
 
@@ -87,8 +88,14 @@
 	if($listaentidades = inea_list_entidades($icvepais)) {
 		$listaentidades[0] = get_string('selectestado', 'inea');
 	}
-
-    $returnurl = new moodle_url('/admin/user.php', array('sort' => $sort, 'dir' => $dir, 'perpage' => $perpage, 'page'=>$page, 'icveentfed' => $icveentfed));
+	
+	// INEA - Agregar la entidad al URL para el responsable estatal
+	$urlparams = array('sort' => $sort, 'dir' => $dir, 'perpage' => $perpage, 'page'=>$page);
+	if (!empty($icveentfed) && $isresponsable) {
+		$urlparams = array_merge($urlparams, array('icveentfed' => $icveentfed));
+	}
+	
+    $returnurl = new moodle_url('/admin/user.php', $urlparams);
 
     // The $user variable is also used outside of these if statements.
     $user = null;
@@ -97,18 +104,21 @@
         if (!$user = $DB->get_record('user', array('id'=>$confirmuser, 'mnethostid'=>$CFG->mnet_localhost_id))) {
             print_error('nousers');
         }
-
+		//print_object($user);
         $auth = get_auth_plugin($user->auth);
-
+		//print_object($auth);
         $result = $auth->user_confirm($user->username, $user->secret);
-
+		
         if ($result == AUTH_CONFIRM_OK or $result == AUTH_CONFIRM_ALREADY) {
+			// INEA -- Poner el id del rol en el campo url
+			if($userroleid) {
+				$DB->set_field("user", "url", $userroleid, array("id" => $user->id));
+			}
             redirect($returnurl);
         } else {
             echo $OUTPUT->header();
             redirect($returnurl, get_string('usernotconfirmed', '', fullname($user, true)));
         }
-
     } else if ($delete and confirm_sesskey()) {              // Delete a selected user, after confirmation
         require_capability('moodle/user:delete', $sitecontext);
 
@@ -207,7 +217,7 @@
     // create the user filter form
 	$ffiltering = array('realname' => 0, 'lastname' => 1, 'firstname' => 1, 'username' => 1, 'city' => 1, 'skype' => 0, 'idnumber' => 1);
 	if($isadmin) {
-		$ffiltering = array_merge($ffiltering, array('institution' => 1));
+		$ffiltering = array_merge($ffiltering, array('institution' => 0));
 	}
 	$ufiltering = new user_filtering($ffiltering);
     echo $OUTPUT->header();
@@ -310,7 +320,7 @@
 
 	// INEA - Filtrar por entidad federativa
 	$urlparams = array('sort' => $sort, 'dir' => $dir, 'perpage' => $perpage);
-	if ($icveentfed && ($isresponsable || $isadmin)) {
+	if (!empty($icveentfed) && ($isresponsable || $isadmin)) {
 		$urlparams = array_merge($urlparams, array('icveentfed' => $icveentfed));
 	}
     $baseurl = new moodle_url('/admin/user.php', $urlparams);
@@ -435,7 +445,13 @@
 
             } else if ($user->confirmed == 0) {
                 if (has_capability('moodle/user:update', $sitecontext)) {
-                    $lastcolumn = html_writer::link(new moodle_url($returnurl, array('confirmuser'=>$user->id, 'sesskey'=>sesskey())), $strconfirm);
+					// INEA - Enviar adicionalmente el rol original del usuario para confirmarlo
+					if(isset($user->roleid) && !empty($user->roleid)) {
+						$paramsconfirm = array('confirmuser'=>$user->id, 'userroleid' => $user->roleid, 'sesskey'=>sesskey());
+					} else {
+						$paramsconfirm = array('confirmuser'=>$user->id, 'sesskey'=>sesskey());
+					}
+                    $lastcolumn = html_writer::link(new moodle_url($returnurl, $paramsconfirm), $strconfirm);
                 } else {
                     $lastcolumn = "<span class=\"dimmed_text\">".get_string('confirm')."</span>";
                 }

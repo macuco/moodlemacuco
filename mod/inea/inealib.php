@@ -627,7 +627,7 @@ function inea_get_users_listing($sort='u.course', $dir='ASC', $page=0, $recordsp
 
     $fullname  = $DB->sql_fullname();
 	
-    $toselect = "u.deleted <> 1 AND u.confirmed <> 0 AND u.id <> :guestid";
+    $toselect = "u.deleted <> 1 AND u.id <> :guestid";
     $params = array('guestid' => $CFG->siteguest);
 
     if (!empty($search)) {
@@ -658,7 +658,7 @@ function inea_get_users_listing($sort='u.course', $dir='ASC', $page=0, $recordsp
         $sort = " ORDER BY $sort $dir";
     }
 	
-	$userfields = ' u.id, u.firstname, u.lastname, u.email, u.country, u.institution, u.city, u.skype, u.idnumber '; 
+	$userfields = ' u.id, u.confirmed, u.firstname, u.lastname, u.email, u.country, u.institution, u.city, u.skype, u.idnumber '; 
 	$namefields = get_all_user_name_fields(true);
 	$extrafields = "$userfields, $namefields";
 	
