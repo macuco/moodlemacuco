@@ -1,0 +1,1211 @@
+/**************************************
+ * THEME NAME: amevyt
+ *
+ * Files included in this sheet:
+ *
+ *   amevyt/pamona.css
+ **************************************/
+
+/***** amevyt/pamona.css start *****/
+
+
+
+/**************************************
+ * THEME NAME: amevyt
+ *
+ * Files included in this sheet:
+ *
+ *   amevyt/pamona.css
+ **************************************/
+
+/***** amevyt/pamona.css start *****/
+
+/*******************************************************************
+ Color
+
+*******************************************************************/
+
+/***
+ ***  Core
+ ***/
+#pagename span.descr {
+	font-family: "Lucida Grande", Lucida, Verdana, sans-serif;
+	color: #000;
+	padding-left: 150px;
+}
+#pagename span.descr1 {
+	font-family: "Lucida Grande", Lucida, Verdana, sans-serif;
+	color: #415a7f;
+}
+
+#login {
+	width: 200px;
+	text-align: center;
+	display: block;
+	font: bold 12px "Lucida Grande", Lucida, Verdana, sans-serif;
+	color: #fff;
+	border: 5px solid #3180ad;
+	background: #415a7f center;
+	position: static;
+	float: left;
+	margin-right: 70px;
+	margin-left: 100px;
+	height: 250px;
+}
+
+#login span.error {
+	font-size: 10px;
+	color: #faff58;
+	margin-left: 10px;
+	padding-right: 20px;
+	font-style: italic;
+}
+
+#grayblock div.testi div.login2 div.textos {
+	width: 550px;
+	float: right;
+	margin-right: 50px;
+	font: 12px/16px "Lucida Grande", Lucida, Verdana, sans-serif;
+}
+a:link,
+a:visited {
+  color:#3180ad;
+	font: 12px "Lucida Grande", Lucida, Verdana, sans-serif;
+}
+
+a:hover {
+  color:#3180ad;
+	text-decoration: underline;
+}
+
+#grayblock div.testi div.login2 div.textos p a {
+	color: #3180ad;
+	font-weight: bold;
+}
+
+#grayblock div.testi div.login2 div.textos p a:hover {
+	text-decoration: underline;
+}
+
+body {
+  background-color:#fff;
+	/*background-image:url('../pix/images/bodybg.png');*/
+background-repeat: repeat-x ;
+background-position: top left;
+margin: 0 auto;
+}
+
+th.header,
+td.header,
+div.header {
+  border-color:#8fa2bd;
+  /*background-image: url('../pix/images/bar_.jpg');*/
+	background-color: #0a1922;
+	color: white;
+	font: bold 14px "Lucida Grande", Lucida, Verdana, sans-serif;
+}
+
+#datos div table.generaltable.boxaligncenter tbody tr td p a {
+	font-size: 12px;
+	color: #f1b43a;
+}
+
+.generalbox {
+  border-color:#a9bcc0;
+	font: 0.7em "Lucida Grande", Lucida, Verdana, sans-serif;
+}
+
+.errorbox {
+  color:#9c0404;
+  border-color:#660000;
+  background-color:#990000;
+}
+
+.errorboxcontent {
+  color:#9c0404;
+  background-color:#FFFFFF;
+}
+
+
+.sitetopiccontent {
+  border-color:#c0bea9;
+  background-color:#FFFFFF;
+}
+
+.unread {
+  background: #FFFFFF;
+}
+
+
+/***
+ *** Header
+ ***/
+
+#header-home, #header {
+  background: #ffffff url('../pix/images/hdbg.jpg') repeat-x 1px 0;
+}
+
+.headermain {
+  background: url('../pix/images/hdbgend.jpg') no-repeat 100% 0;
+  float: none
+}
+
+.headermenu {
+  text-decoration: none;
+  color: #ffffff;
+  font-weight:bold;
+}
+
+.headermenu a:link {
+  text-decoration: none;
+  color: #999999;
+  font-weight:bold;
+}
+
+.headermenu a:visited {
+  text-decoration: none;
+  color: #9A9999;
+  font-weight:bold;
+}
+
+.headermenu a:hover {
+  text-decoration: underline;
+  color: #ff0000;
+  font-weight:bold;
+}
+
+/***
+ *** Blocks
+ ***/
+
+div.sideblock div.header{
+  background: url('../pix/images/sideblock.jpg') 0 0  ;
+  border: medium none;
+  margin: 0;
+  height: 35px;<br>
+  color:#333333; padding-left:8px; padding-right:0; padding-top:0; padding-bottom:0
+
+}
+
+div.sideblock div.header div.title {
+  height: 40px;
+  padding: 10px 0 0 0;
+  margin: 0;
+  height/**/:/**/ 12px;
+}
+
+
+.sideblock .content {
+  border-color: #ffffff;
+  background-color:#fff;
+}
+
+#inst2 div.content {
+	background-color: white;
+}
+
+.sideblock .content hr {
+  border-top-color:#999999;
+}
+
+#left-column .hidden .header,
+#right-column .hidden .header {
+  border-bottom-color: #c0bea9;
+}
+
+.sideblock .header .hide-show img.hide-show-image {
+  background: url('../pix/images/switch_minus.gif') no-repeat bottom;
+}
+
+.sideblock.hidden .header .hide-show img.hide-show-image {
+  background: url('../pix/images/switch_plus.gif') no-repeat bottom;
+}
+
+.blockconfigtable {
+  background-color:#FFFFFF;
+  border-left:1px solid;
+  border-right:1px solid;
+  border-bottom:1px solid;
+  border-color:#6f98af;
+}
+
+
+/***
+ *** Calendar
+ ***/
+
+#calendar .maincalendar,
+#calendar .sidecalendar {
+  border-color: #c0bea9;
+  background-color:#FFFFFF;
+}
+
+#calendar .maincalendar table.calendarmonth th {
+  border-color: #000000;
+}
+
+table.minicalendar {
+  border-color: #c0bea9;
+}
+
+#calendar .maincalendar .eventlist .event {
+  border-color:#c0bea9;
+}
+
+#calendar .maincalendar .eventlist .event .topic,
+#calendar .maincalendar .eventlist .event .picture,
+#calendar .maincalendar .eventlist .event .side {
+  background-color:#ffffff;
+}
+
+#calendar .maincalendar table.calendarmonth ul.events-underway {
+  color:#999999;
+}
+
+/*Accessibility: increase contrast, darker link/weekend colors, lighter event backgrounds. */
+.minicalendar a,
+.calendarmonth a {
+  color:#000077;
+}
+
+#calendar .event_global,
+.minicalendar .event_global,
+.block_calendar_month .event_global {
+  border-color:#D6F8CD !important; /* #C5E7BC */
+  background-color:#D6F8CD;
+}
+
+#calendar .event_course,
+.minicalendar .event_course,
+.block_calendar_month .event_course {
+  border-color:#FFD3BD !important; /* #EEC2AC */
+  background-color:#FFD3BD;
+}
+
+#calendar .event_group,
+.minicalendar .event_group,
+.block_calendar_month .event_group {
+  border-color:#FEE7AE !important; /* #EDD69D */
+  background-color:#FEE7AE;
+}
+
+#calendar .event_user,
+.minicalendar .event_user,
+.block_calendar_month .event_user {
+  border-color:#DCE7EC !important; /* #CBD6DB */
+  background-color:#DCE7EC;
+}
+
+#calendar .duration_global,
+.minicalendar .duration_global {
+  border-top-color:#66D14D !important;
+  border-bottom-color:#66D14D !important;
+}
+
+#calendar .duration_course,
+.minicalendar .duration_course {
+  border-top-color:#FF9966 !important;
+  border-bottom-color:#FF9966 !important;
+}
+
+#calendar .duration_group,
+.minicalendar .duration_group {
+  border-top-color:#FBBB23 !important;
+  border-bottom-color:#FBBB23 !important;
+}
+
+#calendar .duration_user,
+.minicalendar .duration_user {
+  border-top-color:#A1BECB !important;
+  border-bottom-color:#A1BECB !important;
+}
+
+#calendar .weekend,
+.minicalendar .weekend {
+  color:#990000;
+}
+
+#calendar .today,
+.minicalendar .today {
+  border-color:#444444;
+}
+
+.cal_popup_fg {
+  background-color:#FFFFFF;
+}
+
+.cal_popup_bg {
+  border-color:#000000;
+  background-color:#FFFFFF;
+}
+
+#calendar .maincalendar .filters table,
+#calendar .sidecalendar .filters table,
+.block_calendar_month .filters table {
+  background-color: #ffffff;
+}
+
+
+/***
+ *** Course
+ ***/
+
+/* course, entry-page, login */
+.headingblock, h2.headingblock {
+  background-image:url('../pix/images/sideblock.jpg');
+  color:#06276a;
+  padding-top:5px;
+  border-bottom:2px solid #FFFFFF;
+  border-left: 1px solid #FFFFFF;
+  border-right: 2px solid #FFFFFF;
+  border-top: 1px solid #FFFFFF; padding-left:5px; padding-right:5px; padding-bottom:5px;
+  /* font:"Times New Roman", Times, serif;*/
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* course */
+.headingblock .outline {
+  border-color:#8fa2bd;
+}
+
+#course-view .weekscss .section,
+#course-view .section td {
+  border-color:#8fa2bd;
+}
+
+/* .content should match the body background, sides are white. */
+#course-view  .content {
+  background-color:#fff;
+}
+
+#course-view .weekscss .section,
+#course-view .section td.side {
+  background-color:#ebebeb;
+}
+
+#course-view .weekscss .current,
+#course-view .current td.side {
+  background: #8fa2bd;
+}
+
+#course-view .weekscss .hidden,
+#course-view .hidden td.side {
+  background: #DDDDDD;
+}
+
+#course-view .section .weekdates {
+  color: #8fa2bd;
+}
+
+#course-view .weekscss .weekdates {
+  color:#003366;
+  font-size:0.7em;
+}
+
+.categoryboxcontent,
+.courseboxcontent {
+  background-color:#FFFFFF;
+  /*border-bottom:2px dotted #6f98af;*/
+  border-left: 0px solid #FFFFFF;
+  border-right: 0px solid #FFFFFF;
+  border-top: 0px;
+}
+body#course-user .section {
+  border-color:#AAAAAA;
+}
+
+#admin-report .plugin,
+#course-report .plugin,
+#course-import .plugin {
+  margin-bottom: 20px;
+  margin-left:10%;
+  margin-right:10%;
+
+  border-bottom: 1px solid #cecece;
+  border-top: 1px solid #cecece;
+  border-right: 1px solid #cecece;
+  border-left: 1px solid #cecece;
+
+  background-color: #fdfdfd;
+}
+
+/***
+ *** Login
+ ***/
+
+.loginbox .content {
+  border-color:#c0bea9;
+  background-color:#FFFFFF;
+}
+
+
+/***
+ *** User
+ ***/
+
+.userinfobox {
+  border-color: #c0bea9;
+  background-color:#FFFFFF;
+}
+
+.groupinfobox {
+  border-color: #c0bea9;
+  background-color:#FFFFFF;
+}
+
+
+/***
+ *** Modules: Forum
+ ***/
+
+.forumheaderlist, .forumpost {
+  border-color:#c0bea9;
+  background-color:#FFFFFF;
+}
+
+.forumpost .content {
+  background: #FFFFFF;
+}
+
+.forumpost .left {
+  background:#d2cbb9;
+}
+
+.forumpost .topic {
+  border-bottom-color: #d2cbb9;
+  background-color:#d2cbb9;
+}
+
+.forumpost .starter {
+  background:#c0bea9;
+}
+
+.forumheaderlist .discussion .starter {
+  background:#ffffff;
+}
+
+.forumheaderlist td {
+  border-color: #FFFFFF;
+}
+
+.sideblock .post .head {
+  color:#555555;
+}
+
+.forumthread .unread {
+  background: #c0bea9;
+}
+#mod-forum-discuss .forumpost {
+  background: none;
+}
+
+#mod-forum-discuss .forumpost.unread .content {
+  border-color: #c0bea9;
+  background-color:#FFFFFF;
+}
+
+
+/***
+ *** Modules: Glossary
+ ***/
+
+.entryboxheader {
+  border-color: #BBBBBB;
+}
+
+.entrybox {
+  border-color: #BBBBBB;
+  background-color:#FFFFFF;
+}
+
+.entry {
+  background-color:#FFFFFF;
+}
+
+.glossarypost {
+  border-color: #c0bea9;
+}
+
+.glossarypost .entryheader,
+.glossarypost .entryapproval,
+.glossarypost .picture,
+.glossarypost .entryattachment,
+.glossarypost .left {
+  background-color: #e3dfd4;
+}
+
+.glossarycomment {
+  border-color: #c0bea9;
+}
+
+.glossarycomment .entryheader,
+.glossarycomment .picture,
+.glossarycomment .left {
+  background-color: #e3dfd4;
+}
+
+#mod-glossary-report .generalbox .teacher {
+  background: #e3dfd4;
+}
+
+.categoryheader {
+  background-image:url('../pix/images/bar.jpg');
+}
+
+.glossaryformatheader {
+  background-color: #c0bea9;
+}
+
+
+/***
+ *** Misc
+ ***/
+
+.generalboxcontent {
+  background-color:#ffffff;
+  border-color: #a9bcc0;
+}
+
+
+/***
+ *** Layout
+ ***/
+
+body {
+  margin:0px;
+  }
+
+h1.main,
+h2.main,
+h3.main,
+h4.main,
+h5.main,
+h6.main {
+  text-align: center;
+}
+
+#layout-table {
+  width:100%;
+  border-collapse:separate;
+  margin-top: 8px;
+}
+
+#layout-table #middle-column {
+  vertical-align:top;
+}
+
+#layout-table #left-column {
+ padding-left:5px;
+ vertical-align:top;
+	background-color: white;
+}
+
+#layout-table #right-column {
+  padding-right:5px;
+  vertical-align:top;
+}
+
+#layout-table #middle-column {
+  padding-left:12px;
+  padding-right:12px;
+}
+
+.sitetopic {
+  margin-bottom:20px;
+}
+
+.sitetopiccontent {
+  border-width:0px;
+  border-style:solid;
+}
+
+div.headermenu {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+.navbar {
+  width:auto;
+  padding:.2px 0.5em;
+  border-width:0px;
+  border-style:solid;
+}
+
+table.navbar {
+  width: 100%;
+}
+
+.sideblock {
+  margin-bottom:1em;
+  width: 100%;
+  border-bottom:2px solid #ffffff;
+  border-left: 1px solid #ffffff;
+  border-right: 2px solid #ffffff;
+  border-top: 1px solid #ffffff;
+}
+
+.sideblock .header, .sideblock h2.header {
+  text-align: left;
+  margin:0;
+  padding:4px;
+  border-width: 0px;
+  border-style: solid;
+  border-bottom: none;
+}
+
+.sideblock .header .commands {
+  float:right;
+  margin-top: -1.3em;
+  clear: both;
+}
+
+
+#crfooter-home {
+  background-color:#ECECEC;
+  height:45px
+}
+
+.crfootermain {
+  float:left;
+}
+
+.crfootermain1 {
+  float:right;
+  padding-top:8px;
+}
+
+fieldset {
+  margin-bottom: 30px;
+  border: #c0bea9 solid 0px;
+  background-color: #FFFFFF;
+}
+
+#mform1 fieldset.clearfix div.fcontainer.clearfix div.fitem.required fieldset.felement.fdate_selector {
+	background-color: white;
+}
+
+#content form.mform fieldset.clearfix {
+	background-color: white;
+}
+
+#content table tbody tr td {
+	color: #1d4d68;
+	bold 12px "Lucida Grande", Lucida, Verdana, sans-serif;
+	background-color: #fff;
+	text-align: center;
+}
+
+
+
+table.generaltable.boxaligncenter {
+	font: 12px "Lucida Grande", Lucida, Verdana, sans-serif;
+}
+
+#datos div table.generaltable.boxaligncenter tbody tr th.header.c0 {
+	
+}
+
+
+
+#_registro div.fitemtitle.fstaticlabel {
+	font: 11px "Lucida Grande", Lucida, Verdana, sans-serif;
+	margin-right: 20px;
+}
+
+#_registro table tbody tr td {
+	font-size: 12px;
+}
+
+#content form.mform fieldset.clearfix legend.ftoggler {
+	text-align: center;
+}
+
+
+
+
+fieldset.felement.fgroup {
+	background-color: white;
+}
+
+#notice {
+	text-align: center;
+	font: 12px/16px "Lucida Grande", Lucida, Verdana, sans-serif;
+}
+
+div.fstaticlabel {
+	
+}
+
+div.fdescription.required {
+	font-size: 12px;
+}
+
+#content {
+	background-color: white;
+}
+
+legend {
+	font-family: "Lucida Grande", Lucida, sans-serif;
+	font-size: 18px;
+ color: #415a7f;
+ font-weight: normal;
+ background-repeat:repeat-x;
+ padding-left:10px; padding-right:10px; padding-top:1px; padding-bottom:10px; background-position-y:50%
+}
+
+span.subtitle {
+	font-size: 12px;
+	color: gray;
+}
+
+#mform1 fieldset.hidden {
+	background-color: white;
+}
+
+a#id_ {
+	color: #3180ad;
+	text-align: center;
+	font-size: 12px;
+}
+
+#mform1 fieldset.clearfix div.fcontainer.clearfix div.fitem.required div.fitemtitle label {
+	background-color: 
+	padding: 5px;
+	font: small-caps bold 14px "Lucida Grande", Lucida, Verdana, sans-serif;
+	color: #ff2d7f;
+}
+
+#mform1 fieldset.clearfix div.fcontainer.clearfix div.fitem div.fitemtitle div.fstaticlabel {
+	font-size: 10px;
+	text-align: left;
+}
+
+div.felement.ftext.error {
+	border: 1px solid silver;
+	font: 9px "Lucida Grande", Lucida, Verdana, sans-serif;
+}
+
+div.felement.fselect.error {
+	border: 1px solid silver;
+	font: 9px "Lucida Grande", Lucida, Verdana, sans-serif;
+}
+
+fieldset.felement.fdate_selector.error {
+	border: 1px solid silver;
+	background-color: transparent;
+	font: 9px "Lucida Grande", Lucida, Verdana, sans-serif;
+}
+
+div.fgrouplabel {
+	padding: 5px;
+ bold 14px "Lucida Grande", Lucida, Verdana, sans-serif;
+	color: #ff2d7f;
+}
+
+label {
+	bold 14px "Lucida Grande", Lucida, Verdana, sans-serif;
+	color: #ff2d7f;
+}
+
+div.felement.fhierselect.error {
+	border: 1px solid silver;
+	font: 9px "Lucida Grande", Lucida, Verdana, sans-serif;
+}
+
+div.felement.fpassword.error {
+	border: 1px solid silver;
+	font: 9px "Lucida Grande", Lucida, Verdana, sans-serif;
+}
+
+#mform1 fieldset.clearfix {
+	background-color: white;
+}
+
+#mform1 {
+	background-color: white;
+}
+
+.block-navlist,
+.block-navlist .sidemenu {
+  margin:0;
+  padding:0
+}
+.block-navlist .sidemenu {
+  list-style-type:none
+}
+.block-navlist .sidemenu li {
+  margin:0 1px
+}
+.block-navlist .sidemenu li a {
+  /*display:block;*/
+  line-height:2em;
+  padding:1px 0;
+  border-bottom:1px solid #FFF
+}
+.structlist {
+font-size:1em;
+}
+.subt {
+font-size:1em;
+font-weight:bold;
+}
+.structurelist {
+font-size:1em;
+}
+
+
+
+
+#wrapperindx {
+	width: 1000px;
+	margin: 0 auto;
+	min-height: 100%;
+	height: auto !important;
+	height: 100%;
+}
+
+
+/* Header
+-----------------------------------------------------------------------------*/
+#headerindx {
+	width: 800;
+	height: 130px;
+	background-image: url('../pix/images/top.png');
+	background-repeat: no-repeat;
+	background-position: top left;
+}
+
+/* Middle
+-----------------------------------------------------------------------------*/
+#middleindx {
+	width: 100%;
+	padding: 0 0 50px;
+	height: 1%;
+	position: relative;
+}
+
+#containerindx {
+	width: 100%;
+	float: left;
+	overflow: hidden;
+	background-repeat: no-repeat;
+	background-position: top left;
+	text-align: center;
+}
+
+#containerindx {
+	width: 100%;
+	float: left;
+	overflow: hidden;
+	background-repeat: no-repeat;
+	background-position: top left;
+	text-align: center;
+}
+
+#containerindx a p {
+	font-size: 20px;
+	color: #3180ad;
+}
+
+#containerindxr {
+	width: 100%;
+	height:500px;
+	float: left;
+	overflow: hidden;
+	background-repeat: no-repeat;
+	background-position: top left;
+}
+
+#contentindx {
+	padding: 0 90px 0 380px;
+	height:420px; /* Altura*/
+	text-align:center;
+	color:#8A8275;
+	font-family: Verdana, Geneva, sans-serif;
+	font-size:9px;
+	background-repeat: no-repeat;
+	background-position: top right;
+}
+#contentindxPortada {
+	padding: 0 40px 0 330px;
+	height:420px; /* Altura*/
+	text-align:center;
+	color:#8A8275;
+	font-family: Verdana, Geneva, sans-serif;
+	font-size:10px;
+}
+#containerindxp {
+	width: 100%;
+	float: left;
+	overflow: hidden;
+	background-repeat: no-repeat;
+	background-position: top left;
+}
+#columna1{
+	margin-top:70px;
+	margin-left:50px;
+	width:150px;
+		float:left;
+}
+#columna1 h1{
+	font-family: Verdana, Geneva, sans-serif;
+	font-size:10px;
+	color:#6b6b6b;
+	margin-top:13px;
+}
+#columna1 h2{
+	font-family: Verdana, Geneva, sans-serif;
+	font-size:9px;
+	color:#8A8275;
+	margin-left:9px;
+	margin-top:-7px;
+}
+
+#columna1 p{
+	font-family: Verdana, Geneva, sans-serif;
+	font-size:8px;
+	font-style:italic;
+	color:#8A8275;
+	margin-left:10px;
+	margin-top:-7px;
+
+}
+#columna2{
+	margin-top:70px;
+	margin-left:40px;
+	width:150px;
+float:left;
+}
+#columna2 h1{
+	font-family: Verdana, Geneva, sans-serif;
+	font-size:10px;
+	color:#6b6b6b;
+	margin-top:13px;
+}
+#columna2 h2{
+	font-family: Verdana, Geneva, sans-serif;
+	font-size:9px;
+	color:#8A8275;
+	margin-left:9px;
+	margin-top:-7px;
+}
+#columna2 p{
+	font-family: Verdana, Geneva, sans-serif;
+	font-size:8px;
+	font-style:italic;
+	color:#8A8275;
+	margin-left:10px;
+	margin-top:-7px;
+}
+#columna3{
+	margin-top:100px;
+	margin-left:80px;
+	margin-right:60px;
+	font-family: Verdana, Geneva, sans-serif;
+	font-size:10px;
+	text-align:justify;
+}
+#registro{
+	margin-top:100px;
+	text-align:center;
+	font-size:9px;
+	height:100px;
+	padding-top:10px;
+	color:#B9B4AC;
+	font-family: Verdana, Geneva, sans-serif;
+}
+#figura{
+	margin-top:30px;
+	font-weight:bold;
+		font-size:11px;
+}
+#registroPortada{
+	margin-top:120px;
+	text-align:center;
+	font-size:10px;
+	height:250px;
+	padding-top:20px;
+	padding-left:30px;
+	padding-right:30px;
+	text-align:center;
+	color:#B9B4AC;
+	font-family: Verdana, Geneva, sans-serif;
+		font-weight:bold;
+}
+#camposPortada{
+	font-weight:bold;
+	text-align:right;
+	color:#8A8275;
+	margin-right:50px;
+	margin-bottom:20px;
+	margin-top:20px;
+}
+#olvido{
+	font-weight:bold;
+	text-align:justify;
+	margin-left:140px;
+	height:80px;
+	padding-top:20px;
+	padding-right:90px;
+	padding-left:50px;
+	font-size:9px;
+	color:#fff;
+}
+#olvido a{
+color:#8A8275;
+}
+#olvido a:hover{
+color:#fff;
+}
+
+/* Sidebar Right
+-----------------------------------------------------------------------------*/
+#sideRightindx {
+	float: left;
+	width: 320px;
+	height:400px;	
+	margin-left: -100%;
+	position: relative;
+	background-image: url('../pix/images/sdbrbck.jpg');
+	background-repeat: no-repeat;
+	background-position: top left;
+}
+
+#side1 {
+	width: 200px;
+	height:15px;
+}
+
+#side2 {
+	width: 280px;
+	height:175px;
+	margin-left:50px;
+	background-image: url('../pix/images/titulo1.png');
+	background-repeat: no-repeat;
+	background-position: top left;
+	
+}
+
+#side2 ul{
+	padding-top:45px;}
+	
+#side2 li{
+	font-size:8px;
+	padding-right:100px;
+	margin-left:0px;
+	margin-top:8px;
+	color:#75858A;
+	font-family: Verdana, Geneva, sans-serif;
+}
+
+#side2 li a{
+	color:#75858A;
+}
+#side2 li a:hover{
+	color:#000;
+}
+
+#side2 ul{
+	list-style-type:none;  
+}
+
+
+#side3 {
+	width: 280px;
+	height:180px;
+	margin-left:50px;
+	background-image: url('../pix/images/titulo2.png');
+	background-repeat: no-repeat;
+	background-position: top left;
+}
+
+#side3 ul{
+	padding-top:45px;}
+	
+#side3 li{
+	font-size:8px;
+	padding-right:100px;
+	margin-left:0px;
+	margin-top:8px;
+	color:#75858A;
+	font-family: Verdana, Geneva, sans-serif;
+}
+
+#side3 li a{
+	color:#75858A;
+}
+#side3 li a:hover{
+	color:#000;
+}
+
+#side3 ul{
+	list-style-type:none;  
+}
+
+
+#side1Portada {
+	width: 200px;
+	height:50px;
+}
+#side2Portada {
+	width: 280px;
+	height:245px;
+	margin-left:87px;
+	padding-top:15px;
+}
+#side3Portada {
+	width: 210px;
+	height:50px;
+	padding-left:70px;
+	text-align:center;
+	color:#fff;
+	font-family: Verdana, Geneva, sans-serif;
+	font-weight:bold;
+	font-size:12px;
+}
+#sideRightindxPortada {
+	float: left;
+	width: 320px;
+	height:400px;	
+	margin-left: -100%;
+	position: relative;
+	background-image: url('../pix/images/sdbrbckPortada.jpg');
+	background-repeat: no-repeat;
+	background-position: top left;
+}
+
+
+
+
+/* Footer
+-----------------------------------------------------------------------------*/
+#footerindx {
+	width: 800px;
+	margin: -50px auto 0;
+	height: 50px;
+	text-align:center;
+	color:#D0CDC8;
+	
+}
+#footerindx a{
+font-size:9px;
+color:#D0CDC8;
+}
+#footerindx a:hover{
+color:#000;}/***** amevyt/pamona.css end *****/
+
+/***** amevyt/pamona.css end *****/
+
+div.fitem {
+	background-color: white;
+}
+
+#mform1 fieldset.hidden div {
+	background-color: white;
+}
+
+#fitem{
+	background-color: white;
+}
+

@@ -149,12 +149,19 @@ $PAGE->set_title($title);
 $PAGE->set_heading($SITE->fullname);
 
 // INEA - Agregar estilos al registro de usuarios
-// AQUI ME QUEDE
-if (file_exists('pamona.css')) {
-	$PAGE->requires->css('/login/pamona.css');
+$urltheme = $CFG->dirroot . '/theme/inea/scss/pamona.css';
+if (file_exists($urltheme)) {
+	$PAGE->requires->css('/theme/inea/scss/pamona.css');
 }
 
 echo $OUTPUT->header();
+
+// INEA - Elementos DIV para dar formato al encabezado y cuerpo de la pagina
+echo '<div id="wrapperindx">';
 echo ' <div id="headerindx"></div> ';
+
 $mform_signup->display();
+
+echo '</div>'; // INEA - Fin DIV
+
 echo $OUTPUT->footer();
