@@ -1306,9 +1306,12 @@ function obtener_avance_unidad($userid, $courseid, $unidadid){
     print_object($ejercicios);
     $ejercicios = implode(",",$ejercicios);
     print_object($ejercicios);
-    
-    $respuestas = $DB->get_records_select('inea_respuestas','userid='.$userid.' AND ejercicios_id in('.$ejercicios.') group by ejercicios_id');
-    $contestadas = empty($respuestas)?0:count($respuestas);
+    if(empty($ejercicios)){
+        $contestadas = 0;
+    }else{
+        $respuestas = $DB->get_records_select('inea_respuestas','userid='.$userid.' AND ejercicios_id in('.$ejercicios.') group by ejercicios_id');
+        $contestadas = empty($respuestas)?0:count($respuestas);
+    }
     
     $total = 100*$unidad->nactividades/$unidad->porcentaje;
     $avance = round(($contestadas*100/$total)*100)/100;
