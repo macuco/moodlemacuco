@@ -1,6 +1,7 @@
 <?php
 
 require_once $CFG->dirroot .'/grade/report/user/externallib.php';
+require_once $CFG->dirroot .'/mod/inea/inealib.php';
 //require_once($CFG->dirroot . '/mod/inea/inealib_jmp.php');
 
 //MACUCO
@@ -41,6 +42,13 @@ function get_municipio($id_estado, $id_municipio ) {
     
 }
 
+/**
+ * Obtiene todas las calificaciones de un usuario
+ * @param number $courseid
+ * @param number $userid
+ * @param number $groupid
+ * @return array[]|NULL[][][]|number[][][]|array[][][]|array[][]
+ */
 function get_calificaciones($courseid, $userid, $groupid = 0){
     global $CFG, $USER;
     
@@ -189,4 +197,56 @@ function get_report_data($course, $context, $user, $userid, $groupid, $tabledata
         $gui->close();
     }
     return array($reportdata, $warnings);
+}
+
+
+function puede_hacer_examen($courseid, $userid, $cm){
+    global $CFG, $USER;
+    if(!isstudent($courseid,$userid)){
+        return true;
+    }
+    //$userid = 3;
+    $modinfo = get_fast_modinfo($courseid);
+    
+    
+    $cmAnterior = null;
+    $unidad = 0;
+    foreach ($modinfo->get_section_info_all() as $section => $thissection) { // Recorre las secciones
+        foreach ($modinfo->sections[$section] as $modnumber) { //Recorre los moods de las secciones
+            $mod = $modinfo->cms[$modnumber];
+            if($mod->modname=='quiz'){
+                $unidad++;//Incremantando el numero de unidades (Examen por unidad)
+            }
+            if($mod->id==$cm->id){
+              break 2;  
+            }
+            if($mod->modname=='quiz'){
+                $cmAnterior = $mod;
+                //print_object($mod->id);
+                //print_object($mod->modname);
+                //print_object($mod->name);
+            }
+        }
+    }
+    
+    if($cmAnterior==null){//Es el primer examen
+        //verificar que tenga el avance de las actividades para poder hacer el examen
+        $avance = obtener_avance_unidad($userid,$courseid,1);
+        if($avance>=80){
+            return true;
+        }
+        return false;
+    }else{
+        
+        //verificar calificacion de examen anterior y avance de actividades
+        $grading_info = grade_get_grades($courseid, 'mod', 'quiz', $cmAnterior->instance, array($userid));
+        $calificacion = floatval($grading_info->items[0]->grades[$userid]->grade);
+        
+        $avance = obtener_avance_unidad($userid,$courseid,$unidad);
+        if($avance>=80 && $calificacion>=8){
+            return true;
+        }
+        return false;
+    }
+    
 }

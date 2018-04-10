@@ -243,13 +243,45 @@ if (isguestuser()) {
     // If they are not enrolled in this course in a good enough role, tell them to enrol.
     echo $output->view_page_notenrolled($course, $quiz, $cm, $context, $viewobj->infomessages);
 } else { 
+    //$viewobj->preventmessages = ["ESTO ES UNA CHINGONERIA"];// -- Mensaje a mostrar en la parte del boton
+    //$viewobj->buttontext = ''; //Si no se pone texto en el boton, el boton no se muestra
+    require_once '../../mod/inea/inealib_jmp.php';
+    if(!puede_hacer_examen($course->id,$USER->id,$cm)){
+        $viewobj->preventmessages = ["ES NECESARIO CONTESTAR LAS ACTIVIDADES DE LA UNIDAD Y LOS EXAMENES PREVIOS"];// -- Mensaje a mostrar en la parte del boton
+        $viewobj->buttontext = ''; //Si no se pone texto en el boton, el boton no se muestra
+    }
     echo $output->inea_view_page($course, $quiz, $cm, $context, $viewobj);
 }
 
-require_once '../../mod/inea/inealib_jmp.php';
 
-$tmp = get_calificaciones(2, 3,null);
-print_object($tmp);
+/*
+$modinfo = get_fast_modinfo($course);
+
+$tmp = get_calificaciones(2, 3);
+
+print_object($cm);
+
+foreach ($modinfo->get_section_info_all() as $section => $thissection) {
+    
+    //print_object($thissection->modinfo);
+    //$sectiono = $modinfo->get_section_info($section);
+    //print_object($sectiono);
+    //$sectionmi = $modinfo->sections[$section];
+    //print_object($sectionmi);
+    foreach ($modinfo->sections[$section] as $modnumber) {
+        $mod = $modinfo->cms[$modnumber];
+        if($mod->modname=='quiz'){
+        
+            print_object($mod->id);
+            print_object($mod->modname);
+            print_object($mod->name);
+        }
+    }
+    
+}*/
+    
+
+
 
 
 echo $OUTPUT->footer();
