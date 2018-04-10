@@ -445,7 +445,7 @@ class inea_grade_report_user extends grade_report_user {
        if (! $grade_grade = grade_grade::fetch(array('itemid'=>$element['object']->id,'userid'=>$this->user->id))) {
            $grade_grade = new grade_grade();
            $grade_grade->userid = $this->user->id;
-           $grade_grade->itemid = $grade_object->id;
+           $grade_grade->itemid = $element['object']->id;
        }
        
        $grade_grade->load_grade_item();
