@@ -1301,8 +1301,11 @@ function obtener_avance_unidad($userid, $courseid, $unidadid){
     $unidad = array_pop($unidades);
     
     $ejercicios = $DB->get_records_select('inea_ejercicios','courseid='.$courseid.' AND unidad='.$unidadid,array(),'','id');
+    print_object($ejercicios);
     $ejercicios = array_keys($ejercicios);
+    print_object($ejercicios);
     $ejercicios = implode(",",$ejercicios);
+    print_object($ejercicios);
     
     $respuestas = $DB->get_records_select('inea_respuestas','userid='.$userid.' AND ejercicios_id in('.$ejercicios.') group by ejercicios_id');
     $contestadas = empty($respuestas)?0:count($respuestas);
