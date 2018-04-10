@@ -1301,21 +1301,21 @@ function obtener_avance_unidad($userid, $courseid, $unidadid){
     $unidad = array_pop($unidades);
     
     $ejercicios = $DB->get_records_select('inea_ejercicios','courseid='.$courseid.' AND unidad='.$unidadid,array(),'','id');
-    print_object($ejercicios);
     $ejercicios = array_keys($ejercicios);
-    print_object($ejercicios);
     $ejercicios = implode(",",$ejercicios);
-    print_object($ejercicios);
+    
     if(empty($ejercicios)){
         $contestadas = 0;
     }else{
         $respuestas = $DB->get_records_select('inea_respuestas','userid='.$userid.' AND ejercicios_id in('.$ejercicios.') group by ejercicios_id');
         $contestadas = empty($respuestas)?0:count($respuestas);
     }
-    
-    $total = 100*$unidad->nactividades/$unidad->porcentaje;
-    $avance = round(($contestadas*100/$total)*100)/100;
-    
+    if(isset($unidad->nactividades)){
+        $total = 100*$unidad->nactividades/$unidad->porcentaje;
+        $avance = round(($contestadas*100/$total)*100)/100;
+    }else{
+        $avance = 0;
+    }
     return $avance;
     
 }
