@@ -37,7 +37,7 @@ if (isloggedin()) {
     if($currenRole){
         $viewContentCourse = $currenRole->roleid==5||$currenRole->roleid==4? true : false;
         if($viewContentCourse && $ineas = $modinfo->get_instances_of('inea')){
-            //print_object($PAGE->pagelayout);exit;
+            print_object($ineas);exit;
             redirect($CFG->wwwroot .'/mod/inea/view.php?id='.array_values($modinfo->get_instances_of('inea'))[0]->id.'&redirect=0');
             array_values($modinfo->get_instances_of('inea'))[0]->id;
             //TODO REDIRECT
