@@ -37,21 +37,24 @@ if (isloggedin()) {
     if($currenRole){
         $viewContentCourse = $currenRole->roleid==5||$currenRole->roleid==4? true : false;
         if($viewContentCourse && $ineas = $modinfo->get_instances_of('inea')){
-            
+            $hayRedireccion = false;
             foreach ($ineas as $id=>$inea){
                 if($inea->deletioninprogress==0){
+                    $hayRedireccion = true;
                     break;
                 }
             }
             
-            print_object($inea);
+            //print_object($inea);
             
-            $inea = reset($ineas);
-            echo $CFG->wwwroot .'/mod/inea/view.php?id='.$inea->id.'&redirect=0';
-            print_object(reset($ineas));exit;
+            //$inea = reset($ineas);
+            //echo $CFG->wwwroot .'/mod/inea/view.php?id='.$inea->id.'&redirect=0';
+            //print_object(reset($ineas));exit;
+            if($hayRedireccion){
             redirect($CFG->wwwroot .'/mod/inea/view.php?id='.$inea->id.'&redirect=0');
-            array_values($modinfo->get_instances_of('inea'))[0]->id;
-            //TODO REDIRECT
+            }
+            //array_values($modinfo->get_instances_of('inea'))[0]->id;
+            
         }
     }
     
