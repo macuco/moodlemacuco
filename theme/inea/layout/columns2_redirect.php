@@ -41,7 +41,7 @@ if (isloggedin()) {
             
             $inea = reset($ineas);
             echo $CFG->wwwroot .'/mod/inea/view.php?id='.$inea->id.'&redirect=0';
-            print_object(reset($ineas)->id);exit;
+            print_object(reset($ineas));exit;
             redirect($CFG->wwwroot .'/mod/inea/view.php?id='.$inea->id.'&redirect=0');
             array_values($modinfo->get_instances_of('inea'))[0]->id;
             //TODO REDIRECT
