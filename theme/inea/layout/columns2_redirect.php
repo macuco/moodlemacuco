@@ -38,8 +38,9 @@ if (isloggedin()) {
         $viewContentCourse = $currenRole->roleid==5||$currenRole->roleid==4? true : false;
         if($viewContentCourse && $ineas = $modinfo->get_instances_of('inea')){
             //print_object(array_values($ineas));
-            print_object(reset($ineas)->id);exit;
-            redirect($CFG->wwwroot .'/mod/inea/view.php?id='.array_values($modinfo->get_instances_of('inea'))[0]->id.'&redirect=0');
+            //print_object(reset($ineas)->id);exit;
+            $inea = reset($ineas);
+            redirect($CFG->wwwroot .'/mod/inea/view.php?id='.$inea->id.'&redirect=0');
             array_values($modinfo->get_instances_of('inea'))[0]->id;
             //TODO REDIRECT
         }
