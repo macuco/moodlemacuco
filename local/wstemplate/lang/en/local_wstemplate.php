@@ -15,17 +15,11 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Local plugin "staticpage" - Version file
- *
- * @package    local_staticpage
- * @copyright  2013 Alexander Bias, Ulm University <alexander.bias@uni-ulm.de>
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * Web service template plugin related strings
+ * @package   localwstemplate
+ * @copyright 2011 Moodle Pty Ltd (http://moodle.com)
+ * @author    Jerome Mouneyrac
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
-
-$plugin->component = 'local_staticpage';
-$plugin->version = 2017063000;
-$plugin->release = 'v3.2-r7';
-$plugin->requires = 2016120500;
-$plugin->maturity = MATURITY_STABLE;
+$string['pluginname'] = 'Web Service Planetmedia';
